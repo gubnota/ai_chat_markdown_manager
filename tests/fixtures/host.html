@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Local chat fixture · Markdown Manager</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f7f8fa;
+        color: #313847;
+        font: 15px system-ui;
+      }
+      header {
+        padding: 22px 32px;
+        border-bottom: 1px solid #e5e8ee;
+        color: #818898;
+        font-size: 12px;
+      }
+      aside {
+        padding: 20px;
+        position: fixed;
+        width: 190px;
+      }
+      aside a {
+        display: block;
+        color: #78808f;
+        font-size: 12px;
+        padding: 9px;
+        text-decoration: none;
+      }
+      main {
+        max-width: 620px;
+        margin: 70px auto;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 27px;
+      }
+      article {
+        padding: 16px 0;
+        border-bottom: 1px solid #e5e8ee;
+        line-height: 1.8;
+      }
+      pre {
+        padding: 15px;
+        background: #eceef4;
+        border-radius: 10px;
+      }
+      form {
+        position: fixed;
+        bottom: 22px;
+        left: 30%;
+        right: 25px;
+        display: flex;
+        gap: 10px;
+      }
+      textarea {
+        flex: 1;
+        border: 1px solid #e0e4ec;
+        border-radius: 15px;
+        padding: 15px;
+        height: 58px;
+        background: white;
+      }
+      #host-send {
+        border: 0;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        background: #454452;
+        color: white;
+        align-self: center;
+      }
+      @media (max-width: 700px) {
+        aside {
+          display: none;
+        }
+        main {
+          margin: 15px auto;
+          padding: 20px;
+        }
+        form {
+          left: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>LOCAL DEVELOPMENT FIXTURE · NO ACCOUNT CONNECTED</header>
+    <aside aria-label="Conversation history">
+      <a href="/c/design">Designing a floating panel</a
+      ><a href="/c/research">Research notes</a
+      ><a href="/c/planning">Weekly planning</a>
+    </aside>
+    <main>
+      <h1>Designing a floating Markdown panel</h1>
+      <article data-message-author-role="user">
+        <p>How can I keep the export controls close to my conversation?</p>
+      </article>
+      <article data-message-author-role="assistant">
+        <p>
+          Use a small floating button with a stable anchor. Opening a panel
+          should preserve its position.
+        </p>
+        <ul>
+          <li>Export your current conversation as Markdown.</li>
+          <li>Select loaded conversations for a ZIP backup.</li>
+          <li>Keep all processing inside your browser.</li>
+        </ul>
+        <pre><code class="language-ts">const privacy = "local only";
+const anchor = { x: 14, y: 300 };</code></pre>
+        <p>Native actions stay disabled until verified.</p>
+      </article>
+    </main>
+    <form onsubmit="event.preventDefault()">
+      <textarea aria-label="Message" placeholder="Write a message…"></textarea
+      ><button id="host-send" aria-label="Send" type="submit">↑</button>
+    </form>
+  </body>
+</html>

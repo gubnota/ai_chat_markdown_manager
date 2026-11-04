@@ -1,0 +1,11 @@
+SPDX-License-Identifier: MIT OR Apache-2.0
+
+Original v2 project contributions are available, at your option, under either:
+- the MIT License (LICENSE-MIT), or
+- the Apache License, Version 2.0 (LICENSE-APACHE).
+
+The repository owner is identified by the configured GitHub remote as gubnota.
+No separate legal name is asserted. This grant covers original contributions
+only. It does not relicense inherited or bundled third-party code. The inherited
+v1.2 converter remains under Adem Kouki's MIT notice; dependencies retain their
+own licenses. See THIRD-PARTY-NOTICES.md and the preserved baseline source.
