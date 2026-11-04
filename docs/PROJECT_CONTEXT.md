@@ -1,0 +1,116 @@
+# Project context
+
+## Identity
+- Project: AI Chat Markdown Manager.
+- Repository: `gubnota/ai_chat_markdown_manager`.
+- Release: 2.0.0, 2026-11-04.
+- Purpose: manage discovered AI conversations and export loaded content locally.
+- Audience: Safari Userscripts and Tampermonkey users.
+- Product: a floating userscript interface injected into matched chat websites.
+- No backend, database, hosted application or account credentials.
+
+## Current milestone
+- v2 implementation, bilingual guides, tests and distribution artifacts complete.
+- Original v1.2.0 script and `README.txt` preserved unchanged.
+- Reference home, conversations and settings inspected through Browser.
+- Reference export/delete dialog clicks blocked by automatic approval review.
+- Gemini live inspection was signed out; native deletion remains disabled.
+- Native archive is unsupported on every production adapter.
+- Actual extension installation requires manual verification.
+- WebKit automation does not establish Safari extension compatibility.
+
+## Technology
+- Strict TypeScript for new application code.
+- React 19 with reusable semantic controls.
+- Tailwind 4, embedded CSS and Lucide icons.
+- Shadow DOM isolates injected styles.
+- Vite builds one ES2022 IIFE userscript.
+- fflate creates genuine local ZIP downloads.
+- Vitest/jsdom covers conversion, identity, batch and storage behavior.
+- Playwright covers the production bundle in Chromium and WebKit.
+- npm lockfile fixes dependency versions.
+- Node 22.12+ recommended; verified here on Node 26.8.2.
+
+## Hard constraints
+- Keep all original 48 metadata match rules.
+- Never expand permissions to all websites.
+- Bundle code and styles; no runtime CDN or remote imports.
+- Do not fabricate history, content, timestamps or successful native actions.
+- Discovery is partial and based on observed DOM identities.
+- Unsupported and unknown operations remain visibly disabled.
+- Native destructive actions must validate exact identity and fail closed.
+- No destructive tests against real user accounts.
+- Preserve inherited converter behavior and original MIT attribution.
+- New code is MIT OR Apache-2.0; inherited/vendor licenses retain their terms.
+- Preserve independent FAB anchoring and Send-button avoidance.
+- Keep `.DS_Store`, dependencies and temporary test output out of Git.
+- Track the installable script, release ZIP and screenshots.
+
+## Core workflows
+- Open the FAB or restore it with Alt+Shift+E.
+- Save current loaded content with Alt+Shift+M or the home action.
+- Shift-click the FAB to save highlighted content.
+- Discover loaded sidebar links; open/scroll the sidebar and rescan.
+- Search/filter/sort and select stable platform/id keys.
+- Preview or export current content to capture a temporary snapshot.
+- Navigate within the same tab to capture another conversation.
+- Export selected/observed entries to ZIP with per-item results.
+- Review failures; only exports offer failed-item retry.
+- Cancel queued work without undoing completed work.
+- Adjust appearance, FAB, Markdown and batch preferences locally.
+- Minimize with Escape; hide and restore through explicit controls/shortcut.
+
+## Platform behavior
+- ChatGPT: specialized loaded-sidebar discovery and turn-aware converter.
+- Gemini: loaded-sidebar discovery and generic loaded-content export.
+- Claude: loaded-sidebar discovery and generic loaded-content export.
+- DeepSeek: loaded-link discovery and generic loaded-content export.
+- Remaining matched sites: current-page generic conversion only.
+- No authenticated live platform validation is claimed.
+- Gemini native engine is fixture-tested behind a constructor verification gate.
+- Production adapter creation never enables that gate.
+- All production native archive/delete paths reject unsupported/unknown calls.
+- See `docs/PLATFORMS.md` before changing a capability.
+
+## Privacy and security
+- No telemetry, uploads, remote code or private account APIs.
+- Current page DOM is read locally.
+- Settings, FAB anchor and selection IDs persist per origin in localStorage.
+- History retains at most 30 operation summaries without content or identities.
+- Captured Markdown bodies stay in memory only.
+- Snapshot cache: at most 20 entries and approximately 8 MiB UTF-16 text.
+- Reload clears snapshots; same-tab SPA navigation may retain them.
+- Downloads and clipboard may contain sensitive conversation content.
+- Open Shadow DOM and same-origin storage are not security boundaries.
+- Host scripts/extensions can access same-origin data.
+- Images remain external Markdown links where enabled.
+- See `docs/PRIVACY.md` for reset behavior and storage details.
+
+## Performance and accessibility
+- DOM observation is debounced and ignores the injected UI.
+- List displays 24 items per page while selection retains all matching IDs.
+- Batches run sequentially; batch size controls delay grouping, not concurrency.
+- FAB coordinates are independent of expanded-panel dimensions.
+- Viewport changes clamp position and avoid detected Send controls.
+- Keyboard focus, dialogs, labels, reduced motion and responsive layout matter.
+- Some status/error strings remain English in the Russian UI.
+
+## Agent workflow
+- Read the six compact context documents first.
+- Use `docs/ARCHITECTURE_INDEX.md` to locate relevant modules.
+- Inspect only files needed for the task; do not scan the whole repository.
+- Keep module dependencies aligned with `docs/MODULE_OWNERSHIP.md`.
+- Update stable contracts and ADRs when behavior changes.
+- Record results and blockers in `docs/TASK_LOG.md`.
+- Keep documents concise and implementation-aligned.
+- Make coherent commits and preserve user changes.
+- Never represent fixture results as live account verification.
+
+## Commands and evidence
+- Install: `npm ci`; develop: `npm run dev`.
+- Check: `npm run lint`, `npm run typecheck`, `npm test`.
+- Release: `npm run build`; browser checks: `npm run test:integration`.
+- Install browsers once: `npx playwright install chromium webkit`.
+- Checksums: `shasum -a 256 -c SHA256SUMS` from repository root.
+- Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
+- Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.
