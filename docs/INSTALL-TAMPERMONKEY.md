@@ -1,0 +1,23 @@
+# Tampermonkey installation
+
+See the [official website](https://www.tampermonkey.net/) and [FAQ](https://www.tampermonkey.net/faq.php) for browser-specific installation and permissions. The Chromium bundle is tested by injection into a fixture; the full extension installation flow has not been manually verified here.
+
+1. Install the official Tampermonkey extension for your browser and enable it.
+2. Download/extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.0.0.zip).
+3. Open Tampermonkey Dashboard → create a new script. Replace the entire template with `AI-Chat-Markdown-Manager.user.js`, including its metadata header.
+4. Save and enable it. Alternatively, use the dashboard's file import utility to import the `.user.js`; check the imported name/version before enabling.
+5. Grant the extension permission for the intended chat sites and any userscript-execution permission required by the current browser. Follow Tampermonkey's prompt if the browser requires an additional setting.
+6. Confirm a matching rule covers the site's exact URL. All 48 inherited rules are retained; no universal match is added.
+7. Disable old/duplicate copies and reload the target tab. Open the floating file icon.
+
+## Upgrade and troubleshooting
+
+Edit/replace the existing script with the full new distributable and save, rather than leaving both versions enabled. Reload open chat tabs. If importing creates another copy, disable/remove the older copy.
+
+If no icon appears, check the extension's script list for that tab, its global enable switch, site access and URL match. Alt+Shift+E restores a hidden icon. A ZIP, GitHub HTML page or truncated paste is not executable userscript content. If clipboard fails, download Markdown instead. Disable other copies in Safari Userscripts or another extension too.
+
+The script uses `@grant none`, no privileged manager API and no remote runtime dependencies. It does not require credentials, API keys or a local development server.
+
+## Кратко по-русски
+
+Установите и включите Tampermonkey. В панели управления создайте скрипт, замените шаблон полным `.user.js`, сохраните и включите. Можно импортировать сам `.user.js` через средства панели. Разрешите нужные сайты и выполнение userscript, если браузер запросит. Отключите старые копии, перезагрузите чат. Обновляйте существующую установку; при отсутствии кнопки проверьте разрешения, список скриптов текущей вкладки, точный URL и Alt+Shift+E.
