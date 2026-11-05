@@ -3,14 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.0.0, 2026-11-04.
-- Purpose: manage discovered AI conversations and export loaded content locally.
+- Release: 2.1.0, 2026-11-06.
+- Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2 implementation, bilingual guides, tests and distribution artifacts complete.
+- v2.1 adds scroll loading, automatic chat loading for ZIP, and direct multilingual YouTube TXT/VTT.
 - Original v1.2.0 script and `README.txt` preserved unchanged.
 - Reference home, conversations and settings inspected through Browser.
 - Reference export/delete dialog clicks blocked by automatic approval review.
@@ -32,7 +32,7 @@
 - Node 22.12+ recommended; verified here on Node 26.8.2.
 
 ## Hard constraints
-- Keep all original 48 metadata match rules.
+- Keep all original 48 metadata match rules plus 3 targeted YouTube rules.
 - Never expand permissions to all websites.
 - Bundle code and styles; no runtime CDN or remote imports.
 - Do not fabricate history, content, timestamps or successful native actions.
@@ -53,17 +53,19 @@
 - Discover loaded sidebar links; open/scroll the sidebar and rescan.
 - Search/filter/sort and select stable platform/id keys.
 - Preview or export current content to capture a temporary snapshot.
-- Navigate within the same tab to capture another conversation.
-- Export selected/observed entries to ZIP with per-item results.
+- ChatGPT/Gemini/Claude export automatically follows native SPA links and restores the starting chat.
+- Export selected/observed entries to ZIP with per-item results; loading may mark chats read.
 - Review failures; only exports offer failed-item retry.
 - Cancel queued work without undoing completed work.
+- Open YouTube timedtext on a video: detect languages automatically, then download TXT/VTT directly.
+- Saved timedtext import is an optional fallback, never a prerequisite.
 - Adjust appearance, FAB, Markdown and batch preferences locally.
 - Minimize with Escape; hide and restore through explicit controls/shortcut.
 
 ## Platform behavior
-- ChatGPT: specialized loaded-sidebar discovery and turn-aware converter.
-- Gemini: loaded-sidebar discovery and generic loaded-content export.
-- Claude: loaded-sidebar discovery and generic loaded-content export.
+- ChatGPT: sidebar discovery, native SPA auto-loading and role-aware conversion.
+- Gemini: sidebar discovery, native SPA auto-loading and role-aware conversion.
+- Claude: sidebar discovery, native SPA auto-loading and role-aware conversion.
 - DeepSeek: loaded-link discovery and generic loaded-content export.
 - Remaining matched sites: current-page generic conversion only.
 - No authenticated live platform validation is claimed.
@@ -74,7 +76,10 @@
 
 ## Privacy and security
 - No telemetry, uploads, remote code or private account APIs.
-- Current page DOM is read locally.
+- Current page DOM is read locally; native chat navigation uses the host router.
+- YouTube captions use public watch/player data and signed timedtext URLs, held in memory only.
+- Caption requests are limited to validated YouTube endpoints; no credential storage.
+- Empty/blocked captions, unavailable native links and load timeouts fail explicitly.
 - Settings, FAB anchor and selection IDs persist per origin in localStorage.
 - History retains at most 30 operation summaries without content or identities.
 - Captured Markdown bodies stay in memory only.
@@ -88,7 +93,9 @@
 
 ## Performance and accessibility
 - DOM observation is debounced and ignores the injected UI.
-- List displays 24 items per page while selection retains all matching IDs.
+- List reveals 24 more items automatically near its bottom; selection retains all matching IDs.
+- Chat navigation requires changed nonempty messages settled for 900 ms; timeout 30 seconds.
+- Caption responses are bounded to 5 MiB and requests to 20 seconds.
 - Batches run sequentially; batch size controls delay grouping, not concurrency.
 - FAB coordinates are independent of expanded-panel dimensions.
 - Viewport changes clamp position and avoid detected Send controls.

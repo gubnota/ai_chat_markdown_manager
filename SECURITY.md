@@ -1,6 +1,6 @@
 # Security policy
 
-Security fixes target the current v2.0 release. Historical standalone versions are retained for provenance and are not maintained separately.
+Security fixes target the current v2.1 release. Historical standalone versions are retained for provenance and are not maintained separately.
 
 ## Report privately when possible
 

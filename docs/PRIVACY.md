@@ -2,7 +2,9 @@
 
 ## What is read
 
-User-triggered preview/export reads rendered message content, code, mathematical annotations, links and image URLs. Discovery reads accessible sidebar titles, stable IDs, source URLs and the current page title. Previously seen sidebar metadata remains in tab memory to survive host virtualization. Generic conversion may include nearby page text. The script does not read authentication cookies/tokens, call private platform APIs, fetch unloaded messages or contact an analytics service.
+User-triggered preview/export reads rendered message content, code, mathematical annotations, links and image URLs. Discovery reads accessible sidebar titles, stable IDs, source URLs and the current page title. Previously seen sidebar metadata remains in tab memory to survive host virtualization. Generic conversion may include nearby page text. Batch export can open selected ChatGPT/Gemini/Claude chats through native same-origin SPA links and read the resulting messages. This may mark chats read. No private platform API, authentication cookie access or analytics service is used.
+
+Opening YouTube captions reads matching public player caption data and, if needed, the current public watch page. Direct downloads read timedtext responses. Existing video-page caption request URLs may supply fresh signed parameters via browser resource timing. These URLs and parameters stay in memory, are validated for the current video and are never persisted or uploaded.
 
 ## Where data lives
 
@@ -14,6 +16,8 @@ User-triggered preview/export reads rendered message content, code, mathematical
 | Discovered titles/URLs and current report | Tab memory; reload clears |
 | Explicit export/preview snapshots | Tab memory, at most 20 chats / approximately 8 MiB UTF-16; reload clears |
 | Markdown / ZIP / JSON report | Browser download destination; retained until you delete it |
+| Caption tracks, signed URLs and parsed/imported cues | Tab memory only; discarded with the panel/tab |
+| TXT / VTT caption files | Browser download destination; retained until you delete them |
 | Copied Markdown | System clipboard, subject to OS/clipboard-manager retention |
 
 Preferences use the `__ai_chat_md_v2__:` prefix. Prior v1 boolean preferences and position are read for migration, without reading conversation history. There is no sync service. Storage-denied environments continue with in-memory defaults; persistence may fail.
@@ -28,9 +32,11 @@ A ZIP contains successful `.md` exports plus an optional manifest with creation 
 
 ## Network and permissions
 
-The distributable embeds JavaScript, CSS, icons and ZIP support. No runtime CDN, telemetry, server or conversation upload is implemented. A browser fixture test aborts all new requests after injection and confirms the manager still discovers/works without initiating a request. This does not disable the host website's own traffic.
+The distributable embeds JavaScript, CSS, icons and ZIP support. No runtime CDN, telemetry, server or conversation upload is implemented. A browser fixture test aborts all new requests after injection and confirms the manager still discovers/works without initiating a request. This idle-manager check excludes explicit caption actions and native chat navigation, which can make host-site requests. It does not disable the host website's own traffic.
 
-Metadata grants no privileged userscript APIs (`@grant none`), runs at document-idle, excludes frames and keeps the inherited 48 explicit host/path rules. Site permission is still required in the extension/browser. Clipboard/download access depends on browser policy. Following an Open conversation link navigates normally to that website.
+YouTube languages are discovered automatically when the user opens the captions panel and refreshed on video navigation. Downloads fetch only validated HTTPS YouTube/video.google.com timedtext endpoints; watch-page fallback is same-origin. Signed parameters are preserved. Requests have a 20-second timeout and 5 MiB response limit. No caption file needs to be manually downloaded first; saved-file import is optional.
+
+Metadata grants no privileged userscript APIs (`@grant none`), runs at document-idle, excludes frames and keeps the inherited 48 explicit host/path rules plus 3 targeted YouTube rules (youtube.com, www.youtube.com, m.youtube.com). Site permission is still required in the extension/browser. Clipboard/download access depends on browser policy. Following an Open conversation link navigates normally to that website.
 
 ## Deletion and archive limits
 
