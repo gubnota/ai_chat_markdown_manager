@@ -57,6 +57,7 @@ export interface PlatformAdapter {
     id: ConversationIdentifier,
     signal?: AbortSignal,
   ): Promise<void>;
+  beginExportSession?(): () => Promise<void>;
   observe?(onChange: () => void): () => void;
 }
 export type OperationState =

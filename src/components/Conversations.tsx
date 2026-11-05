@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Search,
   MoreHorizontal,
@@ -50,9 +50,24 @@ export function Conversations({
     sort: "newest",
   });
   const [limit, setLimit] = useState(24);
+  const list = useRef<HTMLDivElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<string>();
   const filtered = filterConversations(items, filters);
   const visible = filtered.slice(0, limit);
+  useEffect(() => {
+    if (!sentinel.current || !list.current || !globalThis.IntersectionObserver)
+      return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting)
+          setLimit((n) => Math.min(Math.max(n, limit + 24), filtered.length));
+      },
+      { root: list.current, rootMargin: "0px 0px 120px 0px" },
+    );
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  }, [limit, filtered.length]);
   const picked = items.filter((c) => selected.has(conversationKey(c)));
   const t = (en: string, r: string) => (ru ? r : en);
   const field = (key: keyof Filters, value: string | number) => {
@@ -152,7 +167,15 @@ export function Conversations({
           )}
         </p>
       </div>
-      <div className="conversation-list scroll-area">
+      <div
+        className="conversation-list scroll-area"
+        ref={list}
+        onScroll={(e) => {
+          const node = e.currentTarget;
+          if (node.scrollHeight - node.scrollTop - node.clientHeight < 120)
+            setLimit((n) => Math.min(Math.max(n, limit + 24), filtered.length));
+        }}
+      >
         {!filtered.length && (
           <div className="empty">
             {t(
@@ -205,6 +228,7 @@ export function Conversations({
               {menu === key && (
                 <div className="context-menu">
                   <button
+                    disabled={busy}
                     onClick={() => {
                       setMenu(undefined);
                       onPreview(c);
@@ -261,10 +285,9 @@ export function Conversations({
           );
         })}
         {visible.length < filtered.length && (
-          <button className="load-more" onClick={() => setLimit(limit + 24)}>
-            {t("Load more", "Показать ещё")} (
-            {Math.min(24, filtered.length - visible.length)})
-          </button>
+          <div ref={sentinel} className="load-more" role="status">
+            {t("Scroll to load more", "Прокрутите для загрузки")}
+          </div>
         )}
       </div>
       <div className="bulk-toolbar">

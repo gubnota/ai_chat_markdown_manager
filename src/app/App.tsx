@@ -51,8 +51,15 @@ import { BatchRunner, idleProgress } from "../operations/batch";
 import { ActionRow, Dialog, IconButton } from "../components/primitives";
 import { Settings } from "../components/Settings";
 import { Conversations } from "../components/Conversations";
+import { YouTubeCaptions } from "../components/YouTubeCaptions";
 type Screen =
-  "home" | "conversations" | "export" | "archive" | "settings" | "activity";
+  | "home"
+  | "conversations"
+  | "export"
+  | "archive"
+  | "settings"
+  | "activity"
+  | "youtube";
 interface Confirmation {
   kind: OperationKind;
   items: Conversation[];
@@ -118,6 +125,7 @@ export function App({
   >(undefined);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const scanning = useRef(false);
+  const operationLock = useRef(false);
   const ru = settings.language === "ru";
   const t = (en: string, r: string) => (ru ? r : en);
   const notify = useCallback((text: string) => {
@@ -126,7 +134,7 @@ export function App({
     toastTimer.current = setTimeout(() => setToast(""), 6500);
   }, []);
   const scan = useCallback(async () => {
-    if (scanning.current || runner.running) return;
+    if (scanning.current || runner.running || operationLock.current) return;
     scanning.current = true;
     setProgress((p) =>
       p.state === "idle" || p.state === "ready"
@@ -257,7 +265,7 @@ export function App({
   );
   const quick = useCallback(
     async (mode: "save" | "copy" | "selection") => {
-      if (runner.running) return;
+      if (runner.running || busy || operationLock.current) return;
       try {
         const { text, current } = await currentDocument(
           mode === "selection" || settings.export.selection,
@@ -279,7 +287,7 @@ export function App({
         notify(e instanceof Error ? e.message : String(e));
       }
     },
-    [currentDocument, runner, settings.export, notify, ru, scan],
+    [currentDocument, runner, settings.export, notify, ru, scan, busy],
   );
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -308,18 +316,21 @@ export function App({
     return () => document.removeEventListener("keydown", key);
   }, [settings.shortcuts, quick, confirm, preview]);
   const execute = async (kind: OperationKind, targets: Conversation[]) => {
-    if (runner.running || busy || !targets.length) return;
+    if (runner.running || busy || operationLock.current || !targets.length)
+      return;
     if (kind !== "export" && adapter.capabilities[kind] !== "supported") {
       notify(
         `Native ${kind}: ${adapter.capabilities[kind]}. No conversations changed.`,
       );
       return;
     }
+    operationLock.current = true;
     setBusy(true);
     setOpen(true);
     setScreen("activity");
     const files = new Map<string, string>();
     const used = new Set<string>();
+    const restore = adapter.beginExportSession?.();
     try {
       // Backups must finish successfully before any native mutation is attempted.
       if (
@@ -390,7 +401,7 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.0.0",
+                  version: "2.1.0",
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -414,7 +425,16 @@ export function App({
       setProgress((p) => ({ ...p, state: "failed", current: undefined }));
       notify(e instanceof Error ? e.message : String(e));
     } finally {
+      try {
+        await restore?.();
+      } catch (e) {
+        notify(
+          `Export finished; returning to the starting chat failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+      operationLock.current = false;
       setBusy(false);
+      await scan();
     }
   };
   const requestAction = (
@@ -430,6 +450,10 @@ export function App({
     setConfirm({ kind, items: [...targets], all });
   };
   const previewConversation = async (c: Conversation) => {
+    if (busy || runner.running || operationLock.current) return;
+    operationLock.current = true;
+    setBusy(true);
+    const restore = adapter.beginExportSession?.();
     try {
       const body = await adapter.exportConversation(c, settings.export);
       setPreview({
@@ -438,6 +462,15 @@ export function App({
       });
     } catch (e) {
       notify(e instanceof Error ? e.message : String(e));
+    } finally {
+      try {
+        await restore?.();
+      } catch (e) {
+        notify(String(e));
+      }
+      operationLock.current = false;
+      setBusy(false);
+      await scan();
     }
   };
   const place = panelPosition(
@@ -455,6 +488,7 @@ export function App({
     archive: t("Archive conversations", "Архив бесед"),
     settings: t("Settings", "Настройки"),
     activity: t("Activity", "Операции"),
+    youtube: t("YouTube captions", "Субтитры YouTube"),
   };
   const exportPicked = items.filter((c) => selected.has(conversationKey(c)));
   const done = progress.completed + progress.failed + progress.skipped;
@@ -584,6 +618,15 @@ export function App({
           {screen === "home" && (
             <>
               <div className="menu-body">
+                <ActionRow
+                  icon={FileDown}
+                  title={t("YouTube timedtext", "Субтитры YouTube")}
+                  description={t(
+                    "Caption languages · TXT / VTT · import",
+                    "Языки субтитров · TXT / VTT · импорт",
+                  )}
+                  onClick={() => setScreen("youtube")}
+                />
                 <h3>{t("This chat", "Текущая беседа")}</h3>
                 <ActionRow
                   icon={Download}
@@ -667,7 +710,7 @@ export function App({
                 <span className="local-badge">
                   <ShieldCheck size={12} />
                   {t(
-                    "Local only — nothing leaves your browser",
+                    "Local downloads · no uploads",
                     "Локально — без отправки данных",
                   )}
                 </span>
@@ -708,6 +751,7 @@ export function App({
               ru={ru}
             />
           )}
+          {screen === "youtube" && <YouTubeCaptions ru={ru} />}
           {screen === "settings" && (
             <Settings
               value={settings}
@@ -751,8 +795,8 @@ export function App({
               </h2>
               <p>
                 {t(
-                  "Discovery covers sidebar entries seen in this tab. Export each loaded conversation to retain an in-tab snapshot (up to 20 / 8 MiB). ZIP combines the current page and matching snapshots. Unloaded entries are failures; no full-account coverage is claimed.",
-                  "Обнаруживаются записи боковой панели этой вкладки. Экспорт каждой загруженной беседы сохраняет снимок в памяти (до 20 / 8 МиБ). ZIP объединяет текущую страницу и снимки с теми же настройками. Незагруженные записи отмечаются ошибкой; полнота аккаунта не гарантируется.",
+                  "ChatGPT, Gemini and Claude exports open selected chats sequentially, wait for messages, and return to the starting chat. Keep this tab open until finished. Loading may mark chats read. Discovery and loaded message history can be partial; unavailable chats are listed in the report.",
+                  "Экспорт ChatGPT, Gemini и Claude по очереди открывает выбранные беседы, ждёт сообщения и возвращается к исходной. Держите вкладку открытой до завершения. Беседы могут помечаться прочитанными. История может быть частичной; недоступные беседы указаны в отчёте.",
                 )}
               </p>
               <div className="summary-grid">

@@ -145,7 +145,11 @@ test("virtualized host discovery accumulates IDs and paginates manager", async (
   });
   await expect(root(page).locator(".counts")).toContainText("84 discovered");
   await expect(root(page).locator(".conversation")).toHaveCount(24);
-  await page.getByRole("button", { name: "Load more" }).click();
+  await root(page)
+    .locator(".conversation-list")
+    .evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
   await expect(root(page).locator(".conversation")).toHaveCount(48);
   await page.getByRole("button", { name: "Select all matching" }).click();
   await expect(root(page).locator(".counts")).toContainText("84 selected");
