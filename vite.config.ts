@@ -10,15 +10,19 @@ for (const line of matches) {
   if (!/^\/\/ @match\s+\*:\/\/(?:\*\.)?[a-z0-9.-]+\/[^\s]*$/.test(line))
     throw new Error(`Invalid userscript match: ${line}`);
 }
+const youtubeMatches = ["youtube.com", "www.youtube.com", "m.youtube.com"].map(
+  (host) => `// @match        *://${host}/*`,
+);
 const banner = [
   "// ==UserScript==",
   "// @name         AI Chat Markdown Manager",
   "// @namespace    https://github.com/gubnota/ai_chat_markdown_manager",
-  "// @version      2.0.0",
+  "// @version      2.1.0",
   "// @description  Local Markdown export and conversation management. Native operations require verified capabilities.",
   "// @author       gubnota (repository owner); inherited converter: Adem Kouki",
   "// @license      MIT OR Apache-2.0",
   ...matches,
+  ...youtubeMatches,
   "// @run-at       document-idle",
   "// @grant        none",
   "// @inject-into  content",

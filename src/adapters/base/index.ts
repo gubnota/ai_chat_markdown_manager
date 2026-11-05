@@ -1,3 +1,4 @@
+import { messageBody, navigateConversation } from "./navigation";
 import { extractMarkdown } from "../../markdown/legacy";
 import {
   type Conversation,
@@ -11,6 +12,8 @@ export interface AdapterConfig {
   name: string;
   path: RegExp;
   sidebar: string;
+  autoLoad?: boolean;
+  loadTimeoutMs?: number;
 }
 export class DOMAdapter implements PlatformAdapter {
   readonly capabilities: PlatformCapabilities = {
@@ -22,7 +25,7 @@ export class DOMAdapter implements PlatformAdapter {
   readonly id: string;
   readonly name: string;
   protected seen = new Map<string, Conversation>();
-  // Explicit exports only; never persist message content or fetch background history.
+  // Explicit exports only; message snapshots never persist to storage.
   protected snapshots = new Map<string, { signature: string; body: string }>();
   protected config: AdapterConfig;
   constructor(config: AdapterConfig) {
@@ -118,18 +121,33 @@ export class DOMAdapter implements PlatformAdapter {
     if (!c.current) {
       const snapshot = this.snapshots.get(c.id);
       if (snapshot?.signature === signature) return snapshot.body;
-      throw new Error(
-        snapshot
-          ? "Export formatting changed. Open and export this conversation again to refresh its in-tab snapshot."
-          : "Content is not loaded. Open this conversation, then export it. Sidebar discovery does not load message history.",
+      if (!this.config.autoLoad)
+        throw new Error(
+          snapshot
+            ? "Export formatting changed. Open this conversation again to refresh its snapshot."
+            : "Content is not loaded. Open this conversation in the current tab before exporting it.",
+        );
+      await navigateConversation(
+        this.id,
+        c.url,
+        () => this.currentId() === c.id,
+        signal,
+        this.config.loadTimeoutMs,
       );
     }
-    const body = extractMarkdown({
-      ...options,
-      metadata: false,
-      source: false,
-      selection: false,
-    });
+    signal?.throwIfAborted();
+    if (this.currentId() !== c.id)
+      throw new Error(
+        "Conversation changed before extraction. Retry the export.",
+      );
+    const body =
+      messageBody(this.id, options) ??
+      extractMarkdown({
+        ...options,
+        metadata: false,
+        source: false,
+        selection: false,
+      });
     this.snapshots.delete(c.id);
     this.snapshots.set(c.id, { signature, body });
     // Bound memory to 20 conversations and approximately 8 MiB of UTF-16 text.
@@ -141,6 +159,20 @@ export class DOMAdapter implements PlatformAdapter {
       this.snapshots.delete(this.snapshots.keys().next().value!);
     }
     return body;
+  }
+  beginExportSession(): () => Promise<void> {
+    const originalId = this.currentId();
+    const originalUrl = location.href;
+    return async () => {
+      if (this.currentId() === originalId || !this.config.autoLoad) return;
+      await navigateConversation(
+        this.id,
+        originalUrl,
+        () => this.currentId() === originalId,
+        undefined,
+        this.config.loadTimeoutMs,
+      );
+    };
   }
   async archiveConversation(
     _id: ConversationIdentifier,

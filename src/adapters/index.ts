@@ -7,6 +7,7 @@ export function createAdapter(): PlatformAdapter {
   if (/^(chatgpt.com|chat.openai.com|127.0.0.1|localhost)$/.test(host))
     return new DOMAdapter({
       id: "chatgpt",
+      autoLoad: true,
       name:
         host === "127.0.0.1" || host === "localhost"
           ? "ChatGPT · local fixture"
@@ -18,9 +19,10 @@ export function createAdapter(): PlatformAdapter {
   if (host === "claude.ai")
     return new DOMAdapter({
       id: "claude",
+      autoLoad: true,
       name: "Claude",
       path: /^\/chat\/([\w-]+)\/?$/,
-      sidebar: 'nav a[href*="/chat/"],aside a[href*="/chat/"]',
+      sidebar: 'a[href*="/chat/"]',
     });
   if (host === "chat.deepseek.com")
     return new DOMAdapter({

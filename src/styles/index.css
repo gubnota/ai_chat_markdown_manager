@@ -822,3 +822,19 @@ kbd {
     padding: 10px;
   }
 }
+
+.captions-body label {
+  display: grid;
+  gap: 6px;
+  margin-block: 12px;
+}
+.captions-body textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  color: inherit;
+  background: transparent;
+}
