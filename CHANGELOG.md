@@ -2,6 +2,15 @@
 
 Notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates for inherited versions were not supplied.
 
+## [2.1.0] - 2026-11-06
+
+- Automatically reveal 24 more conversation rows when scrolling to the bottom.
+- Automatically open selected ChatGPT/Gemini/Claude chats for Markdown/ZIP export; wait for new settled messages and restore the starting chat after success/cancellation.
+- Detect YouTube caption languages automatically on the video page, refresh after video navigation, and fetch/convert directly to TXT or timestamped VTT. No manual source-file download required.
+- Offer original/translated tracks, JSON3/XML fallback and optional saved-file/paste import; preserve signed URL parameters and reject stale/empty results.
+- Keep original 48 match rules and add 3 targeted YouTube rules; keep native archive/delete gates and `.DS_Store` ignore.
+- Expand verification to 55 unit tests and 51 production-bundle browser checks; update bilingual guides, privacy/contracts and release artifacts.
+
 ## [2.0.0] - 2026-11-04
 
 ### Added

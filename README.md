@@ -1,12 +1,12 @@
-# AI Chat Markdown Manager v2.0
+# AI Chat Markdown Manager v2.1
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.0.0.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.1.0.zip)
 
 ## 1. Overview
 
-A local userscript for turning loaded AI conversations into Markdown, selecting discovered chats, and creating ZIP backups. A floating React interface runs inside a Shadow DOM. No server, account connection, telemetry, or CDN is required.
+A local userscript for turning AI conversations into Markdown, automatically loading selected chats for ZIP backups, and downloading YouTube captions as TXT/VTT. A floating React interface runs inside a Shadow DOM. No server, account connection, telemetry, or CDN is required.
 
-This release preserves the v1.2.0 converter and all 48 domain/path match rules. Discovery is partial. Native archive is unavailable; Gemini deletion is deliberately disabled pending authenticated live validation.
+This release preserves the v1.2.0 converter and all 48 domain/path match rules, adding 3 targeted YouTube rules. Discovery is partial. Native archive is unavailable; Gemini deletion is deliberately disabled pending authenticated live validation.
 
 ## 2. Screenshots and UI preview
 
@@ -19,8 +19,9 @@ This release preserves the v1.2.0 converter and all 48 domain/path match rules. 
 
 - Draggable FAB, separate persistent anchor, Send-button avoidance, minimize and restore.
 - Dashboard/tools, conversations, export, archive information, settings and activity screens.
-- Search, stable multi-selection, filters, sorting, 24-row pagination, preview and context actions.
+- Search, stable multi-selection, filters, sorting, automatic scroll loading in groups of 24, preview and context actions.
 - Markdown downloads, clipboard, highlighted-text export, genuine in-tab snapshots and ZIP manifests.
+- YouTube video-page caption detection, language/translation selection and direct TXT/VTT downloads.
 - Sequential batches, cancellation, per-item failures, reports and export-only safe retries.
 - Light/dark/system themes, English/Russian interface and reduced motion.
 
@@ -28,9 +29,9 @@ This release preserves the v1.2.0 converter and all 48 domain/path match rules. 
 
 | Platform | Discovery | Markdown / ZIP input | Native archive | Native delete |
 | --- | --- | --- | --- | --- |
-| ChatGPT | Sidebar `/c/id` + current page | Loaded DOM / explicit in-tab snapshots | Unsupported | Unsupported |
-| Gemini | Sidebar `/app/id` + current page | Loaded DOM / explicit in-tab snapshots | Unsupported | Unknown; disabled |
-| Claude | Sidebar `/chat/id` + current page | Loaded DOM / explicit in-tab snapshots | Unsupported | Unsupported |
+| ChatGPT | Sidebar `/c/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Unsupported |
+| Gemini | Sidebar `/app/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Unknown; disabled |
+| Claude | Sidebar `/chat/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Unsupported |
 | DeepSeek | Links `/a/chat/s/id` + current page | Loaded DOM / explicit in-tab snapshots | Unsupported | Unsupported |
 | Other inherited matches | Current page only | Generic loaded DOM / in-tab snapshots | Unsupported | Unsupported |
 
@@ -64,19 +65,31 @@ Image URLs are referenced, not downloaded. A Markdown viewer may later request t
 
 Checkboxes use platform + stable conversation ID. Search, sorting and filters never substitute row positions for identity. **Select visible** targets the displayed page; **Select all matching** includes all discovered matches. Invert affects matching entries; Clear removes the whole selection.
 
-Selection persists on this website. Unknown dates/statuses remain unknown and do not match dated or active/archived filters. Pagination shows 24 additional rows per Load more. Discovery accumulates sidebar IDs as the host virtualizes them; it cannot discover inaccessible account history.
+Selection persists on this website. Unknown dates/statuses remain unknown and do not match dated or active/archived filters. Scrolling near the list bottom automatically reveals 24 more rows; no Load more click is needed. Discovery accumulates sidebar IDs as the host virtualizes them; it cannot discover inaccessible account history.
 
 ## 10. Bulk export
 
-First export each desired conversation while it is loaded. Navigate between chats **in the same tab without a full reload**. Explicit exports retain temporary Markdown snapshots: at most 20 chats and approximately 8 MiB of text, evicting older entries. Opening another tab or reloading does not share/preserve these snapshots.
+Select chats and use **Export selected**, **ZIP all discovered**, or the Archive screen's ZIP backup. On **ChatGPT, Gemini and Claude**, the manager opens each selected chat through its native sidebar link, waits for newly loaded messages and exports automatically. You do not need to open every chat first. The starting conversation is restored after completion or cancellation. Loading chats may mark them read.
 
-Select entries and use **Export selected**, or **ZIP all discovered**. The ZIP contains successfully exported `.md` files and an optional `manifest.json` with counts and per-item results. Unloaded chats without a snapshot fail explicitly; they never receive another chat's content. All-unavailable batches produce a failed report rather than an empty successful backup.
+Native SPA links must remain available. A missing/virtualized link, full-page reload or load timeout produces an individual failure; stale messages are never substituted. Scroll the platform sidebar and rescan if necessary. Other platforms still require current content or a matching temporary snapshot. Discovery and loaded history remain partial.
 
-Changing image/link/outline formatting invalidates older snapshots; revisit and export those chats again. Cancel stops queued work; completed files stay valid. **Retry failed exports** retries only failed items. Filenames are sanitized and collisions receive numeric suffixes.
+The ZIP contains successful `.md` files and an optional `manifest.json` with per-item results. A fully failed batch produces a report, not an empty successful backup. Preview/export caches up to 20 chats / approximately 8 MiB in memory; reload clears it. Image/link/outline options must match cached content; the three automatic adapters reload when necessary.
+
+Cancel stops queued work; completed results remain valid. **Retry failed exports** retries failed items only. Filenames are sanitized and collisions receive numeric suffixes.
+
+## YouTube captions
+
+1. Install v2.1, allow YouTube in your userscript extension and reload the video page.
+2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
+3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
+
+TXT contains plain caption text; VTT retains timestamps. Captions must be available and accessible on that video. Empty/blocked responses produce a visible error, not an empty download. **Import saved timedtext (optional)** accepts JSON3, XML or VTT as a fallback. Signed caption URL parameters are used in memory only; no API key or transcript upload is needed.
+
+![YouTube caption languages and direct downloads](docs/screenshots/youtube-captions.png)
 
 ## 11. Native archiving
 
-Native archive controls are disabled on every adapter in v2.0. A ZIP backup does not change a conversation's platform state. The Archive screen explains this distinction and provides a local ZIP action. Native archive support requires its own verified adapter implementation.
+Native archive controls are disabled on every adapter in v2.1. A ZIP backup does not change a conversation's platform state. The Archive screen explains this distinction and provides a local ZIP action. Native archive support requires its own verified adapter implementation.
 
 ## 12. Selected deletion and Gemini
 
@@ -137,7 +150,7 @@ npm run build
 npm run test:integration
 ```
 
-43 unit tests cover conversion, storage, identity, batching and Gemini safety. 27 integration cases cover the actual built bundle in Chromium, desktop WebKit and mobile WebKit, including downloads, multi-chat ZIP contents, virtualized discovery, FAB regressions and no outgoing requests after injection. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+55 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 51 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions and native navigation use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 
@@ -146,7 +159,7 @@ npm run test:integration
 | No floating icon | Check extension/site permission, script enabled, URL matches; reload, then Alt+Shift+E |
 | Two overlays / repeated downloads | Disable inherited or duplicate scripts in every script manager |
 | Chat missing from list | Open/scroll the platform sidebar; Rescan; discovery is partial |
-| Unloaded-content error | Open that chat and export it; retain the same tab for bulk snapshots |
+| Unloaded-content error | Reveal its native sidebar link and rescan/retry; other platforms require a manual visit |
 | Formatting-changed error | Re-export that chat with current image/link/outline settings |
 | Clipboard blocked | Use Save; browser permission or security context may prevent copying |
 | Preferences lost | Private mode/storage restrictions may block per-origin localStorage |
@@ -156,7 +169,7 @@ Download confirmation, destination and retention are controlled by your browser.
 
 ## 20. Security and privacy
 
-The script reads rendered conversation content, sidebar titles, IDs and URLs; it never accesses hidden APIs, cookies or tokens. Preferences, anchor and selection IDs are stored in the current site's localStorage. History stores counts/state/time only. Explicit Markdown snapshots remain in tab memory; downloads contain conversation text and optional source URLs.
+The script reads rendered conversation content, sidebar titles, IDs and URLs; it does not access private APIs or authentication cookies. YouTube signed caption URLs are read from public player data and used temporarily for caption requests, never persisted. Preferences, anchor and selection IDs are stored in the current site's localStorage. History stores counts/state/time only. Explicit Markdown snapshots remain in tab memory; downloads contain conversation text and optional source URLs.
 
 No conversation uploads or telemetry are implemented. Same-origin website scripts can read localStorage and the open Shadow DOM; this UI is style isolation, not a security boundary. Review exported reports before sharing because they contain IDs/errors. [Privacy details](docs/PRIVACY.md) · [Security reporting](SECURITY.md).
 
@@ -164,7 +177,8 @@ No conversation uploads or telemetry are implemented. Same-origin website script
 
 - Loaded DOM and discovered entries can be incomplete, stale or virtualized; statuses/dates are unknown unless verified.
 - Generic fallback can include surrounding webpage text and cannot infer every platform's speaker roles.
-- Snapshots do not fetch history, cross tabs, survive reloads or grow beyond the memory limits.
+- Automatic chat loading requires native SPA links and does not guarantee complete account history. Snapshots stay within tab/memory limits.
+- YouTube captions/translations depend on video availability, signed URLs, site restrictions and browser permissions.
 - Native archive and production deletion are unavailable. No undo/restore is promised.
 - Signed-in live platform behavior, actual Safari extension injection and real touch hardware remain unverified.
 - Modern CSS/ES2022 and an enabled userscript extension are required; host CSP, downloads and permissions may differ.

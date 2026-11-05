@@ -57,3 +57,23 @@ Context: Users need an installable script and ZIP, and future agents need clear 
 Decision: Track dist, ZIP, root-relative SHA-256 hashes and fixture screenshots. Inject production dist in Chromium and WebKit tests. Retain all 48 inherited match entries; reject remote runtime imports/maps.
 Consequences: Rebuild/recheck artifacts with source changes. WebKit results are explicitly distinct from actual Safari Userscripts/Tampermonkey extension validation.
 Related files: scripts/release.mjs, playwright.config.ts, docs/VERIFICATION.md, .gitignore
+
+# ADR-0007: Load selected chats through native SPA navigation
+
+Date: 2026-11-06
+Status: Accepted
+
+Context: Sidebar discovery exposes IDs without loading message history; manual visits made batch exports impractical.
+Decision: ChatGPT/Gemini/Claude exports open each native same-origin SPA link sequentially, wait for changed settled role messages, and restore the starting route in cleanup. Reject full-page reloads, stale bodies and unavailable links. Reveal manager rows automatically in increments of 24 at the bottom.
+Consequences: Loading may mark chats read. History can remain partial/virtualized; failures stay per-item. No private API or background tab. Extends ADR-0004 while retaining bounded snapshots.
+Related files: src/adapters/base/navigation.ts, src/adapters/base/index.ts, src/app/App.tsx, src/components/Conversations.tsx
+
+# ADR-0008: Direct YouTube captions from the active video
+
+Date: 2026-11-06
+Status: Accepted
+
+Context: Users need multilingual TXT/VTT without manually downloading timedtext first.
+Decision: Detect public player caption tracks automatically on caption-screen entry and video navigation; offer direct language-specific downloads using signed timedtext URLs, preserving parameters. Parse JSON3/XML locally with bounded requests and an optional import fallback. Add only 3 explicit YouTube match rules to the inherited 48.
+Consequences: Captions must be available and accessible in the browser; blocked/empty results fail visibly. Signed URL parameters stay in memory. No private API, credential storage or transcript upload.
+Related files: src/youtube/, src/components/YouTubeCaptions.tsx, vite.config.ts, tests/integration/loading-captions.spec.ts

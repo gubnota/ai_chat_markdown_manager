@@ -16,8 +16,20 @@
 - `.DS_Store`, dependencies and temporary test outputs ignored. Distribution and screenshots intentionally tracked.
 - Release prepared for coherent initial commits and authorized push to origin/main; remote hash and clean status verified as final delivery steps.
 
+## 2026-11-06 — v2.1.0 batch loading and direct captions
+- User approved the plan in advance and authorized implementation, local build and push.
+- Added automatic 24-row scroll loading; stable selection and filters retained.
+- ChatGPT, Gemini and Claude batch exports/ZIP backups now open native SPA links, verify newly settled messages and restore the starting chat, including cancellation. Missing links/timeout reject without exporting stale content.
+- Added automatic YouTube video-page caption discovery, original/translated language choices and direct TXT/VTT downloads. Refresh on video navigation; manual file/paste import stays optional.
+- Added JSON3/XML/VTT conversion, automatic fresh video-page request capture, signed-URL preservation, video checks and bounded/cancellable requests.
+- Verification: 55 unit tests, lint/types; production-bundle browser and final release results in VERIFICATION.md. Signed-in ChatGPT/Claude navigation was inspected read-only, not claimed as live batch verification.
+- Browser-controlled synthetic VTT download was opened and checked for correct Russian/English text and timing.
+- Updated bilingual guides, architecture/contracts/ADRs, privacy and release artifacts. `.DS_Store` was already ignored and remains so.
+- Preserved preexisting unrelated old-release ZIP changes and the untracked transport log.
+
 ## Remaining verification boundaries
 - No authenticated live ChatGPT/Claude/DeepSeek/Gemini account verification.
 - No real-account destructive tests. No native archive implementation.
 - Actual Safari Userscripts/Tampermonkey extension installation, download permissions/CSP and physical touch-device testing remain manual follow-up.
-- Snapshot exports cannot supply unvisited or unloaded history; per-item failures are expected and explicit.
+- Automatic SPA loading covers ChatGPT/Gemini/Claude, but missing/virtualized native links and partial loaded history can still cause per-item failures. Other adapters require loaded content/snapshots.
+- YouTube downloads are fixture-tested; live caption availability, restrictions and browser permissions vary.
