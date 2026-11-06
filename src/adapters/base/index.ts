@@ -12,6 +12,7 @@ export interface AdapterConfig {
   name: string;
   path: RegExp;
   sidebar: string;
+  currentPageFallback?: boolean;
   autoLoad?: boolean;
   loadTimeoutMs?: number;
 }
@@ -70,7 +71,19 @@ export class DOMAdapter implements PlatformAdapter {
         completeness: "partial",
       });
     }
-    if (!this.seen.has(currentId))
+    if (this.config.currentPageFallback === false) {
+      for (const id of this.seen.keys()) {
+        if (id.startsWith("page:")) {
+          this.seen.delete(id);
+          this.snapshots.delete(id);
+        }
+      }
+    }
+    if (
+      !this.seen.has(currentId) &&
+      (this.identifier(location.href) ||
+        this.config.currentPageFallback !== false)
+    )
       this.seen.set(currentId, {
         platform: this.id,
         id: currentId,
@@ -171,6 +184,7 @@ export class DOMAdapter implements PlatformAdapter {
         () => this.currentId() === originalId,
         undefined,
         this.config.loadTimeoutMs,
+        !this.identifier(originalUrl),
       );
     };
   }

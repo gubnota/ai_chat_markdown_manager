@@ -1,4 +1,4 @@
-# Platform support — v2.1.0
+# Platform support — v2.1.1
 
 Support describes implemented DOM paths, not verified access to an entire account. Every discovered conversation is marked **partial**. Websites may change their DOM, permissions or routing independently of this release.
 
@@ -15,6 +15,10 @@ Support describes implemented DOM paths, not verified access to an entire accoun
 Selection, filtering, pagination and export operate on genuine discovered IDs. Scroll or open the native sidebar and rescan to reveal additional entries. Virtualized entries accumulate in memory until reload. Generic pages use a pathname/query identifier; this is a page identifier rather than a verified native conversation ID. No adapter calls a private API or loads a background tab. ChatGPT/Gemini/Claude exports click native SPA links in the current tab and wait for new settled messages. A missing link, full-page reload or timeout fails explicitly. The starting chat is restored after success/cancellation; loading can mark chats read.
 
 Explicit export or preview captures the current Markdown body in a temporary cache (20 snapshots, approximately 8 MiB of UTF-16 text). Same-tab SPA navigation can retain it. A full reload or another tab cannot. Image/link/outline options must match the captured format. ChatGPT/Gemini/Claude automatically load the native chat when a matching snapshot is unavailable. Other adapters require a manual visit/capture. Any unavailable content fails explicitly and appears in the report. ZIP success does not imply complete account history.
+
+Native welcome/start routes (for example Gemini `/app`, ChatGPT `/`, Claude `/new`) are excluded from discovery and ZIP input. Only generic site adapters synthesize current-page identities. Returning to a starting welcome page waits for the old messages to disappear and the page to settle.
+
+After ZIP download initiation, Activity offers **Review backed-up chats** containing only successful targets. Check the actual ZIP files before removing anything. In Gemini use the sidebar chat’s **More → Delete** action; work/school accounts may restrict it. [Official Google instructions](https://support.google.com/gemini/answer/13666746). This review does not enable automatic native deletion.
 
 ## Gemini deletion blocker
 
@@ -83,8 +87,8 @@ All 48 inherited metadata entries are preserved exactly, plus 3 targeted rules f
 
 ## Verification scope
 
-- Core conversion and adapter behavior: 55 unit tests; see [verification](VERIFICATION.md).
-- Built userscript: 51 local-fixture browser checks across Chromium, WebKit and mobile WebKit.
+- Core conversion and adapter behavior: 61 unit tests; see [verification](VERIFICATION.md).
+- Built userscript: 57 local-fixture browser checks across Chromium, WebKit and mobile WebKit.
 - Authenticated ChatGPT, Gemini, Claude, DeepSeek and other sites: not live verified.
 - Actual Safari Userscripts and Tampermonkey extension installation: manual follow-up required; WebKit injection is a different test.
 - Reference export/delete dialogs: external clicks were blocked by automatic approval review, so those dialogs were not inspected. This does not block local fixture tests or exports.

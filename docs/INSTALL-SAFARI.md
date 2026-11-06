@@ -6,14 +6,14 @@ The output is a standalone userscript. Automated WebKit tests pass; installation
 2. Open Safari → Settings → Extensions and enable Userscripts. On iOS/iPadOS, use the Safari Extensions section in system Settings; the exact location depends on OS version.
 3. Grant Userscripts access to the intended chat websites. Prefer individual sites over unrelated website access.
 4. Open the Userscripts app and locate its configured scripts directory. Use its directory-selection/open controls; do not assume a fixed filesystem path. Grant folder access when requested.
-5. Extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.1.0.zip) or obtain [the distributable](../dist/AI-Chat-Markdown-Manager.user.js). Copy the complete `.user.js` into that directory, preserving the extension.
+5. Extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.1.1.zip) or obtain [the distributable](../dist/AI-Chat-Markdown-Manager.user.js). Copy the complete `.user.js` into that directory, preserving the extension.
 6. In the extension's script list/editor, ensure **AI Chat Markdown Manager** is enabled.
 7. Disable **Save Page as Markdown (Safari)** v1.2.0 and other copies in every userscript manager. Reload the target conversation.
 8. Look for a small floating file icon. Alt+Shift+E restores a hidden overlay; Alt+Shift+M saves Markdown.
 
 ## Upgrade
 
-Replace the previous v2 file in the same directory. Keep exactly one active installation, check its version is 2.1.0, and reload existing tabs. Replacing the script does not deliberately clear preferences. Old Markdown booleans and FAB coordinates are migrated when available; site storage remains separate per origin.
+Replace the previous v2 file in the same directory. Keep exactly one active installation, check its version is 2.1.1, and reload existing tabs. Replacing the script does not deliberately clear preferences. Old Markdown booleans and FAB coordinates are migrated when available; site storage remains separate per origin.
 
 ## If the icon is absent
 

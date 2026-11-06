@@ -77,3 +77,13 @@ Context: Users need multilingual TXT/VTT without manually downloading timedtext 
 Decision: Detect public player caption tracks automatically on caption-screen entry and video navigation; offer direct language-specific downloads using signed timedtext URLs, preserving parameters. Parse JSON3/XML locally with bounded requests and an optional import fallback. Add only 3 explicit YouTube match rules to the inherited 48.
 Consequences: Captions must be available and accessible in the browser; blocked/empty results fail visibly. Signed URL parameters stay in memory. No private API, credential storage or transcript upload.
 Related files: src/youtube/, src/components/YouTubeCaptions.tsx, vite.config.ts, tests/integration/loading-captions.spec.ts
+
+# ADR-0009: Exclude native start pages and review successful backups
+
+Date: 2026-11-06
+Status: Accepted
+
+Context: Gemini's `/app` welcome screen became a synthetic chat and timed out in batches; users need a clear post-backup deletion path.
+Decision: Native adapters discover only native route identities. Generic sites retain page fallback. Restoration may settle on an empty original start page, while exports require messages. After a ZIP download starts, show only successful targets with native links and manual deletion guidance.
+Consequences: No greeting-only chat failures or phantom selection. Download initiation does not prove a complete saved backup. Native deletion remains disabled pending verification; the review does not mutate history.
+Related files: src/adapters/base/, src/adapters/index.ts, src/adapters/gemini/index.ts, src/app/App.tsx, tests/unit/navigation.test.ts, tests/integration/loading-captions.spec.ts

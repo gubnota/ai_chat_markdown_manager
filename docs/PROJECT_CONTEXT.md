@@ -3,14 +3,15 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.1.0, 2026-11-06.
+- Release: 2.1.1, 2026-11-06.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2.1 adds scroll loading, automatic chat loading for ZIP, and direct multilingual YouTube TXT/VTT.
+- v2.1.1 excludes native start pages from batches and adds successful-export review with manual deletion guidance.
+- v2.1 added scroll loading, automatic chat loading for ZIP, and direct multilingual YouTube TXT/VTT.
 - Original v1.2.0 script and `README.txt` preserved unchanged.
 - Reference home, conversations and settings inspected through Browser.
 - Reference export/delete dialog clicks blocked by automatic approval review.
@@ -56,6 +57,8 @@
 - ChatGPT/Gemini/Claude export automatically follows native SPA links and restores the starting chat.
 - Export selected/observed entries to ZIP with per-item results; loading may mark chats read.
 - Review failures; only exports offer failed-item retry.
+- After ZIP download, review successful chats and check files before deleting through native controls.
+- Native start pages are not conversations; generic matched websites retain current-page export.
 - Cancel queued work without undoing completed work.
 - Open YouTube timedtext on a video: detect languages automatically, then download TXT/VTT directly.
 - Saved timedtext import is an optional fallback, never a prerequisite.

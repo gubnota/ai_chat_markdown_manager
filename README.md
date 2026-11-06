@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.1
+# AI Chat Markdown Manager v2.1.1
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.1.0.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.1.1.zip)
 
 ## 1. Overview
 
@@ -93,6 +93,10 @@ Native archive controls are disabled on every adapter in v2.1. A ZIP backup does
 
 ## 12. Selected deletion and Gemini
 
+After downloading a ZIP, expand **Review backed-up chats** in Activity. It lists only chats exported successfully in that batch. Open the ZIP and inspect those files first; message history can still be partial. To delete a Gemini chat, find it in Gemini’s sidebar and choose **More → Delete**. Work/school accounts may restrict deletion. See [Google’s instructions](https://support.google.com/gemini/answer/13666746). Automatic deletion remains unavailable.
+
+Native welcome/start pages, including Gemini’s `/app` (“Where should we start?”), are excluded from conversation batches. Reload the site after upgrading to remove the old synthetic entry.
+
 Production Gemini deletion has capability `unknown`, so Delete/Delete all are visibly disabled. The available live Gemini page redirected to a signed-out `/app` screen with no history, action menus or confirmation dialogs. Reliable account mutation could not be established.
 
 A guarded engine is implemented and tested against realistic sidebar/dialog fixtures: same-origin stable IDs, unique identity/title, native menu, exact localized Delete action, title-bearing confirmation and verified removal. It is not enabled by a user setting. See the [technical blocker and activation requirements](docs/PLATFORMS.md#gemini-deletion-blocker).
@@ -150,7 +154,7 @@ npm run build
 npm run test:integration
 ```
 
-55 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 51 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions and native navigation use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+61 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 57 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions and native navigation use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 

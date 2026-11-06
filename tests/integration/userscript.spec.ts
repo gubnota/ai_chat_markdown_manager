@@ -3,7 +3,15 @@ import { resolve } from "node:path";
 import { readFileSync } from "node:fs";
 import { unzipSync, strFromU8 } from "fflate";
 const bundle = resolve("dist/AI-Chat-Markdown-Manager.user.js");
-const host = "/tests/fixtures/host.html";
+const host = "/c/current";
+test.beforeEach(async ({ page }) => {
+  await page.route("**/c/current", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: readFileSync(resolve("tests/fixtures/host.html"), "utf8"),
+    }),
+  );
+});
 const root = (p: Page) => p.locator("#__safari_md_export_root__");
 async function install(page: Page) {
   await page.goto(host);

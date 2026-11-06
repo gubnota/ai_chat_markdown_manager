@@ -59,6 +59,7 @@ export class GeminiAdapter extends DOMAdapter {
   ) {
     super({
       id: "gemini",
+      currentPageFallback: false,
       autoLoad: true,
       name: "Google Gemini",
       path: /^\/app\/([\w-]+)\/?$/,

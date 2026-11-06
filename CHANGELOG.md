@@ -2,6 +2,13 @@
 
 Notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates for inherited versions were not supplied.
 
+## [2.1.1] - 2026-11-06
+
+- Exclude Gemini `/app` and other native welcome pages from chat batches; remove stale synthetic selections.
+- Restore empty original start pages after export without waiting for conversation messages.
+- Add successful-export review with native links and manual deletion guidance; failed/skipped items stay excluded. Native automatic deletion remains disabled.
+- Expand regressions to 61 unit tests and 57 production-bundle browser checks; package the updated userscript and guides.
+
 ## [2.1.0] - 2026-11-06
 
 - Automatically reveal 24 more conversation rows when scrolling to the bottom.
