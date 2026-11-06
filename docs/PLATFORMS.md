@@ -1,4 +1,4 @@
-# Platform support — v2.1.1
+# Platform support — v2.2.0
 
 Support describes implemented DOM paths, not verified access to an entire account. Every discovered conversation is marked **partial**. Websites may change their DOM, permissions or routing independently of this release.
 
@@ -6,8 +6,8 @@ Support describes implemented DOM paths, not verified access to an entire accoun
 
 | Adapter | Discovery | Markdown / ZIP | Native archive | Native delete |
 | --- | --- | --- | --- | --- |
-| ChatGPT (`chatgpt.com`, `chat.openai.com`) | Loaded sidebar links with `/c/{id}` | Automatic native SPA loading; matching snapshots in this tab | Unsupported | Unsupported |
-| Gemini (`gemini.google.com`) | Loaded sidebar links with `/app/{id}` | Automatic native SPA loading; matching snapshots in this tab | Unsupported | Unknown; disabled |
+| ChatGPT (`chatgpt.com`, `chat.openai.com`) | Loaded sidebar links with `/c/{id}` | Automatic native SPA loading; matching snapshots in this tab | Conditional native support | Conditional native support |
+| Gemini (`gemini.google.com`) | Loaded sidebar links with `/app/{id}` | Automatic native SPA loading; matching snapshots in this tab | Unsupported | Conditional native support |
 | Claude (`claude.ai`) | Loaded sidebar links with `/chat/{id}` | Automatic native SPA loading; matching snapshots in this tab | Unsupported | Unsupported |
 | DeepSeek (`chat.deepseek.com`) | Loaded links with `/a/chat/s/{id}` | Current loaded DOM; previously captured snapshots in this tab | Unsupported | Unsupported |
 | Other matched hosts | Current page only | Generic loaded-DOM conversion; ZIP of available content | Unsupported | Unsupported |
@@ -18,17 +18,17 @@ Explicit export or preview captures the current Markdown body in a temporary cac
 
 Native welcome/start routes (for example Gemini `/app`, ChatGPT `/`, Claude `/new`) are excluded from discovery and ZIP input. Only generic site adapters synthesize current-page identities. Returning to a starting welcome page waits for the old messages to disappear and the page to settle.
 
-After ZIP download initiation, Activity offers **Review backed-up chats** containing only successful targets. Check the actual ZIP files before removing anything. In Gemini use the sidebar chat’s **More → Delete** action; work/school accounts may restrict it. [Official Google instructions](https://support.google.com/gemini/answer/13666746). This review does not enable automatic native deletion.
+After ZIP download initiation, Activity offers **Review backed-up chats** containing only successful targets. Check the actual ZIP files before removing anything. Acknowledge checking the files to enable supported archive/delete shortcuts; each still requires normal confirmation. Failed/skipped exports are excluded. Work/school accounts may restrict Gemini deletion. [Official Google instructions](https://support.google.com/gemini/answer/13666746).
 
-## Gemini deletion blocker
+## Native mutation checks
 
-On **2026-11-04**, Browser inspection of `https://gemini.google.com/` redirected to signed-out `/app`. No authenticated conversation sidebar, native menu or title-bearing confirmation was available. Reliable deletion against the deployed account UI could therefore not be established. Production `createAdapter()` constructs `GeminiAdapter` with verification disabled; the capability is `unknown`, controls are disabled and direct deletion rejects before clicking anything. There is no user preference to override this gate.
+ChatGPT archive/delete and Gemini delete become available when a recognized native sidebar action control is present. Missing controls leave capability unknown and disabled. Every target is checked again at execution: one same-origin ID, one row action control, one newly opened menu and exact localized action. Delete also requires a unique title-bearing native confirmation. Archive uses the native menu action without an additional website confirmation. Removal must remain stable while the original sidebar stays visible and the menu/dialog closes.
 
-A native deletion engine exists and is covered by realistic fixtures. Its test-only constructor opt-in exercises exact same-origin IDs, unique entries, revalidation after menus open, localized native labels, a new confirmation with the exact target title, a unique final button and verified row/dialog removal. Duplicate IDs/titles, changing identities, missing controls, unrelated dialogs, timeout and cancellation fail closed. Fixture success is not evidence that today's authenticated Gemini UI has those controls.
+**All** means a frozen list of discovered IDs, never the account-wide Settings controls. Batches run sequentially with mandatory review, typed `DELETE` / `DELETE ALL`, optional complete pre-action backup and per-item reports. No automatic mutation retries. Cancel stops remaining jobs, while an already clicked action finishes bounded outcome observation. Unverified results fail and require checking the website before another attempt.
 
-Before enabling production deletion, an authorized disposable account must demonstrate the exact current DOM and outcome, including localization and ambiguous cases. Record browser/date/permissions, add redacted fixture regressions and rerun all checks. If native confirmation cannot identify one exact conversation, keep the capability disabled. Test selected single and multiple targets; never test against a user's real history. No account-wide deletion endpoint is implemented.
+On 2026-11-07 the available ChatGPT page was signed out. Safari read-only Gemini inspection confirmed a native conversation action-menu label; no native mutation was executed. Fixture coverage establishes the implemented checks, not authenticated live compatibility. Localized or redesigned website controls can remain unavailable until adapters are updated. Use disposable accounts for additional manual verification.
 
-The application already supplies frozen selection summaries, explicit `DELETE` / `DELETE ALL` confirmation, final irreversible-action labels, optional successful backup of every target before mutation, sequential execution, cancellation and per-item results. These safeguards do not enable an unverified adapter. Native archive has no production implementation on any platform and needs its own native-control evidence.
+ChatGPT archives can be restored in **Settings → Data controls → Archived chats → Manage**. Deleted chats cannot be recovered. See [OpenAI's archive/delete instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt). Gemini archive, Claude and other platform mutations remain unsupported.
 
 ## Original match rules retained
 
@@ -87,8 +87,8 @@ All 48 inherited metadata entries are preserved exactly, plus 3 targeted rules f
 
 ## Verification scope
 
-- Core conversion and adapter behavior: 61 unit tests; see [verification](VERIFICATION.md).
-- Built userscript: 57 local-fixture browser checks across Chromium, WebKit and mobile WebKit.
+- Core conversion and adapter behavior: 79 unit tests; see [verification](VERIFICATION.md).
+- Built userscript: 81 local-fixture browser checks across Chromium, WebKit and mobile WebKit.
 - Authenticated ChatGPT, Gemini, Claude, DeepSeek and other sites: not live verified.
 - Actual Safari Userscripts and Tampermonkey extension installation: manual follow-up required; WebKit injection is a different test.
 - Reference export/delete dialogs: external clicks were blocked by automatic approval review, so those dialogs were not inspected. This does not block local fixture tests or exports.

@@ -3,20 +3,22 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.1.1, 2026-11-06.
+- Release: 2.2.0, 2026-11-07.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2.1.1 excludes native start pages from batches and adds successful-export review with manual deletion guidance.
+- v2.2 adds native ChatGPT batch archive/delete, Gemini delete, and actions on reviewed successful backups.
+- v2.1.1 excludes native start pages from batches and adds successful-export review.
 - v2.1 added scroll loading, automatic chat loading for ZIP, and direct multilingual YouTube TXT/VTT.
 - Original v1.2.0 script and `README.txt` preserved unchanged.
 - Reference home, conversations and settings inspected through Browser.
 - Reference export/delete dialog clicks blocked by automatic approval review.
-- Gemini live inspection was signed out; native deletion remains disabled.
-- Native archive is unsupported on every production adapter.
+- ChatGPT archive/delete and Gemini delete enable when recognized sidebar controls are present.
+- Each action independently validates native identity, controls and outcome; missing controls stay unknown.
+- No authenticated live mutation is claimed; Claude and other platforms have no native mutations.
 - Actual extension installation requires manual verification.
 - WebKit automation does not establish Safari extension compatibility.
 
@@ -57,7 +59,8 @@
 - ChatGPT/Gemini/Claude export automatically follows native SPA links and restores the starting chat.
 - Export selected/observed entries to ZIP with per-item results; loading may mark chats read.
 - Review failures; only exports offer failed-item retry.
-- After ZIP download, review successful chats and check files before deleting through native controls.
+- After ZIP download, review successful chats, acknowledge checking files, then archive/delete with normal confirmations.
+- Required pre-action backup must succeed for every target; restore the starting route before mutation.
 - Native start pages are not conversations; generic matched websites retain current-page export.
 - Cancel queued work without undoing completed work.
 - Open YouTube timedtext on a video: detect languages automatically, then download TXT/VTT directly.
@@ -72,9 +75,10 @@
 - DeepSeek: loaded-link discovery and generic loaded-content export.
 - Remaining matched sites: current-page generic conversion only.
 - No authenticated live platform validation is claimed.
-- Gemini native engine is fixture-tested behind a constructor verification gate.
-- Production adapter creation never enables that gate.
-- All production native archive/delete paths reject unsupported/unknown calls.
+- Shared native engine scopes every action to one exact sidebar row and its newly opened menu.
+- Delete requires a unique title-bearing native confirmation; archive commits at the menu action.
+- Success requires stable row removal and menu/dialog dismissal with the original sidebar present.
+- Unknown outcomes fail without automatic retry; cancellation finishes observing an already clicked action.
 - See `docs/PLATFORMS.md` before changing a capability.
 
 ## Privacy and security
@@ -121,6 +125,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.2.0` from repository root.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
 - Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

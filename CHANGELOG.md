@@ -2,6 +2,15 @@
 
 Notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates for inherited versions were not supplied.
 
+## [2.2.0] - 2026-11-07
+
+- Add native ChatGPT batch archive/delete and Gemini batch delete using runtime-scoped row/menu checks, title-bearing Delete confirmation and verified removal.
+- Freeze selected/all discovered targets, keep mandatory typed deletion review and never invoke account-wide controls.
+- Add archive/delete shortcuts for reviewed successful ZIP exports only, with acknowledgment of checking the files.
+- Restore the starting chat after required backups before native actions; failed/cancelled backups prevent mutation.
+- Preserve verified results when cancellation follows a native commit; report uncertain outcomes without automatic retries and suppress completed IDs until reload.
+- Expand fixture coverage to 79 unit tests and 81 browser checks. No real account mutations performed. Package v2.2.0 with its own checksum file.
+
 ## [2.1.1] - 2026-11-06
 
 - Exclude Gemini `/app` and other native welcome pages from chat batches; remove stale synthetic selections.

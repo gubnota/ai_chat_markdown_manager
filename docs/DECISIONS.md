@@ -21,7 +21,7 @@ Related files: Save-Page-as-Markdown-Safari.user.js, src/markdown/, LICENSE*, TH
 # ADR-0003: Gate native mutations on actual verification
 
 Date: 2026-11-04
-Status: Accepted
+Status: Deprecated (superseded by ADR-0010)
 
 Context: Live Gemini was signed out; its deployed native deletion flow could not be verified. Fixture success cannot establish account safety.
 Decision: Ship production Gemini delete as unknown/disabled, all archives unsupported. Keep the exact-identity native engine fixture-testable with an explicit constructor opt-in never used by the factory.
@@ -85,5 +85,15 @@ Status: Accepted
 
 Context: Gemini's `/app` welcome screen became a synthetic chat and timed out in batches; users need a clear post-backup deletion path.
 Decision: Native adapters discover only native route identities. Generic sites retain page fallback. Restoration may settle on an empty original start page, while exports require messages. After a ZIP download starts, show only successful targets with native links and manual deletion guidance.
-Consequences: No greeting-only chat failures or phantom selection. Download initiation does not prove a complete saved backup. Native deletion remains disabled pending verification; the review does not mutate history.
+Consequences: No greeting-only chat failures or phantom selection. Download initiation does not prove a complete saved backup. At v2.1.1 native deletion remained disabled; ADR-0010 extends this review with separately confirmed native actions.
 Related files: src/adapters/base/, src/adapters/index.ts, src/adapters/gemini/index.ts, src/app/App.tsx, tests/unit/navigation.test.ts, tests/integration/loading-captions.spec.ts
+
+# ADR-0010: Runtime-scoped native batch actions
+
+Date: 2026-11-07
+Status: Accepted
+
+Context: User explicitly requested ChatGPT batch archive/delete and post-backup deletion. A permanent fixture-only gate prevented those workflows.
+Decision: Enable ChatGPT archive/delete and Gemini delete conditionally on recognized native sidebar controls. Share exact ID/row/menu validation, localized exact labels, title-bearing Delete confirmation and stable verified removal. Archive commits at its menu action, matching the native flow. Freeze discovered IDs; never use account-wide controls. Reviewed successful ZIP targets use the same mandatory confirmation. Required backups restore the original route before mutation.
+Consequences: Missing/ambiguous controls fail closed. No authenticated live mutation claim; fixtures cannot establish deployed compatibility. Cancellation preserves verified committed results; unverified commits fail without automatic retry. Successful IDs are suppressed in this tab until reload. Claude and other mutation paths stay unsupported.
+Related files: src/adapters/base/native-actions.ts, src/adapters/chatgpt/, src/adapters/gemini/, src/app/App.tsx, src/operations/batch.ts, tests/integration/native-actions.spec.ts

@@ -105,6 +105,7 @@ export function App({
   const [selected, setSelected] = useState(initialSelection);
   const [progress, setProgress] = useState<OperationProgress>(idleProgress);
   const [backedUp, setBackedUp] = useState<Conversation[]>([]);
+  const [backupChecked, setBackupChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [preview, setPreview] = useState<{ title: string; text: string }>();
@@ -127,6 +128,7 @@ export function App({
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const scanning = useRef(false);
   const operationLock = useRef(false);
+  const operationAbort = useRef<AbortController | undefined>(undefined);
   const ru = settings.language === "ru";
   const t = (en: string, r: string) => (ru ? r : en);
   const notify = useCallback((text: string) => {
@@ -338,18 +340,23 @@ export function App({
     }
     operationLock.current = true;
     setBackedUp([]);
+    setBackupChecked(false);
+    const controller = new AbortController();
+    operationAbort.current = controller;
     setBusy(true);
     setOpen(true);
     setScreen("activity");
     const files = new Map<string, string>();
     const used = new Set<string>();
     const restore = adapter.beginExportSession?.();
+    let needsRestore = kind === "export";
     try {
       // Backups must finish successfully before any native mutation is attempted.
       if (
         kind !== "export" &&
         (kind === "archive" ? settings.backupArchive : settings.backupDelete)
       ) {
+        needsRestore = true;
         const backup = await runner.run(
           {
             kind: "export",
@@ -382,7 +389,11 @@ export function App({
         );
         files.clear();
         used.clear();
+        // Restore before mutation; a deleted or archived starting chat cannot be restored later.
+        await restore?.();
+        needsRestore = false;
       }
+      controller.signal.throwIfAborted();
       const result = await runner.run(
         {
           kind,
@@ -392,6 +403,7 @@ export function App({
           batchSize: settings.batchSize,
         },
         async (c, signal) => {
+          controller.signal.throwIfAborted();
           if (kind === "export") {
             const body = await adapter.exportConversation(
               c,
@@ -414,7 +426,7 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.1.1",
+                  version: "2.2.0",
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -436,22 +448,38 @@ export function App({
         );
         setBackedUp(targets.filter((c) => successful.has(conversationKey(c))));
       }
+      if (kind !== "export") {
+        const successful = new Set(
+          result.results
+            .filter((r) => r.status === "success")
+            .map((r) => r.key),
+        );
+        setSelected(
+          (previous) =>
+            new Set([...previous].filter((key) => !successful.has(key))),
+        );
+      }
       if (settings.history) {
         recordHistory(result);
         setHistory(read("history", []));
       }
       await scan();
     } catch (e) {
-      setProgress((p) => ({ ...p, state: "failed", current: undefined }));
+      setProgress((p) => ({
+        ...p,
+        state: controller.signal.aborted ? "cancelled" : "failed",
+        current: undefined,
+      }));
       notify(e instanceof Error ? e.message : String(e));
     } finally {
       try {
-        await restore?.();
+        if (needsRestore) await restore?.();
       } catch (e) {
         notify(
           `Export finished; returning to the starting chat failed: ${e instanceof Error ? e.message : String(e)}`,
         );
       }
+      operationAbort.current = undefined;
       operationLock.current = false;
       setBusy(false);
       await scan();
@@ -466,8 +494,9 @@ export function App({
       void execute(kind, targets);
       return;
     }
+    if (busy || operationLock.current || !targets.length) return;
     setPhrase("");
-    setConfirm({ kind, items: [...targets], all });
+    setConfirm({ kind, items: targets.map((c) => ({ ...c })), all });
   };
   const previewConversation = async (c: Conversation) => {
     if (busy || runner.running || operationLock.current) return;
@@ -864,8 +893,8 @@ export function App({
                   </strong>
                   <p>
                     {t(
-                      "A ZIP is a local backup. It does not change the platform’s archive state. Native archiving has no verified adapter in this release.",
-                      "ZIP — локальная копия. Он не меняет статус на платформе. В этом выпуске нет проверенного адаптера архивации.",
+                      "ChatGPT archive moves discovered chats out of the sidebar. You can restore them from ChatGPT Settings → Data controls → Archived chats. Other platforms may not support archiving.",
+                      "Архивация ChatGPT убирает беседы из боковой панели. Восстановить их можно в настройках ChatGPT → Управление данными → Архивированные чаты. Другие платформы могут не поддерживать архивацию.",
                     )}
                   </p>
                   <button
@@ -919,7 +948,13 @@ export function App({
                 {t("skipped", "пропущено")} / {progress.total}
               </div>
               {busy && (
-                <button className="wide" onClick={() => runner.cancel()}>
+                <button
+                  className="wide"
+                  onClick={() => {
+                    operationAbort.current?.abort();
+                    runner.cancel();
+                  }}
+                >
                   {t("Cancel remaining work", "Отменить оставшиеся")}
                 </button>
               )}
@@ -985,17 +1020,59 @@ export function App({
                       "Откройте скачанный ZIP и проверьте Markdown-файлы перед удалением. Экспорт может быть частичным. ZIP-копия не удаляет беседы с сайта.",
                     )}
                   </p>
-                  <p className="hint">
-                    {adapter.id === "gemini"
-                      ? t(
-                          "To delete a backed-up chat, find it in Gemini’s sidebar, open its More menu and choose Delete. Automatic deletion is unavailable. Work or school accounts may not allow deletion.",
-                          "Для удаления сохранённой беседы найдите её в боковой панели Gemini, откройте меню «Ещё» и выберите «Удалить». Автоматическое удаление недоступно. Рабочие и учебные аккаунты могут запрещать удаление.",
-                        )
-                      : t(
-                          "Automatic deletion is unavailable. Open each backed-up chat and use the website’s own Delete action.",
-                          "Автоматическое удаление недоступно. Откройте сохранённую беседу и удалите её средствами сайта.",
+                  {adapter.capabilities.archive === "supported" ||
+                  adapter.capabilities.delete === "supported" ? (
+                    <>
+                      <label className="check-row">
+                        <input
+                          type="checkbox"
+                          checked={backupChecked}
+                          onChange={(e) => setBackupChecked(e.target.checked)}
+                        />
+                        {t(
+                          "I opened the ZIP and checked these files",
+                          "Я открыл ZIP и проверил эти файлы",
                         )}
-                  </p>
+                      </label>
+                      <div className="button-row">
+                        {adapter.capabilities.archive === "supported" && (
+                          <button
+                            disabled={!backupChecked}
+                            onClick={() => requestAction("archive", backedUp)}
+                          >
+                            {t(
+                              "Archive backed-up chats",
+                              "Архивировать сохранённые беседы",
+                            )}
+                          </button>
+                        )}
+                        {adapter.capabilities.delete === "supported" && (
+                          <button
+                            className="danger"
+                            disabled={!backupChecked}
+                            onClick={() => requestAction("delete", backedUp)}
+                          >
+                            {t(
+                              "Delete backed-up chats",
+                              "Удалить сохранённые беседы",
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="hint">
+                      {adapter.id === "gemini"
+                        ? t(
+                            "To delete a backed-up chat, find it in Gemini’s sidebar, open its More menu and choose Delete. Native controls are not available in this view. Work or school accounts may not allow deletion.",
+                            "Для удаления сохранённой беседы найдите её в боковой панели Gemini, откройте меню «Ещё» и выберите «Удалить». В этом виде элементы управления недоступны. Рабочие и учебные аккаунты могут запрещать удаление.",
+                          )
+                        : t(
+                            "Open a backed-up chat and use the website’s own controls. Native controls are not available in this view.",
+                            "Откройте сохранённую беседу и используйте меню сайта. В этом виде элементы управления недоступны.",
+                          )}
+                    </p>
+                  )}
                   {adapter.id === "gemini" && (
                     <a
                       href="https://support.google.com/gemini/answer/13666746"

@@ -1,6 +1,6 @@
 # Security policy
 
-Security fixes target the current v2.1 release. Historical standalone versions are retained for provenance and are not maintained separately.
+Security fixes target the current v2.2 release. Historical standalone versions are retained for provenance and are not maintained separately.
 
 ## Report privately when possible
 
@@ -14,6 +14,6 @@ This userscript can read rendered page content and runs with ordinary page permi
 
 No backend, telemetry, remote runtime code or credential storage is implemented. The metadata preserves explicit site rules and uses no privileged grants. External image references can be fetched later by a Markdown viewer. Host sites and extensions have their own permissions and traffic.
 
-Production native archive is unsupported and Gemini deletion remains disabled pending authenticated validation. Do not bypass these gates or test destruction on personal history. Native UI ambiguity must fail closed; uncertain deletion cannot safely be retried automatically. If platform controls change, stop the operation and report a redacted reproduction.
+ChatGPT archive/delete and Gemini delete use runtime-scoped native controls, mandatory review and verified removal; other mutations remain unsupported. Do not test destruction on personal history. Fixture verification does not establish authenticated live compatibility. Native UI ambiguity must fail closed; uncertain outcomes cannot safely be retried automatically. If platform controls change, stop the operation and report a redacted reproduction.
 
 See [privacy handling](docs/PRIVACY.md) and [verification limits](docs/VERIFICATION.md).

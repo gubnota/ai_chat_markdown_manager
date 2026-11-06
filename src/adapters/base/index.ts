@@ -1,3 +1,4 @@
+import { conversationTitle } from "./native-actions";
 import { messageBody, navigateConversation } from "./navigation";
 import { extractMarkdown } from "../../markdown/legacy";
 import {
@@ -25,6 +26,7 @@ export class DOMAdapter implements PlatformAdapter {
   };
   readonly id: string;
   readonly name: string;
+  private mutated = new Set<string>();
   protected seen = new Map<string, Conversation>();
   // Explicit exports only; message snapshots never persist to storage.
   protected snapshots = new Map<string, { signature: string; body: string }>();
@@ -55,11 +57,8 @@ export class DOMAdapter implements PlatformAdapter {
       this.config.sidebar,
     )) {
       const id = this.identifier(link.href);
-      if (!id) continue;
-      const title =
-        link.dataset.conversationTitle ||
-        link.getAttribute("aria-label") ||
-        link.textContent?.trim();
+      if (!id || this.mutated.has(id)) continue;
+      const title = conversationTitle(link);
       if (!title) continue;
       this.seen.set(id, {
         platform: this.id,
@@ -81,6 +80,7 @@ export class DOMAdapter implements PlatformAdapter {
     }
     if (
       !this.seen.has(currentId) &&
+      !this.mutated.has(currentId) &&
       (this.identifier(location.href) ||
         this.config.currentPageFallback !== false)
     )
@@ -228,6 +228,7 @@ export class DOMAdapter implements PlatformAdapter {
     };
   }
   forget(id: ConversationIdentifier): void {
+    this.mutated.add(id.id);
     this.seen.delete(id.id);
     this.snapshots.delete(id.id);
   }

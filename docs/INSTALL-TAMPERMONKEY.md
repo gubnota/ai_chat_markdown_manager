@@ -3,7 +3,7 @@
 See the [official website](https://www.tampermonkey.net/) and [FAQ](https://www.tampermonkey.net/faq.php) for browser-specific installation and permissions. The Chromium bundle is tested by injection into a fixture; the full extension installation flow has not been manually verified here.
 
 1. Install the official Tampermonkey extension for your browser and enable it.
-2. Download/extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.1.1.zip).
+2. Download/extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.2.0.zip).
 3. Open Tampermonkey Dashboard → create a new script. Replace the entire template with `AI-Chat-Markdown-Manager.user.js`, including its metadata header.
 4. Save and enable it. Alternatively, use the dashboard's file import utility to import the `.user.js`; check the imported name/version before enabling.
 5. Grant the extension permission for the intended chat sites and any userscript-execution permission required by the current browser. Follow Tampermonkey's prompt if the browser requires an additional setting.
@@ -22,6 +22,10 @@ The script uses `@grant none`, no privileged manager API and no remote runtime d
 
 Установите и включите Tampermonkey. В панели управления создайте скрипт, замените шаблон полным `.user.js`, сохраните и включите. Можно импортировать сам `.user.js` через средства панели. Разрешите нужные сайты и выполнение userscript, если браузер запросит. Отключите старые копии, перезагрузите чат. Обновляйте существующую установку; при отсутствии кнопки проверьте разрешения, список скриптов текущей вкладки, точный URL и Alt+Shift+E.
 
-## YouTube and batch exports in v2.1
+## YouTube and batch exports in v2.2
 
 Allow YouTube in the extension and reload existing video tabs after upgrading. Open **YouTube timedtext**: languages are detected automatically, and **Download TXT/VTT** fetches and converts directly without a saved source file. ChatGPT/Gemini/Claude ZIP exports load selected native chat links automatically and restore the initial chat; loading may mark chats read. Missing native links or restricted captions produce visible errors.
+
+## Batch archive and delete
+
+Reload after upgrading. Open **Manage conversations**, select discovered chats and choose **Archive** (ChatGPT) or **Delete** (ChatGPT/Gemini). Review the frozen list; deletion requires `DELETE`, or `DELETE ALL` for all discovered chats. Missing native controls keep actions unavailable. After ZIP export, Activity → **Review backed-up chats** offers the same actions for successful exports after checking the files. ChatGPT archives can be restored in its Archived chats settings; deletion is irreversible.
