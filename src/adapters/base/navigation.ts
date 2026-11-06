@@ -54,7 +54,27 @@ export function messageBody(
   return outline ? `## Page outline\n\n${outline}\n\n---\n\n${body}` : body;
 }
 function fingerprint(nodes: Element[]): string {
-  return nodes.map((node) => node.textContent ?? "").join("\n");
+  return nodes
+    .map((node) =>
+      [
+        node.textContent ?? "",
+        ...[...node.querySelectorAll<HTMLImageElement>("img")]
+          .filter(visible)
+          .map((image) =>
+            [
+              image.currentSrc,
+              image.getAttribute("src"),
+              image.getAttribute("data-src"),
+              image.getAttribute("data-original"),
+              image.getAttribute("srcset"),
+              image.getAttribute("alt"),
+            ]
+              .filter(Boolean)
+              .join(" "),
+          ),
+      ].join("\n"),
+    )
+    .join("\n");
 }
 function pause(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted();

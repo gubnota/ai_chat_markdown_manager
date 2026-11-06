@@ -2,6 +2,12 @@
 
 Notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates for inherited versions were not supplied.
 
+## [2.2.1] - 2026-11-07
+
+- Preserve Gemini uploaded/generated images inside message preview buttons and file-card links exposed in the DOM.
+- Keep filenames and explicit unavailable-link notes for inaccessible attachments; respect image/link settings, hidden content and toolbar exclusion.
+- Accept newly settled image-only conversations during automatic batch loading, while continuing to reject stale content.
+- Add attachment current-download/ZIP regression coverage and document expiring/authenticated URL limits.
 ## [2.2.0] - 2026-11-07
 
 - Add native ChatGPT batch archive/delete and Gemini batch delete using runtime-scoped row/menu checks, title-bearing Delete confirmation and verified removal.

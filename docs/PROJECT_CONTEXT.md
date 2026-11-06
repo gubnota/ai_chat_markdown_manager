@@ -3,13 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.2.0, 2026-11-07.
+- Release: 2.2.1, 2026-11-07.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
+- v2.2.1 preserves Gemini upload/generated-image preview references and file-card links; unavailable direct links are named explicitly.
 - v2.2 adds native ChatGPT batch archive/delete, Gemini delete, and actions on reviewed successful backups.
 - v2.1.1 excludes native start pages from batches and adds successful-export review.
 - v2.1 added scroll loading, automatic chat loading for ZIP, and direct multilingual YouTube TXT/VTT.
@@ -101,7 +102,7 @@
 ## Performance and accessibility
 - DOM observation is debounced and ignores the injected UI.
 - List reveals 24 more items automatically near its bottom; selection retains all matching IDs.
-- Chat navigation requires changed nonempty messages settled for 900 ms; timeout 30 seconds.
+- Chat navigation requires changed nonempty text/image identity settled for 900 ms; timeout 30 seconds.
 - Caption responses are bounded to 5 MiB and requests to 20 seconds.
 - Batches run sequentially; batch size controls delay grouping, not concurrency.
 - FAB coordinates are independent of expanded-panel dimensions.
@@ -125,6 +126,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.2.0` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.2.1` from repository root.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
 - Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.
