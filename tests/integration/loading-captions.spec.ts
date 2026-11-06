@@ -9,7 +9,12 @@ async function open(page: Page, section: string) {
     .click();
   await page.getByRole("button", { name: section, exact: false }).click();
 }
-async function chatFixture(page: Page, platform: string, slow = false) {
+async function chatFixture(
+  page: Page,
+  platform: string,
+  slow = false,
+  startAtHome = false,
+) {
   const host =
     platform === "chatgpt"
       ? "chatgpt.com"
@@ -18,33 +23,118 @@ async function chatFixture(page: Page, platform: string, slow = false) {
         : "gemini.google.com";
   const prefix =
     platform === "chatgpt" ? "/c/" : platform === "claude" ? "/chat/" : "/app/";
+  const home =
+    platform === "gemini" ? "/app" : platform === "claude" ? "/new" : "/";
   await page.route(`https://${host}/**`, (route) =>
     route.fulfill({
       contentType: "text/html",
       body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fixture</title></head><body>
-    <aside>${["one", "two", "three"].map((id) => `<a href="${prefix}${id}">Chat ${id}</a>`).join(" ")}</aside>
+    <aside><a href="${home}">New chat</a>${["one", "two", "three"].map((id) => `<a href="${prefix}${id}">Chat ${id}</a>`).join(" ")}</aside>
     <main></main><script>
-    const platform=${JSON.stringify(platform)}, prefix=${JSON.stringify(prefix)};
+    const platform=${JSON.stringify(platform)}, prefix=${JSON.stringify(prefix)}, home=${JSON.stringify(home)};
     function render(id) {
+      if (id === 'home') { document.querySelector('main').innerHTML = '<h1>Where should we start?</h1>'; return; }
       document.querySelector('main').innerHTML = platform === 'gemini'
         ? '<user-query>Question '+id+'</user-query><model-response><p>Answer '+id+' UNIQUE-'+id+'</p></model-response>'
         : platform === 'claude' ? '<div data-testid="user-message">Question '+id+'</div><div class="font-claude-response"><p>Answer '+id+' UNIQUE-'+id+'</p></div>'
         : '<article data-message-author-role="user">Question '+id+'</article><article data-message-author-role="assistant"><p>Answer '+id+' UNIQUE-'+id+'</p></article>';
     }
-    render('one');
+    render(${JSON.stringify(startAtHome ? "home" : "one")});
     document.addEventListener('click', (e) => {
       const link = e.target.closest('aside a'); if (!link) return;
-      e.preventDefault(); const id = link.pathname.split('/').pop();
+      e.preventDefault(); const id = link.pathname === home ? 'home' : link.pathname.split('/').pop();
       history.pushState(null, '', link.href);
       const main = document.querySelector('main'); main.setAttribute('aria-busy', 'true');
       setTimeout(() => { render(id); main.removeAttribute('aria-busy'); }, ${slow ? 2500 : 650});
     });</script></body></html>`,
     }),
   );
-  await page.goto(`https://${host}${prefix}one`);
+  await page.goto(`https://${host}${startAtHome ? home : `${prefix}one`}`);
+  if (startAtHome)
+    await page.evaluate(() =>
+      localStorage.setItem(
+        "__ai_chat_md_v2__:selection",
+        JSON.stringify(["gemini:page:/app"]),
+      ),
+    );
   await page.addScriptTag({ path: bundle });
   return prefix;
 }
+test("Gemini start page is excluded from ZIP and stale selections; batch restores the empty home", async ({
+  page,
+}) => {
+  await chatFixture(page, "gemini", false, true);
+  await open(page, "Manage conversations");
+  await expect(page.getByRole("checkbox")).toHaveCount(3);
+  await expect(
+    page.getByLabel("Select Where should we start?", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("0 selected · 3 matching", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Select all matching" }).click();
+  const downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Export selected", exact: true })
+    .click();
+  const file = await downloaded;
+  const archive = unzipSync(readFileSync((await file.path())!));
+  const report = JSON.parse(strFromU8(archive["manifest.json"]));
+  expect(report).toMatchObject({ total: 3, completed: 3, failed: 0 });
+  expect(report.results.map((r: { key: string }) => r.key)).not.toContain(
+    "gemini:page:/app",
+  );
+  await expect(page).toHaveURL("https://gemini.google.com/app");
+  await expect(page.locator("main")).toHaveText("Where should we start?");
+  await expect(
+    page.getByRole("button", { name: "Export report", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByText("returning to the starting chat failed", { exact: false }),
+  ).toHaveCount(0);
+  await page.locator(".backup-review summary").click();
+  await expect(page.locator(".backup-review li a")).toHaveCount(3);
+});
+test("post-backup review includes only successful exports and clears before a failed retry", async ({
+  page,
+}) => {
+  await chatFixture(page, "gemini");
+  await open(page, "Manage conversations");
+  await page.getByLabel("Select Chat one", { exact: true }).check();
+  await page.getByLabel("Select Chat two", { exact: true }).check();
+  await page
+    .locator('aside a[href="/app/two"]')
+    .evaluate((node) => node.remove());
+  const downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Export selected", exact: true })
+    .click();
+  const file = await downloaded;
+  const archive = unzipSync(readFileSync((await file.path())!));
+  expect(JSON.parse(strFromU8(archive["manifest.json"]))).toMatchObject({
+    completed: 1,
+    failed: 1,
+  });
+  await page.locator(".backup-review summary").click();
+  await expect(page.locator(".backup-review li a")).toHaveText(["Chat one"]);
+  await expect(page.locator(".backup-review li a")).toHaveAttribute(
+    "href",
+    "https://gemini.google.com/app/one",
+  );
+  await expect(page.locator(".backup-review")).toContainText(
+    "open its More menu and choose Delete",
+  );
+  await expect(page.locator(".backup-review")).toContainText(
+    "check these Markdown files before deleting",
+  );
+  await page
+    .getByRole("button", { name: "Retry failed exports", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Export report", exact: true }),
+  ).toBeEnabled();
+  await expect(page.locator(".backup-review")).toHaveCount(0);
+});
 for (const platform of ["gemini", "chatgpt", "claude"]) {
   test(`${platform}: batch loads unopened chats without stale messages, then restores start`, async ({
     page,

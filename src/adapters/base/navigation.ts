@@ -77,6 +77,7 @@ export async function navigateConversation(
   isTarget: () => boolean,
   signal?: AbortSignal,
   timeoutMs = 30_000,
+  allowEmptyTarget = false,
 ): Promise<void> {
   signal?.throwIfAborted();
   const target = new URL(url, location.href);
@@ -134,7 +135,12 @@ export async function navigateConversation(
         !node.closest("#__safari_md_export_root__, nav, aside") &&
         visible(node),
     );
-    if (!isTarget() || !changed || !text.trim() || loading) {
+    const settledEmpty = allowEmptyTarget && nodes.length === 0;
+    if (
+      !isTarget() ||
+      (!settledEmpty && (!changed || !text.trim())) ||
+      loading
+    ) {
       since = Date.now();
       last = text;
       continue;

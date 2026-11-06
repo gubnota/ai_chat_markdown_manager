@@ -1,4 +1,4 @@
-# Verification — v2.1.0
+# Verification — v2.1.1
 
 Date: 2026-11-06. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependency versions are locked in `package-lock.json`.
 
@@ -8,12 +8,12 @@ Date: 2026-11-06. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependency versi
 | --- | --- |
 | `npm run lint` | Pass; source, tests and Vite/Playwright config |
 | `npm run typecheck` | Pass; strict TypeScript, typed legacy JS boundary |
-| `npm test` | 55 pass in 4 files (26 core + 17 Gemini + 3 navigation + 9 timedtext) |
+| `npm test` | 61 pass in 4 files (26 core + 17 Gemini + 9 navigation + 9 timedtext) |
 | `npm run build` | Pass; one self-contained production userscript, ZIP, checksum |
-| `npm run test:integration` | 51 pass: 17 cases each in Chromium, desktop WebKit, mobile WebKit |
+| `npm run test:integration` | 57 pass: 19 cases each in Chromium, desktop WebKit, mobile WebKit |
 | Metadata / release integrity | All original 48 @match entries retained plus 3 targeted YouTube entries; no global wildcard, runtime CDN or source maps; ZIP script matches dist |
 
-The production React bundle is about 345 kB before ZIP compression. Sizes/hashes may vary with rebuilt dependencies; use the checked-in lockfile and current `SHA256SUMS`.
+The production React bundle is about 348 kB before ZIP compression. Sizes/hashes may vary with rebuilt dependencies; use the checked-in lockfile and current `SHA256SUMS`.
 
 ## Unit coverage
 
@@ -21,7 +21,7 @@ Core: legacy code fences/languages, tables and pipes, math annotations, images/l
 
 Gemini: production disablement, sequential multiple targets, same-origin exact identity, native menu/dialog/removal verification, English/Russian/German/French/Spanish label paths, duplicate IDs/titles, unrelated/wrong confirmation, missing/unknown controls, DOM mutation, timeout, abort and partial failure. Test fixture opt-in is supplied directly to the adapter constructor. Production `createAdapter()` never supplies it.
 
-Navigation/timedtext: stale-message rejection after a route change, full-reload prevention, role-aware outline/hidden-content exclusion, JSON3/XML/VTT parsing, Unicode, timestamps beyond 24 hours, entity escaping, empty/negative data rejection, balanced player JSON, current-video/endpoint validation, signed-parameter preservation and matching fresh video-page request capture.
+Navigation/timedtext: native welcome-page exclusion on four platforms, generic page fallback, empty-route restoration, stale-message rejection after a route change, full-reload prevention, role-aware outline/hidden-content exclusion, JSON3/XML/VTT parsing, Unicode, timestamps beyond 24 hours, entity escaping, empty/negative data rejection, balanced player JSON, current-video/endpoint validation, signed-parameter preservation and matching fresh video-page request capture.
 
 ## Browser coverage
 
@@ -42,6 +42,9 @@ The integration suite injects **dist/AI-Chat-Markdown-Manager.user.js**, not dev
 13. Empty/stale-video rejection, optional JSON3 file/paste import and actual converted file contents.
 14. Video navigation refreshes caption tracks; JSON3-to-XML fallback downloads the correct video's Unicode captions.
 
+15. Gemini welcome-page batch excludes `/app`, prunes a persisted phantom selection, exports all real chats and restores the empty starting route without a cleanup timeout.
+16. Post-backup review includes only successful exports; a failed retry clears the previous review and never implies that failed content was backed up.
+
 Mobile WebKit runs in device emulation; drag tests use Playwright pointer input. This does not establish real touch hardware behavior. No real account mutation is tested.
 
 ## Live inspection evidence and blockers
@@ -56,6 +59,8 @@ Mobile WebKit runs in device emulation; drag tests use Playwright pointer input.
 ## Issues found and fixed during QA
 
 A mobile resize assertion initially read the anchor before its animation-frame clamp; it now waits for the settled position. A notification intercepted mobile ZIP clicks; toast text now passes pointer events through while its dismiss control remains clickable. Panel stacking on narrow screens keeps the FAB from covering list controls. Full browser checks passed after these fixes. v2.1 also fixes duplicate scroll increments and preserves outlines in role-aware exports.
+
+The v2.1.1 discovery rule exposed an old ChatGPT fixture served at an HTML-file route. It now uses a native `/c/current` route, preserving real current-conversation coverage without reintroducing synthetic start-page entries. All 57 browser checks passed after this fixture correction.
 
 ## Manual follow-up before enabling native features
 

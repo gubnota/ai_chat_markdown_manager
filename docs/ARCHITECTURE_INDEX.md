@@ -3,7 +3,7 @@
 | Location | Responsibility / entry point |
 | --- | --- |
 | `src/main.tsx` | Top-frame mount, duplicate guard, injected styles and React root |
-| `src/app/App.tsx` | Screens, lifecycle, shortcuts, FAB, dialogs, operation orchestration |
+| `src/app/App.tsx` | Screens, lifecycle, shortcuts, FAB, dialogs, operation orchestration, successful-export review |
 | `src/components/primitives.tsx` | Reusable buttons, toggles and focus-managed dialog |
 | `src/components/Conversations.tsx` | Filtering, stable selection, scroll loading and row actions |
 | `src/components/YouTubeCaptions.tsx` | Automatic video-language discovery, direct TXT/VTT downloads, optional import |
@@ -35,7 +35,7 @@
 | `tests/integration/userscript.spec.ts` | Inject production dist and verify actual browser behavior |
 | `tests/integration/loading-captions.spec.ts` | Three-platform batch loading, cancellation and automatic multilingual caption downloads |
 | `dist/AI-Chat-Markdown-Manager.user.js` | Standalone installable release |
-| `AI-Chat-Markdown-Manager-v2.1.0.zip`, `SHA256SUMS` | Release archive and root-relative integrity hashes |
+| `AI-Chat-Markdown-Manager-v2.1.1.zip`, `SHA256SUMS` | Release archive and root-relative integrity hashes |
 | `docs/screenshots/` | Verified local-fixture UI screenshots |
 | `Save-Page-as-Markdown-Safari.user.js`, `README.txt` | Unchanged v1.2 provenance baseline |
 

@@ -104,6 +104,7 @@ export function App({
   const [items, setItems] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState(initialSelection);
   const [progress, setProgress] = useState<OperationProgress>(idleProgress);
+  const [backedUp, setBackedUp] = useState<Conversation[]>([]);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [preview, setPreview] = useState<{ title: string; text: string }>();
@@ -142,7 +143,18 @@ export function App({
         : p,
     );
     try {
-      setItems(await adapter.discoverConversations());
+      const discovered = await adapter.discoverConversations();
+      setItems(discovered);
+      const available = new Set(discovered.map(conversationKey));
+      setSelected((previous) => {
+        const next = new Set(
+          [...previous].filter(
+            (key) =>
+              !key.startsWith(`${adapter.id}:page:`) || available.has(key),
+          ),
+        );
+        return next.size === previous.size ? previous : next;
+      });
       setProgress((p) =>
         p.state === "idle" || p.state === "scanning"
           ? { ...p, state: "ready" }
@@ -325,6 +337,7 @@ export function App({
       return;
     }
     operationLock.current = true;
+    setBackedUp([]);
     setBusy(true);
     setOpen(true);
     setScreen("activity");
@@ -395,13 +408,13 @@ export function App({
         },
         setProgress,
       );
-      if (kind === "export" && files.size)
+      if (kind === "export" && files.size) {
         download(
           makeZip(
             files,
             settings.export.manifest
               ? {
-                  version: "2.1.0",
+                  version: "2.1.1",
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -416,6 +429,13 @@ export function App({
           `chat-markdown-${Date.now()}.zip`,
           "application/zip",
         );
+        const successful = new Set(
+          result.results
+            .filter((r) => r.status === "success")
+            .map((r) => r.key),
+        );
+        setBackedUp(targets.filter((c) => successful.has(conversationKey(c))));
+      }
       if (settings.history) {
         recordHistory(result);
         setHistory(read("history", []));
@@ -950,6 +970,59 @@ export function App({
                   </li>
                 ))}
               </ul>
+              {!busy && backedUp.length > 0 && (
+                <details className="backup-review">
+                  <summary>
+                    {t(
+                      "Review backed-up chats",
+                      "Проверить сохранённые беседы",
+                    )}{" "}
+                    ({backedUp.length})
+                  </summary>
+                  <p className="hint">
+                    {t(
+                      "Open the downloaded ZIP and check these Markdown files before deleting anything. Exports can be partial. A ZIP backup does not remove chats from the website.",
+                      "Откройте скачанный ZIP и проверьте Markdown-файлы перед удалением. Экспорт может быть частичным. ZIP-копия не удаляет беседы с сайта.",
+                    )}
+                  </p>
+                  <p className="hint">
+                    {adapter.id === "gemini"
+                      ? t(
+                          "To delete a backed-up chat, find it in Gemini’s sidebar, open its More menu and choose Delete. Automatic deletion is unavailable. Work or school accounts may not allow deletion.",
+                          "Для удаления сохранённой беседы найдите её в боковой панели Gemini, откройте меню «Ещё» и выберите «Удалить». Автоматическое удаление недоступно. Рабочие и учебные аккаунты могут запрещать удаление.",
+                        )
+                      : t(
+                          "Automatic deletion is unavailable. Open each backed-up chat and use the website’s own Delete action.",
+                          "Автоматическое удаление недоступно. Откройте сохранённую беседу и удалите её средствами сайта.",
+                        )}
+                  </p>
+                  {adapter.id === "gemini" && (
+                    <a
+                      href="https://support.google.com/gemini/answer/13666746"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t(
+                        "Gemini deletion help",
+                        "Справка об удалении в Gemini",
+                      )}
+                    </a>
+                  )}
+                  <ul className="results">
+                    {backedUp.map((c) => (
+                      <li key={conversationKey(c)}>
+                        <a
+                          href={c.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {c.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <h3>{t("Recent local activity", "Локальная история")}</h3>
               {Array.isArray(history) &&
                 history.slice(0, 10).map((p, i) => (

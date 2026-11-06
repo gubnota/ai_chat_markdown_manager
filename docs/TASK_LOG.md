@@ -27,6 +27,15 @@
 - Updated bilingual guides, architecture/contracts/ADRs, privacy and release artifacts. `.DS_Store` was already ignored and remains so.
 - Preserved preexisting unrelated old-release ZIP changes and the untracked transport log.
 
+## 2026-11-06 — v2.1.1 start-page and post-backup fixes
+- User reported `gemini:page:/app` / “Where should we start?” as the only failure in a 35-item batch; approved plan, build and commit in advance.
+- Excluded synthetic native start-page identities from all four chat adapters, while retaining generic page export; pruned removed synthetic selection keys.
+- Allowed settled empty original-route restoration without weakening message requirements during export.
+- Added a transient successful-export review after ZIP preparation, native chat links and manual Gemini deletion guidance. Failed/skipped targets never appear; starting another batch clears the review.
+- Automatic native deletion remains disabled; verified current Google help for the manual More → Delete path and managed-account restrictions.
+- Verification: 61 unit tests, 57 production-bundle browser checks, lint/typecheck/build and release checksums passed. Corrected the legacy ChatGPT fixture to use a real chat route; details in VERIFICATION.md.
+- Preserved preexisting old-release ZIP changes, extracted v2.1.0 directory and untracked transport log. Commit requested; no live chats deleted.
+
 ## Remaining verification boundaries
 - No authenticated live ChatGPT/Claude/DeepSeek/Gemini account verification.
 - No real-account destructive tests. No native archive implementation.
