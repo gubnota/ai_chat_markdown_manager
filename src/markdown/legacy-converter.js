@@ -112,6 +112,8 @@
  */
 
 // Inherited converter kept as JavaScript to minimize changes; typed boundary in legacy.ts.
+import { attachmentMarkdown, inMessage } from "./attachments";
+
 export function createConverter(options = {}) {
   const UI_ID = "__safari_md_export_root__";
   const config = { images:true, links:true, metadata:true, source:true, outline:false, selection:false, ...options };
@@ -159,12 +161,12 @@ export function createConverter(options = {}) {
 
   function imageMarkdown(el) {
     if (!config.images) return '';
-    let raw = el.getAttribute('data-src') || el.getAttribute('data-original') ||
-      el.getAttribute('src') || el.currentSrc || '';
-    if (!raw && el.getAttribute('srcset')) raw = el.getAttribute('srcset').split(',')[0].trim().split(/\s+/)[0];
-    const src = absoluteUrl(raw);
-    if (!src || !/^https?:/.test(src)) return '';
+    const candidates = [el.getAttribute('data-src'), el.getAttribute('data-original'),
+      el.currentSrc, el.getAttribute('src')];
+    if (el.getAttribute('srcset')) candidates.push(el.getAttribute('srcset').split(',')[0].trim().split(/\s+/)[0]);
+    const src = candidates.map(absoluteUrl).find(url => /^https?:/.test(url));
     const alt = (el.getAttribute('alt') || el.getAttribute('aria-label') || '').replace(/[\[\]\n]/g, ' ').trim();
+    if (!src) return inMessage(el) ? `Image: ${escapeText(alt || 'attachment')} — direct link unavailable.` : '';
     return `![${alt}](${mdUrl(src)})`;
   }
 
@@ -252,8 +254,11 @@ export function createConverter(options = {}) {
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     const el = node;
     const tag = el.tagName;
-    if (ignored.has(tag) || isHidden(el)) return '';
+    if (isHidden(el)) return '';
     if (el.matches('[data-md-export-ignore], [role="navigation"], [role="complementary"], [role="toolbar"], [role="menu"], [role="menubar"], [role="tooltip"], [role="status"], [data-testid="toast"]')) return '';
+    const attachment = attachmentMarkdown(el, config, imageMarkdown);
+    if (attachment !== undefined) return attachment;
+    if (ignored.has(tag)) return '';
     if (tag === 'HEADER' && el.closest('body > header')) return '';
     if (tag === 'FOOTER' && !state.inTable) return '';
 

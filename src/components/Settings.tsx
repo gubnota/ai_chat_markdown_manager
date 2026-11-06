@@ -146,8 +146,8 @@ export function Settings({
         ))}
         <p className="hint">
           {t(
-            "Code blocks always preserve fences and detected language. Images remain URLs; media is not downloaded.",
-            "Блоки кода сохраняют ограждения и язык. Изображения остаются ссылками; медиа не загружается.",
+            "Code blocks preserve fences and language. Images and files use links exposed by the page; these may expire or require login. Missing attachment links are noted. Media is not downloaded.",
+            "Блоки кода сохраняют ограждения и язык. Ссылки на изображения и файлы берутся со страницы: они могут истечь или требовать входа. Отсутствующие ссылки отмечаются. Медиа не загружается.",
           )}
         </p>
         <label>

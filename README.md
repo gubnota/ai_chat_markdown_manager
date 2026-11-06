@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.2.0
+# AI Chat Markdown Manager v2.2.1
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.2.0.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.2.1.zip)
 
 ## 1. Overview
 
@@ -60,7 +60,9 @@ The inherited converter handles headings, lists, tables, fenced code with langua
 
 Use **Export selected content** after highlighting webpage text, or Shift-click Save. Empty selections and empty content produce errors. Exports always warn when completeness is partial. Unknown timestamps are omitted, and filenames use `undated`; no dates or account history are invented.
 
-Image URLs are referenced, not downloaded. A Markdown viewer may later request those URLs.
+Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. Attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
+
+Images/files remain external links, not bundled downloads. A viewer may request those URLs; they may expire or require the original login. Blob/data previews cannot become durable links. The exporter never opens attachment controls or uses private account APIs.
 
 ## 9. Selecting conversations
 
@@ -80,7 +82,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.2.0, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.2.1, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -90,7 +92,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.2.0. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.2.1. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -140,7 +142,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.2.0`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.2.1`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 

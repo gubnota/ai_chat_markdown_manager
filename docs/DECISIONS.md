@@ -97,3 +97,13 @@ Context: User explicitly requested ChatGPT batch archive/delete and post-backup 
 Decision: Enable ChatGPT archive/delete and Gemini delete conditionally on recognized native sidebar controls. Share exact ID/row/menu validation, localized exact labels, title-bearing Delete confirmation and stable verified removal. Archive commits at its menu action, matching the native flow. Freeze discovered IDs; never use account-wide controls. Reviewed successful ZIP targets use the same mandatory confirmation. Required backups restore the original route before mutation.
 Consequences: Missing/ambiguous controls fail closed. No authenticated live mutation claim; fixtures cannot establish deployed compatibility. Cancellation preserves verified committed results; unverified commits fail without automatic retry. Successful IDs are suppressed in this tab until reload. Claude and other mutation paths stay unsupported.
 Related files: src/adapters/base/native-actions.ts, src/adapters/chatgpt/, src/adapters/gemini/, src/app/App.tsx, src/operations/batch.ts, tests/integration/native-actions.spec.ts
+
+# ADR-0011: Preserve exposed attachment references without native actions
+
+Date: 2026-11-07
+Status: Accepted
+
+Context: Gemini message images and files can live inside preview buttons that the inherited converter discards; image-only batches also have no text fingerprint.
+Decision: Add typed message-scoped attachment recognition at the converter boundary. Preserve exposed HTTP(S) image/file references, respect existing toggles, name missing direct links, and fingerprint image identity during settled-message navigation. Never click previews/downloads, guess URLs, retrieve private APIs or bundle media.
+Consequences: Current and batch exports retain more loaded attachments. Temporary/authenticated links remain limited by the host; blob/data previews are explicitly unavailable as reusable references. Synthetic browser tests do not establish authenticated host compatibility.
+Related files: src/markdown/attachments.ts, src/markdown/legacy-converter.js, src/adapters/base/navigation.ts, tests/unit/attachments.test.ts, tests/integration/attachments.spec.ts

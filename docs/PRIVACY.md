@@ -28,6 +28,8 @@ Same-origin website scripts can access localStorage, the open Shadow DOM and pag
 
 Markdown contains loaded conversation text, optional title/front matter, platform, optional source URL/date, and a partial-export warning. Image references remain URLs; opening Markdown in another application may request external resources. Disable source/image/link options when appropriate.
 
+Message attachment cards may contribute filenames and exposed HTTP(S) file/image URLs, including signed parameters. Export does not fetch media or open native attachment controls. Missing or temporary blob/data links produce an unavailable-link note. Exposed links may expire or require the original account; review them before sharing.
+
 A ZIP contains successful `.md` exports plus an optional manifest with creation time and per-item IDs, states and errors. JSON operation reports likewise contain IDs/errors. The application does not silently attach all message text to activity history, but downloaded Markdown intentionally contains messages. Review files and reports before uploading or sharing.
 
 ## Network and permissions

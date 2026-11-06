@@ -46,6 +46,14 @@
 - Verification: 79 unit tests, 81 production-bundle browser checks, lint/typecheck/build and versioned release integrity. No real chats archived/deleted. Read-only Gemini inspection confirmed the native action-menu label; ChatGPT was signed out.
 - Preserved preexisting old ZIP changes, SHA256SUMS, extracted v2.1.0 directory and private untracked log. Current release uses SHA256SUMS-v2.2.0. `.DS_Store` remains ignored.
 
+## 2026-11-07 — v2.2.1 Gemini attachment references
+- User reported missing uploaded files/images and generated content in Gemini with both image/link options enabled. Standing implementation/build/commit/push authorization applies; plan recorded in IMPLEMENTATION_PLAN_2.2.1.md.
+- Added scoped attachment-button/file-card conversion with exposed HTTP(S) URLs, explicit missing-link labels and independent image/link options; ordinary controls and hidden previews remain excluded. No native attachment action or private API retrieval.
+- Navigation fingerprints include image identity, allowing newly settled image-only replies while rejecting unchanged stale content.
+- Added units and production-bundle current Markdown/batch ZIP download checks. Verification results are recorded in VERIFICATION.md.
+- The supplied private Gemini chat redirected to /app in the test browser. No authenticated attachment export is claimed.
+- Prepared v2.2.1 distribution, ZIP and versioned checksums; preserved unrelated old artifacts, SHA256SUMS and private untracked log. `.DS_Store` remains ignored.
+
 ## Remaining verification boundaries
 - No authenticated live ChatGPT/Claude/DeepSeek/Gemini account verification.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.
