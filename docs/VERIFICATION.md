@@ -1,6 +1,6 @@
-# Verification — v2.1.1
+# Verification — v2.2.0
 
-Date: 2026-11-06. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependency versions are locked in `package-lock.json`.
+Date: 2026-11-07. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are locked in `package-lock.json`.
 
 ## Automated release checks
 
@@ -8,60 +8,44 @@ Date: 2026-11-06. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependency versi
 | --- | --- |
 | `npm run lint` | Pass; source, tests and Vite/Playwright config |
 | `npm run typecheck` | Pass; strict TypeScript, typed legacy JS boundary |
-| `npm test` | 61 pass in 4 files (26 core + 17 Gemini + 9 navigation + 9 timedtext) |
-| `npm run build` | Pass; one self-contained production userscript, ZIP, checksum |
-| `npm run test:integration` | 57 pass: 19 cases each in Chromium, desktop WebKit, mobile WebKit |
-| Metadata / release integrity | All original 48 @match entries retained plus 3 targeted YouTube entries; no global wildcard, runtime CDN or source maps; ZIP script matches dist |
+| `npm test` | 79 pass in 5 files: core, Gemini, ChatGPT, navigation, timedtext |
+| `npm run build` | Pass; self-contained userscript, v2.2.0 ZIP and versioned checksums |
+| `npm run test:integration` | 81 pass: 27 cases each in Chromium, desktop WebKit and mobile WebKit |
+| Metadata / release integrity | Original 48 @match entries plus 3 targeted YouTube entries; no global wildcard, remote runtime imports or source maps; ZIP script equals dist |
 
-The production React bundle is about 348 kB before ZIP compression. Sizes/hashes may vary with rebuilt dependencies; use the checked-in lockfile and current `SHA256SUMS`.
+The production bundle is approximately 353 kB before compression. Verify current artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.2.0`. Historical ZIPs and the preexisting modified `SHA256SUMS` are preserved independently.
 
 ## Unit coverage
 
-Core: legacy code fences/languages, tables and pipes, math annotations, images/links/unsafe URLs, ignored UI, empty content/selection, front matter and partial warnings; sanitized filenames/collisions/ZIP; filters/stable selection/unknown dates; validated/migrated/storage-denied preferences; privacy summaries; FAB collision and geometry; discovered identities across virtualization; same-tab real-content snapshots/format changes; sequential batches, cancellation, stop-on-error and concurrent-run prevention.
+- Core: inherited conversion (code/tables/math/links/images), unsafe URL exclusion, empty data, metadata, ZIP contents, filename collisions, stable selection, storage validation/migration/denial, count-only history, geometry, virtualized identities, bounded snapshots, formatting changes, sequential batches and concurrency guards.
+- Native actions: ChatGPT factory and conditional capabilities, Gemini default enablement/explicit disablement, exact same-origin IDs, unique row controls and titles, localized labels, new/reused menus, title-bearing Delete confirmations, wrong/unrelated dialogs, renamed/replaced rows, persistent-sidebar outcome checks, timeouts and ambiguity rejection. Successful targets stay removed from discovery, including the current native route.
+- Cancellation: pre-commit abort stops clicks; post-commit abort retains verified success, while an unverified committed action is failed and remaining jobs are skipped. No automatic mutation retry.
+- Navigation/timedtext: welcome-page exclusion, generic fallback, empty-route restoration, stale messages, full-reload prevention, role-aware outlines, JSON3/XML/VTT, Unicode/timing/entities, empty/negative rejection, player JSON extraction, endpoint/video validation and fresh signed-parameter capture.
 
-Gemini: production disablement, sequential multiple targets, same-origin exact identity, native menu/dialog/removal verification, English/Russian/German/French/Spanish label paths, duplicate IDs/titles, unrelated/wrong confirmation, missing/unknown controls, DOM mutation, timeout, abort and partial failure. Test fixture opt-in is supplied directly to the adapter constructor. Production `createAdapter()` never supplies it.
+## Production-bundle browser coverage
 
-Navigation/timedtext: native welcome-page exclusion on four platforms, generic page fallback, empty-route restoration, stale-message rejection after a route change, full-reload prevention, role-aware outline/hidden-content exclusion, JSON3/XML/VTT parsing, Unicode, timestamps beyond 24 hours, entity escaping, empty/negative data rejection, balanced player JSON, current-video/endpoint validation, signed-parameter preservation and matching fresh video-page request capture.
+Tests inject `dist/AI-Chat-Markdown-Manager.user.js` into intercepted or local synthetic host pages. All downloads are genuine browser downloads whose contents are checked.
 
-## Browser coverage
+- FAB drag/resize/Send avoidance, independent persistent anchor, minimize/hide/restore, settings/themes, keyboard focus, duplicate mount prevention and usable host composer.
+- Discovery/search/filter/sort, stable selection across reload, accumulation of 80 virtualized IDs and automatic bottom-scroll loading.
+- Markdown and ZIP success/failure manifests, snapshots across SPA navigation and idle manager with all new requests blocked.
+- ChatGPT/Gemini/Claude batch export of previously unopened chats: delayed new messages, genuine per-chat files, original-route restoration and cancellation without stale output.
+- Gemini `/app` exclusion, phantom selection pruning and settled empty-home restoration.
+- YouTube automatic languages, original TXT and translated VTT with fresh signed parameters, empty/stale-video rejection, optional JSON3 import, navigation refresh and JSON3-to-XML fallback.
+- ChatGPT selected archive and all-discovered deletion with typed confirmation; a newly added unreviewed chat remains untouched. No account-wide action is invoked.
+- Gemini selected batch delete with native title confirmations.
+- Required backup completion/restoration before archive; failed or cancelled backup starts no native mutation and never reopens a removed chat afterward.
+- Successful ZIP review excludes failed exports and requires file-check acknowledgment plus normal typed Delete confirmation.
+- Wrong native confirmation fails without clicking Delete.
 
-The integration suite injects **dist/AI-Chat-Markdown-Manager.user.js**, not development modules, into a local HTML host. Cases cover:
+Desktop/mobile screenshots in `docs/screenshots/` show local fixtures. Mobile WebKit uses device emulation and pointer input; it does not establish physical touch behavior. No real account was mutated.
 
-1. Drag, expand, settings/back, minimize, dismiss, restore and persisted anchor.
-2. Right edge, Send-button collision, Escape, viewport resize and clamping.
-3. Discovery, search, filters/sort, multi-selection across reload and disabled deletion.
-4. Accumulation of 80 virtualized entries, automatic bottom-scroll loading and selection independent of visible rows.
-5. Real Markdown download contents, partial warning, ZIP success/failure manifest and activity state.
-6. Theme persistence, keyboard focus restoration, duplicate mount prevention and usable native composer.
-7. Two genuine exported conversations retained across SPA navigation and included in ZIP.
-8. All new requests blocked after injection: the idle manager still works and makes no outgoing request. Explicit caption actions and native SPA navigation are tested separately.
-9. Settled screenshots of home/conversations in desktop/mobile layouts.
-10. ChatGPT, Gemini and Claude ZIP exports open previously unopened chats, wait for delayed messages, verify each file and restore the start route.
-11. Cancellation during a delayed load restores the starting chat without downloading stale content.
-12. Automatic YouTube language detection and direct original-language TXT / translated VTT, with fresh signed parameters captured from a video-page request.
-13. Empty/stale-video rejection, optional JSON3 file/paste import and actual converted file contents.
-14. Video navigation refreshes caption tracks; JSON3-to-XML fallback downloads the correct video's Unicode captions.
+## Live evidence and remaining boundaries
 
-15. Gemini welcome-page batch excludes `/app`, prunes a persisted phantom selection, exports all real chats and restores the empty starting route without a cleanup timeout.
-16. Post-backup review includes only successful exports; a failed retry clears the previous review and never implies that failed content was backed up.
+- Read-only inspection on 2026-11-07: ChatGPT was signed out; Safari Gemini showed the conversation action-menu label. Archive/delete confirmations and outcomes were not tested on authenticated real chats. Conditional production support is based on runtime checks, not a claim of live compatibility.
+- Earlier read-only ChatGPT/Claude navigation inspection informed adapters. Batch exports remain verified on redacted fixtures. DeepSeek/generic hosts have no authenticated live verification.
+- The earlier Base44 inspection informed layout; approval review blocked external reference export/delete clicks. Those reference dialogs were not verified. See `DESIGN_INVENTORY.md`.
+- YouTube live restrictions, expired signatures and browser permissions vary. Fixture success does not establish universal video access.
+- Actual Safari Userscripts/Tampermonkey installation, host CSP, permissions and downloads still require manual verification; WebKit injection is a distinct test.
 
-Mobile WebKit runs in device emulation; drag tests use Playwright pointer input. This does not establish real touch hardware behavior. No real account mutation is tested.
-
-## Live inspection evidence and blockers
-
-- Base44: accessible reference inspected in Browser; main/conversations/settings and visible row controls informed implementation. Approval review blocked external export/delete action clicks; associated dialogs were not verified. [Inventory](DESIGN_INVENTORY.md).
-- Gemini: `https://gemini.google.com/` redirected to signed-out `/app`. No authenticated sidebar, menu or native confirmation was available. Production deletion stays `unknown`/disabled. [Activation requirements](PLATFORMS.md#gemini-deletion-blocker).
-- ChatGPT/Claude signed-in native sidebar navigation was inspected read-only. Batch exports are verified on redacted fixtures, not live account history. DeepSeek and generic sites have no authenticated live verification.
-- YouTube automatic discovery, page-request capture, translations, XML fallback and actual downloads are verified on intercepted/redacted browser fixtures. Live video restrictions and signed-URL availability vary.
-- A browser-controlled synthetic VTT download was opened locally: Russian/English text and 00:00:01.500 → 00:00:03.800 timing matched.
-- Actual Safari Userscripts/Tampermonkey extension installation, permissions, downloads and host CSP need manual testing. WebKit injection is not Safari extension verification.
-
-## Issues found and fixed during QA
-
-A mobile resize assertion initially read the anchor before its animation-frame clamp; it now waits for the settled position. A notification intercepted mobile ZIP clicks; toast text now passes pointer events through while its dismiss control remains clickable. Panel stacking on narrow screens keeps the FAB from covering list controls. Full browser checks passed after these fixes. v2.1 also fixes duplicate scroll increments and preserves outlines in role-aware exports.
-
-The v2.1.1 discovery rule exposed an old ChatGPT fixture served at an HTML-file route. It now uses a native `/c/current` route, preserving real current-conversation coverage without reintroducing synthetic start-page entries. All 57 browser checks passed after this fixture correction.
-
-## Manual follow-up before enabling native features
-
-Use an authorized disposable test account, never a user's history. Verify current deployed localized controls, stable IDs, unique title-bearing confirmation, the exact native outcome and cancellation/timeout behavior. Add redacted fixture regressions, repeat the automated suite, record browser/platform/date and only then change production capability. Keep ambiguous cases disabled. Native archive needs a separate implementation and evidence.
+For additional live validation use explicitly authorized disposable accounts. Verify localized controls, exact IDs and title-bearing Delete confirmation, native outcomes and cancellation/timeouts. Keep ambiguous controls unavailable and report only redacted reproductions.

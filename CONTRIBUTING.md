@@ -12,9 +12,9 @@ Before a pull request, run `npm run lint`, `npm run typecheck`, `npm test`, `npm
 
 Declare capabilities honestly. Current DOM export does not prove access to inactive conversations or complete account history. Use stable same-origin IDs, accumulate virtualized sidebar metadata, preserve unknown dates/status and fail on unavailable content. Do not fetch private endpoints, copy session tokens, add a universal @match or introduce background message collection.
 
-Native actions require exact identity checks at every relevant control, explicit mandatory review, native confirmation and verified outcome. Unknown outcomes must not retry automatically. No fixed positional selector may be the sole identity. Add realistic redacted fixtures for localization, duplicates, mutations, timeout, cancellation and partial failures. Never execute destructive automated tests against real accounts.
+Native actions require exact identity checks at every relevant control, explicit mandatory review, title-bearing native Delete confirmation and verified outcome. Unknown outcomes must not retry automatically. No fixed positional selector may be the sole identity. Add realistic redacted fixtures for localization, duplicates, mutations, timeout, cancellation and partial failures. Never execute destructive automated tests against real accounts.
 
-Keep production Gemini deletion disabled until an authorized disposable account has supplied current authenticated manual evidence. A constructor flag used by fixtures is not a supported user override. Native archive requires its own reliable implementation; a ZIP must never be labelled as a completed platform archive.
+Keep native capabilities conditional on recognized runtime controls and independently validate each action. Record authenticated manual evidence only when actually obtained, using authorized disposable accounts. Archive commits at the native menu item; user review remains mandatory. A ZIP must never be labelled as a completed platform archive.
 
 ## Pull requests and releases
 

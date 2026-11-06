@@ -14,12 +14,13 @@ Canonical TypeScript definitions: `src/types/index.ts`. There is no server API, 
 - `discoverConversations(): Promise<Conversation[]>`.
 - `getConversation(identifier, signal?): Promise<Conversation>` validates identity.
 - `exportConversation(identifier, ExportOptions, signal?): Promise<string>` returns genuine Markdown or rejects.
-- `archiveConversation(identifier, signal?): Promise<void>`; unsupported in production.
-- `deleteConversation(identifier, signal?): Promise<void>`; unknown/disabled for Gemini, unsupported elsewhere.
+- `archiveConversation(identifier, signal?): Promise<void>`; ChatGPT only, when recognized row controls are available.
+- `deleteConversation(identifier, signal?): Promise<void>`; ChatGPT/Gemini when recognized row controls are available; unsupported elsewhere.
 - Optional `observe(onChange): () => void` returns observer cleanup.
 - Optional `beginExportSession(): () => Promise<void>` captures the start route; its async cleanup restores that route independently of a cancelled export signal. Restoration alone may accept a settled empty non-conversation start page; exports still require changed nonempty messages.
 - No native destructive operation may infer identity from title alone, retry implicitly or treat an uncertain outcome as success.
-- Gemini requires exact stable identity, unique native controls and a new exact-title confirmation; production verification gate remains false.
+- Native capabilities start unknown and enable on discovery of recognized row controls. Each job still requires its own exact ID/row/control and newly opened unique menu. Delete requires a unique title and new title-bearing dialog with an exact localized Delete button. Archive commits at its exact menu item without a native confirmation.
+- Success requires stable target-row removal plus closed own menu/dialog while the original sidebar stays visible/connected. Successful IDs are forgotten and suppressed from discovery for this tab; reload after external unarchive. No account-wide native control is invoked.
 
 ## Export and snapshots
 `ExportOptions`: booleans images, links, metadata, source, outline, selection, title, timestamps, manifest; string filename template. Templates support platform/date/slug/id in the export implementation.
@@ -28,7 +29,7 @@ ChatGPT/Gemini/Claude automatically open noncurrent chats through discovered sam
 
 Bulk ZIP contains successful `.md` entries plus optional `manifest.json`: version, scope (`discovered DOM only; partial`), createdAt, state, total, completed, failed, skipped and results. Each result has key, status (`success | failed | skipped`), optional error. No successful empty backup when every export fails. Exported JSON reports may include IDs/errors; they are explicit downloads, not persistent history.
 
-After a ZIP download is initiated successfully, the app keeps an in-memory review of that batch’s successful targets only. Failed/skipped entries are excluded, and starting another batch clears the review. Browser download initiation is not proof that the file was saved or complete: review asks users to inspect the ZIP before manual deletion. No automatic delete-after-export operation is enabled.
+After a ZIP download is initiated successfully, the app keeps an in-memory review of that batch’s successful targets only. Failed/skipped entries are excluded, and starting another batch clears the review. Browser download initiation is not proof that the file was saved or complete: review requires acknowledgment of inspecting the ZIP before offering Archive/Delete backed-up chats on supported adapters. Those shortcuts freeze only successful targets and use normal mandatory confirmation. Export itself never triggers mutation.
 
 ## Batch lifecycle
 - Kinds: export, archive, delete.
@@ -36,9 +37,9 @@ After a ZIP download is initiated successfully, the app keeps an in-memory revie
 - Input: frozen conversation array, kind, stopOnError, delayMs, optional batchSize.
 - Progress: state/kind/current, total/completed/failed/skipped, results, optional startedAt.
 - One active runner, sequential jobs, one AbortController; batchSize groups delays rather than concurrency.
-- Cancel marks queued work skipped and does not undo completed work. A job that cannot establish success fails.
+- Cancel marks queued work skipped and does not undo completed work. After a native commit click, bounded outcome observation ignores abort: verified completion is success; unverified outcome is failed with structural `actionAttempted: true`, even during cancellation. No retry is implied.
 - Export retry is explicit and limited to failed entries. Never automatically retry destructive work.
-- Optional pre-mutation backup must export every frozen target successfully before any native click.
+- Optional pre-mutation backup must export every frozen target successfully and initiate ZIP download before any native click. Restore the start route before mutation; failed backup/restoration or cancellation prevents mutation. No restoration runs after native mutation.
 - App requires explicit typed DELETE / DELETE ALL confirmation and final action; capability checks still apply.
 
 ## YouTube captions

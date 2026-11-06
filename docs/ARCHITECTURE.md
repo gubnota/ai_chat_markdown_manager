@@ -14,7 +14,7 @@ Tailwind v4 is compiled during the Vite build; component CSS is injected into th
 
 ## Adapters and contracts
 
-`src/types/index.ts` defines the five-method adapter boundary and explicit capability states. `src/adapters/index.ts` selects Gemini or a configured DOM adapter for ChatGPT, Claude, DeepSeek, otherwise generic current-page conversion. Shared DOM adapters discover same-origin ID-bearing sidebar links, retain IDs across host virtualization and observe DOM changes with a 250 ms debounce. No background API, authentication integration, cross-origin iframe traversal or account-wide crawler exists.
+`src/types/index.ts` defines the five-method adapter boundary and explicit capability states. `src/adapters/index.ts` selects dedicated ChatGPT/Gemini adapters or a configured DOM adapter for Claude, DeepSeek, otherwise generic current-page conversion. Shared DOM adapters discover same-origin ID-bearing sidebar links, retain IDs across host virtualization and observe DOM changes with a 250 ms debounce. No background API, authentication integration, cross-origin iframe traversal or account-wide crawler exists.
 
 All discovered entries are marked partial; unknown archive state and dates are retained as unknown. Selection uses `platform:id`, never row index. The manager initially shows 24 rows and automatically reveals 24 more near the scroll bottom, using an intersection observer and scroll fallback. Generic adapters return the current page only.
 
@@ -34,7 +34,9 @@ The minimally ported `legacy-converter.js` retains its original metadata and MIT
 
 `BatchRunner` owns one AbortController and one sequential batch. Batch size defines how many sequential items precede a delay; it does not enable concurrency. Every queued item receives success/failure/skipped status. Cancel halts subsequent work, without rollback. Export retry is offered for failed items only; no automatic destructive retry exists.
 
-App-level native gates require `supported`, exact frozen targets, count/title/ID review, a typed deletion phrase and final start. Optional backup generation must finish for the whole target set first. Gemini's engine additionally verifies unique stable row identity, a new native menu, exact localized Delete, a new title-bearing native dialog and disappearance after confirmation. Ambiguous or changing controls fail closed. Native archive is unsupported everywhere; Gemini deletion is `unknown` in the production factory.
+App-level native gates require `supported`, exact frozen targets, count/title/ID review, a typed deletion phrase and final start. Optional backup generation must finish for the whole target set first and restore the starting route before mutation. ChatGPT archive/delete and Gemini delete use shared `base/native-actions.ts`: unique stable row/control, new native menu, exact localized action, and for Delete a new title-bearing confirmation. Archive commits at the menu item. Stable disappearance is verified with the original sidebar still present and own menu/dialog closed. Ambiguous or changing controls fail closed. Capabilities are conditional on runtime row controls, not authenticated live verification.
+
+After a commit click, bounded observation completes despite cancellation: verified success remains success, unverified outcome fails without retry. Successful IDs are forgotten and suppressed until reload. A successful ZIP review can request the same confirmed operations on successful exports only after acknowledgment of checking the files.
 
 ## Persistence and failure handling
 
@@ -44,6 +46,6 @@ Errors remain visible per item in Activity and optional JSON reports. Unsupporte
 
 ## Build and tests
 
-Vite emits one ES2022 IIFE. A post-minification plugin restores userscript metadata and complete third-party notices. The original 48 allowlisted match patterns are retained and compared during release verification, with 3 targeted YouTube additions. `scripts/release.mjs` rejects remote requirements, extra dist files and source maps, then packages the script, instructions and licenses.
+Vite emits one ES2022 IIFE. A post-minification plugin restores userscript metadata and complete third-party notices. The original 48 allowlisted match patterns are retained and compared during release verification, with 3 targeted YouTube additions. `scripts/release.mjs` rejects remote requirements, extra dist files and source maps, then packages the script, instructions and licenses. Current integrity hashes are in `SHA256SUMS-v2.2.0`; older release artifacts remain independent.
 
 Vitest uses jsdom fixtures for conversion, storage, batching, geometry and guarded native engine behavior. Playwright injects the built artifact into a local host fixture in Chromium, desktop WebKit and mobile WebKit; it checks actual download contents and operation results. No live account is mutated. See [VERIFICATION.md](VERIFICATION.md).

@@ -1,12 +1,12 @@
-# AI Chat Markdown Manager v2.1.1
+# AI Chat Markdown Manager v2.2.0
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.1.1.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.2.0.zip)
 
 ## 1. Overview
 
 A local userscript for turning AI conversations into Markdown, automatically loading selected chats for ZIP backups, and downloading YouTube captions as TXT/VTT. A floating React interface runs inside a Shadow DOM. No server, account connection, telemetry, or CDN is required.
 
-This release preserves the v1.2.0 converter and all 48 domain/path match rules, adding 3 targeted YouTube rules. Discovery is partial. Native archive is unavailable; Gemini deletion is deliberately disabled pending authenticated live validation.
+This release preserves the v1.2.0 converter and all 48 domain/path match rules, adding 3 targeted YouTube rules. Discovery is partial. ChatGPT batch archive/delete and Gemini batch delete use recognized native controls with mandatory confirmation and verified outcomes.
 
 ## 2. Screenshots and UI preview
 
@@ -22,6 +22,7 @@ This release preserves the v1.2.0 converter and all 48 domain/path match rules, 
 - Search, stable multi-selection, filters, sorting, automatic scroll loading in groups of 24, preview and context actions.
 - Markdown downloads, clipboard, highlighted-text export, genuine in-tab snapshots and ZIP manifests.
 - YouTube video-page caption detection, language/translation selection and direct TXT/VTT downloads.
+- ChatGPT batch archive/delete, Gemini delete, reviewed-backup shortcuts and mandatory confirmations.
 - Sequential batches, cancellation, per-item failures, reports and export-only safe retries.
 - Light/dark/system themes, English/Russian interface and reduced motion.
 
@@ -29,13 +30,13 @@ This release preserves the v1.2.0 converter and all 48 domain/path match rules, 
 
 | Platform | Discovery | Markdown / ZIP input | Native archive | Native delete |
 | --- | --- | --- | --- | --- |
-| ChatGPT | Sidebar `/c/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Unsupported |
-| Gemini | Sidebar `/app/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Unknown; disabled |
+| ChatGPT | Sidebar `/c/id` + current page | Automatic native chat loading / in-tab snapshots | Conditional native support | Conditional native support |
+| Gemini | Sidebar `/app/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Conditional native support |
 | Claude | Sidebar `/chat/id` + current page | Automatic native chat loading / in-tab snapshots | Unsupported | Unsupported |
 | DeepSeek | Links `/a/chat/s/id` + current page | Loaded DOM / explicit in-tab snapshots | Unsupported | Unsupported |
 | Other inherited matches | Current page only | Generic loaded DOM / in-tab snapshots | Unsupported | Unsupported |
 
-These are implementation capabilities, not claims of authenticated live verification. Chromium/WebKit fixture tests cover the bundle; Gemini was accessible only signed out. Every inherited domain and its verification status is in [PLATFORMS.md](docs/PLATFORMS.md).
+These are implementation capabilities, not claims of authenticated live verification. Chromium/WebKit fixture tests cover the bundle; native mutations have not been tested on a signed-in account. Every inherited domain and its verification status is in [PLATFORMS.md](docs/PLATFORMS.md).
 
 ## 5. Safari installation
 
@@ -79,7 +80,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.1, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.2.0, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -87,25 +88,23 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ![YouTube caption languages and direct downloads](docs/screenshots/youtube-captions.png)
 
-## 11. Native archiving
+## 11. Batch archive in ChatGPT
 
-Native archive controls are disabled on every adapter in v2.1. A ZIP backup does not change a conversation's platform state. The Archive screen explains this distinction and provides a local ZIP action. Native archive support requires its own verified adapter implementation.
+Reload after installing v2.2.0. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
-## 12. Selected deletion and Gemini
+## 12. Batch delete and successful backups
 
-After downloading a ZIP, expand **Review backed-up chats** in Activity. It lists only chats exported successfully in that batch. Open the ZIP and inspect those files first; message history can still be partial. To delete a Gemini chat, find it in Gemini’s sidebar and choose **More → Delete**. Work/school accounts may restrict deletion. See [Google’s instructions](https://support.google.com/gemini/answer/13666746). Automatic deletion remains unavailable.
+ChatGPT and Gemini support **Delete** for selected chats and **Delete all** for the frozen discovered list. Review the targets, type `DELETE` or `DELETE ALL`, then confirm. Deletion cannot be undone. The manager uses each conversation's native controls and never clicks account-wide Settings deletion.
 
-Native welcome/start pages, including Gemini’s `/app` (“Where should we start?”), are excluded from conversation batches. Reload the site after upgrading to remove the old synthetic entry.
+After a ZIP download, expand **Review backed-up chats** in Activity. Open the ZIP and inspect the files, then check **I opened the ZIP and checked these files**. Choose **Archive backed-up chats** (ChatGPT) or **Delete backed-up chats** (ChatGPT/Gemini). Only successful exports are included; the same confirmations apply. Message history can still be partial. Export never starts deletion automatically.
 
-Production Gemini deletion has capability `unknown`, so Delete/Delete all are visibly disabled. The available live Gemini page redirected to a signed-out `/app` screen with no history, action menus or confirmation dialogs. Reliable account mutation could not be established.
-
-A guarded engine is implemented and tested against realistic sidebar/dialog fixtures: same-origin stable IDs, unique identity/title, native menu, exact localized Delete action, title-bearing confirmation and verified removal. It is not enabled by a user setting. See the [technical blocker and activation requirements](docs/PLATFORMS.md#gemini-deletion-blocker).
+Native welcome/start pages, including Gemini `/app` (“Where should we start?”), are excluded. Reload after upgrading to remove old synthetic entries. Work/school accounts may restrict Gemini deletion. [Google instructions](https://support.google.com/gemini/answer/13666746).
 
 ## 13. Safety and confirmation
 
-For a future verified native adapter, the interface shows exact titles and IDs, count and irreversibility warning; selected deletion requires `DELETE`, and all-discovered deletion requires `DELETE ALL`, followed by a final start button. Required confirmations cannot be disabled. No production native batch can currently be started.
+Native actions enable only when recognized sidebar action controls are available. Every job rechecks its exact same-origin ID, row and menu; Delete also requires a unique title-bearing native confirmation. Missing, ambiguous or changed controls fail explicitly. [Native checks and verification limits](docs/PLATFORMS.md#native-mutation-checks).
 
-The engine allows one batch, prevents repeated submission, checks identity again at native controls, and never automatically retries deletion. Optional backup must succeed for every selected item before any native mutation. Cancellation does not reverse completed actions. An uncertain native outcome is a failure requiring manual inspection.
+Only one sequential batch runs at a time. Optional required backup must export every frozen target and initiate ZIP download before mutation; the starting route is restored first. Cancel stops remaining jobs. An already clicked native action finishes bounded outcome observation: verified success remains success; an uncertain result fails and requires inspecting the website before retrying. No automatic native-action retry exists. Successful targets disappear from the manager until reload; reload after restoring a chat externally.
 
 ## 14. Keyboard shortcuts
 
@@ -141,7 +140,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.2.0`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
@@ -154,7 +153,7 @@ npm run build
 npm run test:integration
 ```
 
-61 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 57 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions and native navigation use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+79 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 81 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 
@@ -167,7 +166,7 @@ npm run test:integration
 | Formatting-changed error | Re-export that chat with current image/link/outline settings |
 | Clipboard blocked | Use Save; browser permission or security context may prevent copying |
 | Preferences lost | Private mode/storage restrictions may block per-origin localStorage |
-| Delete/archive disabled | This is the declared capability; no hidden unlock is provided |
+| Delete/archive disabled | Open the native sidebar and rescan; missing controls or unsupported adapters keep actions unavailable |
 
 Download confirmation, destination and retention are controlled by your browser. If the platform changes its DOM, use the platform manually and report a redacted reproduction.
 
@@ -183,14 +182,14 @@ No conversation uploads or telemetry are implemented. Same-origin website script
 - Generic fallback can include surrounding webpage text and cannot infer every platform's speaker roles.
 - Automatic chat loading requires native SPA links and does not guarantee complete account history. Snapshots stay within tab/memory limits.
 - YouTube captions/translations depend on video availability, signed URLs, site restrictions and browser permissions.
-- Native archive and production deletion are unavailable. No undo/restore is promised.
+- Native actions depend on recognized current website controls. Deletion is irreversible; ChatGPT archives restore through its settings.
 - Signed-in live platform behavior, actual Safari extension injection and real touch hardware remain unverified.
 - Modern CSS/ES2022 and an enabled userscript extension are required; host CSP, downloads and permissions may differ.
 - Some technical errors and accessible control labels remain English in the Russian interface.
 
 ## 22. Contributing
 
-Read the six compact project-memory documents before editing. Keep changes focused, preserve the converter and add realistic redacted fixtures for adapters. Native capabilities need identity safeguards and authenticated manual evidence before activation. Follow [CONTRIBUTING.md](CONTRIBUTING.md).
+Read the six compact project-memory documents before editing. Keep changes focused, preserve the converter and add realistic redacted fixtures for adapters. Native capabilities need identity safeguards, runtime checks and realistic regression fixtures. Record authenticated manual evidence separately when actually obtained. Follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 23. Dual licensing
 

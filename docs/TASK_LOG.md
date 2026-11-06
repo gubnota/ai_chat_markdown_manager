@@ -36,9 +36,19 @@
 - Verification: 61 unit tests, 57 production-bundle browser checks, lint/typecheck/build and release checksums passed. Corrected the legacy ChatGPT fixture to use a real chat route; details in VERIFICATION.md.
 - Preserved preexisting old-release ZIP changes, extracted v2.1.0 directory and untracked transport log. Commit requested; no live chats deleted.
 
+## 2026-11-07 — v2.2.0 native batch actions
+- User requested ChatGPT batch delete/archive plus post-backup actions; standing plan/build/commit/push approval applies. Wrote IMPLEMENTATION_PLAN_2.2.0.md before implementation.
+- Added shared exact-ID native menu/confirmation engine; ChatGPT archive/delete and Gemini delete enable conditionally on recognized runtime sidebar controls. Missing/ambiguous controls fail closed. Superseded the old production fixture-only gate (ADR-0010).
+- Freeze selected/all discovered targets, keep typed DELETE/DELETE ALL, and never invoke account-wide Settings actions. Delete requires a unique title-bearing native confirmation; archive commits at its menu item.
+- Verify stable row removal with the original sidebar present. Preserve verified results after post-click cancellation; report unverified commits as failures without retries. Suppress successful IDs until reload.
+- Successful ZIP review offers native actions only for successful exports after acknowledgment of checking files; normal mandatory confirmation remains. Required full backup restores the original route before mutation; failure/cancellation prevents native work.
+- Updated bilingual guides, privacy/security, contracts, ownership, architecture and release artifacts. ChatGPT archives can be restored through its Archived chats settings; delete is irreversible.
+- Verification: 79 unit tests, 81 production-bundle browser checks, lint/typecheck/build and versioned release integrity. No real chats archived/deleted. Read-only Gemini inspection confirmed the native action-menu label; ChatGPT was signed out.
+- Preserved preexisting old ZIP changes, SHA256SUMS, extracted v2.1.0 directory and private untracked log. Current release uses SHA256SUMS-v2.2.0. `.DS_Store` remains ignored.
+
 ## Remaining verification boundaries
 - No authenticated live ChatGPT/Claude/DeepSeek/Gemini account verification.
-- No real-account destructive tests. No native archive implementation.
+- No real-account mutation tests. Native support remains conditional on recognized current website controls.
 - Actual Safari Userscripts/Tampermonkey extension installation, download permissions/CSP and physical touch-device testing remain manual follow-up.
 - Automatic SPA loading covers ChatGPT/Gemini/Claude, but missing/virtualized native links and partial loaded history can still cause per-item failures. Other adapters require loaded content/snapshots.
 - YouTube downloads are fixture-tested; live caption availability, restrictions and browser permissions vary.

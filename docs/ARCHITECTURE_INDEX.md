@@ -15,7 +15,9 @@
 | `src/adapters/index.ts` | Platform factory and host/path routing |
 | `src/adapters/base/index.ts` | DOM discovery, snapshots, automatic loading and export sessions |
 | `src/adapters/base/navigation.ts` | Native SPA navigation, settled-message checks, role extraction |
-| `src/adapters/gemini/index.ts` | Disabled production deletion; guarded native fixture engine |
+| `src/adapters/base/native-actions.ts` | Shared scoped native menu/confirmation/outcome checks |
+| `src/adapters/chatgpt/index.ts` | Runtime-gated ChatGPT archive/delete |
+| `src/adapters/gemini/index.ts` | Runtime-gated Gemini delete; no archive |
 | `src/markdown/legacy-converter.js` | Minimally changed inherited MIT converter |
 | `src/markdown/legacy-converter.d.ts` | Explicit typed boundary for inherited JS |
 | `src/markdown/legacy.ts` | Typed conversion wrapper and metadata |
@@ -30,12 +32,13 @@
 | `tsconfig.json`, `eslint.config.js` | Strict type/lint boundaries |
 | `package.json`, `package-lock.json` | Commands and reproducible dependencies |
 | `playwright.config.ts` | Local fixture server, Chromium and two WebKit projects |
-| `tests/setup.ts`, `tests/unit/` | jsdom setup, core/Gemini/navigation/timedtext unit coverage |
+| `tests/setup.ts`, `tests/unit/` | jsdom setup, core/ChatGPT/Gemini/navigation/timedtext unit coverage |
 | `tests/fixtures/` | Redacted local host and native Gemini UI fixtures |
 | `tests/integration/userscript.spec.ts` | Inject production dist and verify actual browser behavior |
+| `tests/integration/native-actions.spec.ts` | Native archive/delete, frozen targets, backups, review and cancellation |
 | `tests/integration/loading-captions.spec.ts` | Three-platform batch loading, cancellation and automatic multilingual caption downloads |
 | `dist/AI-Chat-Markdown-Manager.user.js` | Standalone installable release |
-| `AI-Chat-Markdown-Manager-v2.1.1.zip`, `SHA256SUMS` | Release archive and root-relative integrity hashes |
+| `AI-Chat-Markdown-Manager-v2.2.0.zip`, `SHA256SUMS-v2.2.0` | Release archive and root-relative integrity hashes |
 | `docs/screenshots/` | Verified local-fixture UI screenshots |
 | `Save-Page-as-Markdown-Safari.user.js`, `README.txt` | Unchanged v1.2 provenance baseline |
 

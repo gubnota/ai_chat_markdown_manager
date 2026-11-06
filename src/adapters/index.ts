@@ -1,22 +1,12 @@
 import { DOMAdapter } from "./base";
+import { ChatGPTAdapter } from "./chatgpt";
 import { GeminiAdapter } from "./gemini";
 import type { PlatformAdapter } from "../types";
 export function createAdapter(): PlatformAdapter {
   const host = location.hostname;
   if (host === "gemini.google.com") return new GeminiAdapter();
   if (/^(chatgpt.com|chat.openai.com|127.0.0.1|localhost)$/.test(host))
-    return new DOMAdapter({
-      id: "chatgpt",
-      currentPageFallback: false,
-      autoLoad: true,
-      name:
-        host === "127.0.0.1" || host === "localhost"
-          ? "ChatGPT · local fixture"
-          : "ChatGPT",
-      path: /^\/c\/([\w-]+)\/?$/,
-      sidebar:
-        'nav a[href*="/c/"],aside a[href*="/c/"],[role="navigation"] a[href*="/c/"]',
-    });
+    return new ChatGPTAdapter();
   if (host === "claude.ai")
     return new DOMAdapter({
       id: "claude",

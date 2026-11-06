@@ -57,9 +57,9 @@ beforeEach(() => {
 });
 const verified = () =>
   new GeminiAdapter({ nativeDelete: true, timeoutMs: 650 });
-describe("Gemini fixture-only native deletion", () => {
-  it("production capability is unknown and no native clicks happen", async () => {
-    const adapter = new GeminiAdapter();
+describe("Gemini native deletion", () => {
+  it("explicitly disabled adapter makes no native clicks", async () => {
+    const adapter = new GeminiAdapter({ nativeDelete: false });
     const click = vi.spyOn(HTMLElement.prototype, "click");
     expect(adapter.capabilities.delete).toBe("unknown");
     await expect(adapter.deleteConversation(id)).rejects.toThrow(/disabled/);

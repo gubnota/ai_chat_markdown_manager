@@ -52,7 +52,11 @@ export class BatchRunner {
           p.completed++;
           p.results.push({ key: conversationKey(c), status: "success" });
         } catch (error) {
-          if (signal.aborted) break;
+          const actionAttempted =
+            error instanceof Error &&
+            "actionAttempted" in error &&
+            error.actionAttempted === true;
+          if (signal.aborted && !actionAttempted) break;
           p.failed++;
           p.results.push({
             key: conversationKey(c),

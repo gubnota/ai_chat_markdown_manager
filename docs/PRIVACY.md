@@ -32,7 +32,7 @@ A ZIP contains successful `.md` exports plus an optional manifest with creation 
 
 ## Network and permissions
 
-The distributable embeds JavaScript, CSS, icons and ZIP support. No runtime CDN, telemetry, server or conversation upload is implemented. A browser fixture test aborts all new requests after injection and confirms the manager still discovers/works without initiating a request. This idle-manager check excludes explicit caption actions and native chat navigation, which can make host-site requests. It does not disable the host website's own traffic.
+The distributable embeds JavaScript, CSS, icons and ZIP support. No runtime CDN, telemetry, server or conversation upload is implemented. A browser fixture test aborts all new requests after injection and confirms the manager still discovers/works without initiating a request. This idle-manager check excludes explicit caption actions, native chat navigation and native archive/delete, which can make host-site requests. It does not disable the host website's own traffic.
 
 YouTube languages are discovered automatically when the user opens the captions panel and refreshed on video navigation. Downloads fetch only validated HTTPS YouTube/video.google.com timedtext endpoints; watch-page fallback is same-origin. Signed parameters are preserved. Requests have a 20-second timeout and 5 MiB response limit. No caption file needs to be manually downloaded first; saved-file import is optional.
 
@@ -40,7 +40,7 @@ Metadata grants no privileged userscript APIs (`@grant none`), runs at document-
 
 ## Deletion and archive limits
 
-Native archive is unsupported. Production Gemini deletion remains disabled because live signed-in controls could not be verified. Fixture tests do not delete anything in an account. A ZIP is only a local backup; it cannot archive, restore or undo a platform conversation. Future native support must preserve mandatory confirmation, identity checks, cancellation and no automatic retries on uncertain outcomes.
+ChatGPT archive/delete and Gemini delete act through the website after mandatory review and confirmation. Delete is irreversible; ChatGPT archives can be restored through its Archived chats settings. A ZIP is a local export and cannot itself restore or undo a platform conversation. Optional required backups must finish before mutation; successful-export shortcuts require acknowledgment that files were checked. Native actions may trigger host-site requests. Successful IDs are suppressed in memory until reload. Fixture tests mutate only synthetic pages, never a real account; deployed compatibility remains unverified. Unknown outcomes fail without automatic retry.
 
 ## Removing local data
 
