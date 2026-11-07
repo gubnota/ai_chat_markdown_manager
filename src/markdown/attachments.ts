@@ -14,6 +14,42 @@ export function inMessage(element: Element): boolean {
   return !!element.closest(messages);
 }
 
+const maxImagePixels = 16_777_216;
+const maxImageUrlLength = 12 * 1024 * 1024;
+const rasterData =
+  /^data:image\/(?:png|jpeg|gif|webp|avif|bmp);base64,[a-z0-9+/=\r\n]+$/i;
+
+/** Preserve decoded temporary previews locally; never fetch a private blob URL. */
+export function embeddedImageSource(image: HTMLImageElement): string {
+  if (!inMessage(image)) return "";
+  const source = image.currentSrc || image.getAttribute("src") || "";
+  if (source.length > maxImageUrlLength) return "";
+  if (rasterData.test(source)) return source;
+  if (
+    !source.startsWith("blob:") ||
+    !image.complete ||
+    !image.naturalWidth ||
+    !image.naturalHeight ||
+    image.naturalWidth * image.naturalHeight > maxImagePixels
+  )
+    return "";
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d");
+    if (!context) return "";
+    context.drawImage(image, 0, 0);
+    const result = canvas.toDataURL("image/png");
+    return result.length <= maxImageUrlLength && rasterData.test(result)
+      ? result
+      : "";
+  } catch {
+    // Cross-origin taint and browser canvas restrictions keep the unavailable note.
+    return "";
+  }
+}
+
 function visibleWithin(element: Element, root: Element): boolean {
   for (let node: Element | null = element; node; node = node.parentElement) {
     const style = getComputedStyle(node);
@@ -89,6 +125,8 @@ export function attachmentMarkdown(
     element.tagName === "BUTTON" || element.getAttribute("role") === "button";
   const card = element.matches(cards);
   if (!button && !card) return;
+  // Gemini reuses card classes for carousels: let each nested attachment own its label.
+  if (!button && card && element.querySelector(cards)) return;
   const images = [...element.querySelectorAll<HTMLImageElement>("img")].filter(
     (image) => visibleWithin(image, element),
   );

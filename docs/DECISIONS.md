@@ -107,3 +107,13 @@ Context: Gemini message images and files can live inside preview buttons that th
 Decision: Add typed message-scoped attachment recognition at the converter boundary. Preserve exposed HTTP(S) image/file references, respect existing toggles, name missing direct links, and fingerprint image identity during settled-message navigation. Never click previews/downloads, guess URLs, retrieve private APIs or bundle media.
 Consequences: Current and batch exports retain more loaded attachments. Temporary/authenticated links remain limited by the host; blob/data previews are explicitly unavailable as reusable references. Synthetic browser tests do not establish authenticated host compatibility.
 Related files: src/markdown/attachments.ts, src/markdown/legacy-converter.js, src/adapters/base/navigation.ts, tests/unit/attachments.test.ts, tests/integration/attachments.spec.ts
+
+# ADR-0012: Embed decoded temporary message images
+
+Date: 2026-11-07
+Status: Accepted
+
+Context: Authenticated Gemini DOM inspection found generated images exposed only as blob URLs, while uploaded images use nested carousel cards. Native image menus expose no reusable URL; CSP blocks blob fetch, but copying decoded pixels succeeds.
+Decision: Extend ADR-0011's external-reference policy with bounded local PNG canvas copies for loaded blob message images and bounded raster data URLs. Limit canvas conversion to 16,777,216 pixels and URLs to 12 MiB. Preserve HTTP links, independent toggles and unavailable notes; traverse nested cards individually. No attachment fetch, native action or security-setting change.
+Consequences: Temporary images survive navigation in current/batch exports. Markdown grows and requires data-image renderer support; tainted, unloaded or oversized images remain unavailable. This supersedes ADR-0011's blanket no-embedded-media/blob-data exclusion. Uploaded-document controls remain fixture-tested.
+Related files: src/markdown/attachments.ts, src/markdown/legacy-converter.js, tests/unit/attachments.test.ts, tests/integration/attachments.spec.ts

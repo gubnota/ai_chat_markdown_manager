@@ -54,8 +54,15 @@
 - The supplied private Gemini chat redirected to /app in the test browser. No authenticated attachment export is claimed.
 - Prepared v2.2.1 distribution, ZIP and versioned checksums; preserved unrelated old artifacts, SHA256SUMS and private untracked log. `.DS_Store` remains ignored.
 
+## 2026-11-07 — v2.2.2 portable Gemini images
+- Read-only Safari inspection found generated blob images and an uploaded HTTPS image in nested carousel previews. Native image menus expose no reusable URL. Blob fetch is CSP-blocked; decoded-pixel canvas copying succeeded on all three generated images inspected.
+- Preserve individual nested cards and exposed HTTP links. Embed loaded message blob images as bounded PNG data URLs; retain bounded raster data, independent toggles and unavailable notes. No attachment fetch or native action.
+- Added real-blob current Markdown/batch ZIP browser regressions with revocation, distinct per-chat pixels, blocked connections and zero native attachment clicks; unit guards cover taint, size, scope and unsafe formats.
+- Prepared v2.2.2 with updated bilingual guides, privacy, contracts, ADR and scoped release artifacts. Verified 93 unit tests, 87 production-bundle browser checks, lint/types/build, ZIP script equality and versioned checksums. Standing authorization covers build, commit and push. See VERIFICATION.md for scope.
+- Preserved unrelated old artifacts, unversioned checksums and private untracked log. `.DS_Store` remains ignored.
+
 ## Remaining verification boundaries
-- No authenticated live ChatGPT/Claude/DeepSeek/Gemini account verification.
+- Limited read-only authenticated Gemini image inspection; no live installed-exporter verification or uploaded-document example. No authenticated ChatGPT/Claude/DeepSeek export verification.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.
 - Actual Safari Userscripts/Tampermonkey extension installation, download permissions/CSP and physical touch-device testing remain manual follow-up.
 - Automatic SPA loading covers ChatGPT/Gemini/Claude, but missing/virtualized native links and partial loaded history can still cause per-item failures. Other adapters require loaded content/snapshots.
