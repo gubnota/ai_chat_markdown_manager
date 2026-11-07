@@ -426,7 +426,7 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.2.1",
+                  version: "2.2.2",
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,

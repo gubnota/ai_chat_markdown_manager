@@ -3,14 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.2.1, 2026-11-07.
+- Release: 2.2.2, 2026-11-07.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2.2.1 preserves Gemini upload/generated-image preview references and file-card links; unavailable direct links are named explicitly.
+- v2.2.2 preserves nested Gemini upload cards and embeds loaded temporary image previews; inaccessible file links remain explicitly named.
 - v2.2 adds native ChatGPT batch archive/delete, Gemini delete, and actions on reviewed successful backups.
 - v2.1.1 excludes native start pages from batches and adds successful-export review.
 - v2.1 added scroll loading, automatic chat loading for ZIP, and direct multilingual YouTube TXT/VTT.
@@ -75,7 +75,7 @@
 - Claude: sidebar discovery, native SPA auto-loading and role-aware conversion.
 - DeepSeek: loaded-link discovery and generic loaded-content export.
 - Remaining matched sites: current-page generic conversion only.
-- No authenticated live platform validation is claimed.
+- Read-only authenticated Gemini image DOM/canvas inspection is recorded; installed-exporter and live mutation validation remain unverified.
 - Shared native engine scopes every action to one exact sidebar row and its newly opened menu.
 - Delete requires a unique title-bearing native confirmation; archive commits at the menu action.
 - Success requires stable row removal and menu/dialog dismissal with the original sidebar present.
@@ -96,7 +96,7 @@
 - Downloads and clipboard may contain sensitive conversation content.
 - Open Shadow DOM and same-origin storage are not security boundaries.
 - Host scripts/extensions can access same-origin data.
-- Images remain external Markdown links where enabled.
+- HTTP images remain external links; loaded blob images can embed bounded PNG data URLs without requests.
 - See `docs/PRIVACY.md` for reset behavior and storage details.
 
 ## Performance and accessibility
@@ -126,6 +126,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.2.1` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.2.2` from repository root.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
 - Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

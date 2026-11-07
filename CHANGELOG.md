@@ -2,6 +2,13 @@
 
 Notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates for inherited versions were not supplied.
 
+## [2.2.2] - 2026-11-07
+
+- Preserve individual image/file cards inside Gemini's nested upload carousel.
+- Embed loaded temporary message images as bounded inline PNG data URLs without fetching blobs or clicking native controls. Retain raster data images and explicit notes for unavailable previews.
+- Verify current Markdown and batch ZIP exports with real blob images, route changes, revoked sources and blocked network requests. Add canvas/size guards; 93 unit tests and 87 browser checks.
+- Record read-only Safari image DOM/canvas evidence and inline-image viewer/size limits. Uploaded-document controls remain fixture-tested.
+
 ## [2.2.1] - 2026-11-07
 
 - Preserve Gemini uploaded/generated images inside message preview buttons and file-card links exposed in the DOM.

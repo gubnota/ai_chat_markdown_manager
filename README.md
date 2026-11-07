@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.2.1
+# AI Chat Markdown Manager v2.2.2
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.2.1.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.2.2.zip)
 
 ## 1. Overview
 
@@ -62,7 +62,7 @@ Use **Export selected content** after highlighting webpage text, or Shift-click 
 
 Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. Attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
 
-Images/files remain external links, not bundled downloads. A viewer may request those URLs; they may expire or require the original login. Blob/data previews cannot become durable links. The exporter never opens attachment controls or uses private account APIs.
+HTTP(S) images/files remain external links and may expire or require the original login. Loaded temporary blob images are embedded as PNG data URLs copied from their decoded pixels, without requests or native attachment actions. Raster data images are retained too. Each embedded image is limited to 16 megapixels for canvas conversion and a 12 MiB URL. This enlarges Markdown and needs a viewer that supports inline data images. Unloaded, oversized or canvas-restricted previews keep an unavailable note. The exporter never uses private account APIs.
 
 ## 9. Selecting conversations
 
@@ -82,7 +82,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.2.1, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.2.2, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -92,7 +92,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.2.1. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.2.2. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -142,7 +142,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.2.1`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.2.2`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
@@ -155,7 +155,7 @@ npm run build
 npm run test:integration
 ```
 
-79 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 81 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+93 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 87 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 

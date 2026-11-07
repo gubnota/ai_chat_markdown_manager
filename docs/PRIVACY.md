@@ -26,9 +26,9 @@ Same-origin website scripts can access localStorage, the open Shadow DOM and pag
 
 ## What exports contain
 
-Markdown contains loaded conversation text, optional title/front matter, platform, optional source URL/date, and a partial-export warning. Image references remain URLs; opening Markdown in another application may request external resources. Disable source/image/link options when appropriate.
+Markdown contains loaded conversation text, optional title/front matter, platform, optional source URL/date, and a partial-export warning. HTTP image references remain external URLs; opening Markdown in another application may request those resources. Loaded blob previews can instead be copied locally into inline PNG data URLs; these include image pixels in the downloaded Markdown/ZIP. Disable source/image/link options when appropriate.
 
-Message attachment cards may contribute filenames and exposed HTTP(S) file/image URLs, including signed parameters. Export does not fetch media or open native attachment controls. Missing or temporary blob/data links produce an unavailable-link note. Exposed links may expire or require the original account; review them before sharing.
+Message attachment cards may contribute filenames and exposed HTTP(S) file/image URLs, including signed parameters. Export does not fetch media or open native attachment controls. Loaded message blob images can be copied from decoded pixels through canvas (16 megapixels and 12 MiB URL limit); bounded raster data URLs are retained. No blob fetch or clipboard action is used. Unsupported, unloaded, oversized or canvas-restricted images and missing file URLs produce an unavailable-link note. Exposed links may expire or require the original account; review them before sharing.
 
 A ZIP contains successful `.md` exports plus an optional manifest with creation time and per-item IDs, states and errors. JSON operation reports likewise contain IDs/errors. The application does not silently attach all message text to activity history, but downloaded Markdown intentionally contains messages. Review files and reports before uploading or sharing.
 
