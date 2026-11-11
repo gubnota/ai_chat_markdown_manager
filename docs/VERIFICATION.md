@@ -1,4 +1,4 @@
-# Verification — v2.3.2
+# Verification — v2.3.3
 
 Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are locked in `package-lock.json`.
 
@@ -8,12 +8,12 @@ Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are
 | --- | --- |
 | `npm run lint` | Pass; source, tests and Vite/Playwright config |
 | `npm run typecheck` | Pass; strict TypeScript, typed legacy JS boundary |
-| `npm test` | 105 pass in 7 files: core, Gemini, ChatGPT, navigation, timedtext, attachments, offline export |
-| `npm run build` | Pass; self-contained userscript, v2.3.2 ZIP and versioned checksums |
-| `npm run test:integration` | 123 pass: 41 cases each in Chromium, desktop WebKit and mobile WebKit |
+| `npm test` | 112 pass in 8 files: core, Gemini, ChatGPT, navigation, timedtext, attachments, offline export, message boundaries |
+| `npm run build` | Pass; self-contained userscript, v2.3.3 ZIP and versioned checksums |
+| `npm run test:integration` | 132 pass: 44 cases each in Chromium, desktop WebKit and mobile WebKit |
 | Metadata / release integrity | Original 48 @match entries plus 3 targeted YouTube entries; no global wildcard, remote runtime imports or source maps; ZIP script equals dist |
 
-The production bundle is approximately 418.1 kB before compression. Verify current artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.2`. Historical ZIPs and the preexisting modified `SHA256SUMS` are preserved independently.
+The production bundle is approximately 418.2 kB before compression. Verify current artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.3`. Historical ZIPs and the preexisting modified `SHA256SUMS` are preserved independently.
 
 ## Unit coverage
 
@@ -24,6 +24,8 @@ The production bundle is approximately 418.1 kB before compression. Verify curre
 - Attachments: nested Gemini carousel cards, uploaded/generated image controls, named file cards/buttons, exposed HTTP(S) links, bounded raster data/decoded blob sources, tainted canvas, size limits, unavailable-link notes, independent image/link options, unsafe URLs, hidden controls, unchanged host DOM, and image-only navigation with stale-content rejection.
 
 - Offline resources: exact image/audio/video/input bytes, deduplication, no-fetch link mode in both formats, optional HTML capture, missing URLs, HTTP failure, login pages, size bounds, cancellation, hidden resources and format migration. Static HTML strips active markup, preserves code/tables/metadata and exposes data-only media/file downloads when embedded; linked HTML validates HTTP(S) images under a matching CSP.
+
+- Message boundaries: current ChatGPT search keys and role-heading containers, mixed legacy/current layouts, three main regions, hidden ancestors, deduplication, image-only replies without search keys, Grok/Claude test IDs and neutral DeepSeek role fallback.
 
 ## Production-bundle browser coverage
 
@@ -42,20 +44,21 @@ Tests inject `dist/AI-Chat-Markdown-Manager.user.js` into intercepted or local s
 - Successful ZIP review excludes failed exports and requires file-check acknowledgment plus normal typed Delete confirmation.
 - Wrong native confirmation fails without clicking Delete.
 - ChatGPT/Gemini HTML and embedded Markdown current/two-chat ZIP downloads preserve exact media/input bytes and correct identities; original routes restore. Actual exported HTML files opened via file:// with browser networking disabled render images, decode PCM audio and expose input downloads without HTTP requests.
-- ChatGPT/Gemini direct Export options dialogs cover both formats with embedding on/off, zero capture before Download or after Cancel, exact inline bytes versus external references, and recoverable capture failures. Preview HTML embedding is editable. Desktop/mobile dialog screenshots are inspected.
-- ChatGPT/Gemini preview starts from default linked Markdown, exposes format/embed/image/file toggles, regenerates captured bytes, downloads real `.md`/`.html` files, clears stale output after inaccessible-file failure and supports retry. Home HTML export is visible from default Markdown settings.
+- ChatGPT/Gemini/Grok/Claude/DeepSeek direct Export options dialogs cover both formats with embedding on/off, zero capture before Download or after Cancel, exact inline bytes versus external references, and recoverable capture failures. Preview HTML embedding is editable. Desktop/mobile dialog screenshots are inspected.
+- ChatGPT/Gemini/Grok/Claude/DeepSeek preview starts from default linked Markdown, exposes format/embed/image/file toggles, regenerates captured bytes, downloads real `.md`/`.html` files, clears stale output after inaccessible-file failure and supports retry. Home HTML export is visible from default Markdown settings.
 - Both providers complete required HTML backup before native cleanup; inaccessible input files prevent all native actions in required-backup mode. Partial embedded Markdown ZIP review excludes failed chats before acknowledged/typed deletion.
 
 Desktop/mobile screenshots in `docs/screenshots/` show local fixtures. Mobile WebKit uses device emulation and pointer input; it does not establish physical touch behavior. No real account was mutated.
 
 ## Live evidence and remaining boundaries
 
-- Read-only inspection on 2026-11-07: ChatGPT was signed out; Safari Gemini showed the conversation action-menu label. Archive/delete confirmations and outcomes were not tested on authenticated real chats. Conditional production support is based on runtime checks, not a claim of live compatibility.
-- Read-only authenticated Safari inspection of the supplied Gemini chats found three generated blob images and one HTTPS uploaded image in nested carousel previews. Native image menus offered Copy image/Download image, without a reusable image URL. Gemini CSP blocked blob fetch; canvas copies of all three decoded generated images succeeded. No private content or signed URLs were stored in fixtures/docs. Full exporter installation/downloads and uploaded-document controls remain fixture-tested; files without an exposed URL retain an explicit note in default Markdown or fail exports with embedding enabled.
-- Earlier read-only ChatGPT/Claude navigation inspection informed adapters. Batch exports remain verified on redacted fixtures. DeepSeek/generic hosts have no authenticated live verification.
+- Earlier read-only inspection on 2026-11-07: ChatGPT was signed out; Safari Gemini showed the conversation action-menu label. Archive/delete confirmations and outcomes were not tested on authenticated real chats. Conditional production support is based on runtime checks, not a claim of live compatibility.
+- Read-only authenticated Safari inspection of the supplied Gemini chats found three generated blob images and one HTTPS uploaded image in nested carousel previews. Native image menus offered Copy image/Download image, without a reusable image URL. Gemini CSP blocked blob fetch; canvas copies of all three decoded generated images succeeded. No private content or signed URLs were stored in fixtures/docs. Current exporter installation/download evidence follows; uploaded-document controls remain fixture-tested; files without an exposed URL retain an explicit note in default Markdown or fail exports with embedding enabled.
+- Computer verification on 2026-11-11 updated the existing Safari Userscripts script and reloaded authenticated ChatGPT, Gemini, Grok, Claude and DeepSeek chats. Current HTML export succeeded on all five. The final ChatGPT file was 14,370,129 bytes with five User/five Assistant sections and four inline images, matching the loaded DOM. Grok exported one visible image (its second DOM image was a hidden duplicate of the same source), including embedded Markdown. Gemini retained its generated image. No private content or signed URLs were added to the repository.
+- Live tests establish current-chat downloads only. Full direct/preview HTML/Markdown embedding on/off and batch/cleanup matrices remain fixture-tested. Other generic hosts have no authenticated live verification.
 - The earlier Base44 inspection informed layout; approval review blocked external reference export/delete clicks. Those reference dialogs were not verified. See `DESIGN_INVENTORY.md`.
 - YouTube live restrictions, expired signatures and browser permissions vary. Fixture success does not establish universal video access.
 - Offline capture is limited to loaded, enabled resources with exposed URLs or readable image pixels. CORS/CSP, expired links, inaccessible original files, streaming-only media and limits (20 MiB/file, 64 MiB/chat, 100 resources) can reject a chat. Markdown viewers must support data URLs; fixtures do not establish full loaded-history completeness.
-- Actual Safari Userscripts/Tampermonkey installation, host CSP, permissions and downloads still require manual verification; WebKit injection is a distinct test.
+- Safari Userscripts installation and current downloads were exercised above. Tampermonkey, other browser/extension combinations and all inherited hosts remain unverified; synthetic WebKit injection is a distinct test.
 
 For additional live validation use explicitly authorized disposable accounts. Verify localized controls, exact IDs and title-bearing Delete confirmation, native outcomes and cancellation/timeouts. Keep ambiguous controls unavailable and report only redacted reproductions.

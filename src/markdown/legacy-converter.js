@@ -113,11 +113,12 @@
 
 // Inherited converter kept as JavaScript to minimize changes; typed boundary in legacy.ts.
 import { attachmentMarkdown, embeddedImageSource, inMessage } from "./attachments";
+import { messageNodes, messageRole, visibleMessageElement } from "./messages";
 
 export function createConverter(options = {}) {
   const UI_ID = "__safari_md_export_root__";
   const config = { images:true, links:true, metadata:true, source:true, outline:false, selection:false, ...options };
-  const isChatGPT = /(^|\.)(chatgpt\.com|chat\.openai\.com)$/i.test(location.hostname) || location.hostname === "127.0.0.1";
+  const isChatGPT = /(^|\.)(chatgpt\.com|chat\.openai\.com)$/i.test(location.hostname) || /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   const ignored = new Set([
     'SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'META', 'LINK',
     'IFRAME', 'CANVAS', 'SVG', 'FORM', 'INPUT', 'SELECT', 'TEXTAREA',
@@ -153,6 +154,7 @@ export function createConverter(options = {}) {
   const safeHeading = (s) => s.replace(/\n/g, ' ').trim();
   const isHidden = (el) => {
     if (!el || el.nodeType !== 1) return false;
+    if (el.hasAttribute('data-conversation-role')) return true;
     if (el.closest('#' + UI_ID)) return true;
     if (el.hidden || el.hasAttribute('inert') || el.getAttribute('aria-hidden') === 'true') return true;
     const style = getComputedStyle(el);
@@ -335,31 +337,26 @@ export function createConverter(options = {}) {
 
   function chatConversationMarkdown() {
     if (!isChatGPT) return '';
-    let turns = Array.from(document.querySelectorAll('[data-testid^="conversation-turn-"]'));
-    if (turns.length === 0) turns = Array.from(document.querySelectorAll('[data-message-author-role]'));
-    turns = turns.filter(t => !turns.some(parent => parent !== t && parent.contains(t)) && !isHidden(t));
+    const turns = messageNodes('chatgpt');
     const entries = [];
     for (const turn of turns) {
-      const roleNode = turn.matches('[data-message-author-role]') ? turn : turn.querySelector('[data-message-author-role]');
-      let role = (roleNode?.getAttribute('data-message-author-role') || turn.getAttribute('data-message-author-role') || '').toLowerCase();
-      if (!['user', 'assistant', 'system', 'tool'].includes(role)) continue;
-      let content = roleNode?.querySelector('.markdown, [data-testid="message-text"], [class*="whitespace-pre-wrap"]');
-      if (!content) content = roleNode || turn;
-      const md = cleanup(toMarkdown(content));
+      const md = cleanup(toMarkdown(turn));
       if (!md) continue;
-      const label = role === 'user' ? 'User' : role === 'assistant' ? 'Assistant' : role[0].toUpperCase() + role.slice(1);
+      const label = messageRole(turn);
       entries.push(`## ${label}\n\n${md}`);
     }
     return cleanup(entries.join('\n\n---\n\n'));
   }
 
   function chooseRoot() {
+    const conversation = Array.from(document.querySelectorAll('[aria-label="Conversation"]')).find(visibleMessageElement);
+    if (conversation) return conversation;
     const specific = Array.from(document.querySelectorAll(
       '[itemprop="articleBody"], article, main, [role="main"], .entry-content, .post-content'
-    )).filter(el => !isHidden(el));
+    )).filter(visibleMessageElement);
     // Prefer article content where substantial; otherwise keep entire <main>.
     const candidates = specific.map(el => ({ el, size: plainText(el).length })).filter(x => x.size >= 160);
-    const main = candidates.find(x => x.el.matches('main, [role="main"]'));
+    const main = candidates.filter(x => x.el.matches('main, [role="main"]')).sort((a, b) => b.size - a.size)[0];
     const articles = candidates.filter(x => x.el.matches('article, [itemprop="articleBody"], .entry-content, .post-content'));
     articles.sort((a, b) => b.size - a.size);
     if (articles.length && (!main || articles[0].size >= main.size * 0.38)) return articles[0].el;

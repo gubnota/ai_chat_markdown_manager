@@ -3,14 +3,15 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.3.2, 2026-11-11.
+- Release: 2.3.3, 2026-11-11.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2.3.2 opens export options before direct Markdown/HTML downloads; embedding is editable for both formats in direct, preview, settings and batch flows.
+- v2.3.3 fixes current ChatGPT extraction (search keys and role-heading containers), including image-only replies; shared visible boundaries cover Grok/Claude/DeepSeek too.
+- HTML/Markdown embedding remains editable in direct, preview, settings and batch flows.
 - v2.3.1 exposed preview format/embed/image/file controls with fresh capture and error-safe downloads.
 - v2.3.0 added standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
 - Offline media failures exclude that chat from successful-backup cleanup; Gemini uses a local ZIP archive then native delete.
@@ -78,7 +79,7 @@
 - Claude: sidebar discovery, native SPA auto-loading and role-aware conversion.
 - DeepSeek: loaded-link discovery and generic loaded-content export.
 - Remaining matched sites: current-page generic conversion only.
-- Read-only authenticated Gemini image DOM/canvas inspection is recorded; installed-exporter and live mutation validation remain unverified.
+- Authenticated Safari Userscripts current-chat downloads verified on ChatGPT/Gemini/Grok/Claude/DeepSeek; live native mutations and Tampermonkey remain unverified.
 - Shared native engine scopes every action to one exact sidebar row and its newly opened menu.
 - Delete requires a unique title-bearing native confirmation; archive commits at the menu action.
 - Success requires stable row removal and menu/dialog dismissal with the original sidebar present.
@@ -131,6 +132,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.2` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.3` from repository root.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
 - Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import type { ExportOptions } from "../types";
 
-const messages =
-  'user-query, model-response, [data-message-author-role], [data-testid="user-message"], [data-testid="assistant-message"], .font-claude-response';
+import { inMessage } from "./messages";
+export { inMessage } from "./messages";
 const cards =
   'file-preview, user-query-file, user-query-file-preview, .file-preview, .file-preview-container, .attachment-card, [data-file-name], [data-filename], [data-testid="file-attachment"], [data-testid="attachment"]';
 const filenames =
   '[data-file-name], [data-filename], .file-name, .filename, .file-preview-title, [class*="file-name"], [class*="filename"]';
 const extension =
   /\.(?:pdf|txt|csv|tsv|md|json|xml|html|docx?|xlsx?|pptx?|zip|png|jpe?g|webp|gif|svg|heic|mp[34]|wav|py|js|ts|css|rtf|odt)\b/i;
-
-export function inMessage(element: Element): boolean {
-  return !!element.closest(messages);
-}
 
 const maxImagePixels = 16_777_216;
 const maxImageUrlLength = 12 * 1024 * 1024;

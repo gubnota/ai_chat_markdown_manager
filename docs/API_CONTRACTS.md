@@ -22,6 +22,9 @@ Canonical TypeScript definitions: `src/types/index.ts`. There is no server API, 
 - Native capabilities start unknown and enable on discovery of recognized row controls. Each job still requires its own exact ID/row/control and newly opened unique menu. Delete requires a unique title and new title-bearing dialog with an exact localized Delete button. Archive commits at its exact menu item without a native confirmation.
 - Success requires stable target-row removal plus closed own menu/dialog while the original sidebar stays visible/connected. Successful IDs are forgotten and suppressed from discovery for this tab; reload after external unarchive. No account-wide native control is invoked.
 
+## Loaded message boundaries
+`messageNodes(platform)` returns visible outermost provider message containers in DOM order, excluding hidden/inert/sidebar/toolbar/manager content. ChatGPT recognizes legacy author roles, content-search keys and direct role-heading parents inside Conversation; Grok/Claude use observed message test IDs, Gemini custom elements, DeepSeek `.ds-message`. `messageRole` avoids guessing DeepSeek user roles from hashed classes (neutral Message when unknown). Conversion, navigation and media scope share these boundaries. No loaded-DOM result implies complete history.
+
 ## Export and snapshots
 `ExportOptions`: `format: "markdown" | "html"` (default Markdown), booleans embedMedia (default false), images, links, metadata, source, outline, selection, title, timestamps, manifest; string filename template. embedMedia controls resource capture for both formats. Selecting HTML defaults it on, with an editable switch. Templates support platform/date/slug/id in the export implementation.
 

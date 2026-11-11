@@ -1,15 +1,16 @@
-# Platform support — v2.2.0
+# Platform support — v2.3.3
 
 Support describes implemented DOM paths, not verified access to an entire account. Every discovered conversation is marked **partial**. Websites may change their DOM, permissions or routing independently of this release.
 
 ## Capabilities
 
-| Adapter | Discovery | Markdown / ZIP | Native archive | Native delete |
+| Adapter | Discovery | Markdown / HTML / ZIP | Native archive | Native delete |
 | --- | --- | --- | --- | --- |
 | ChatGPT (`chatgpt.com`, `chat.openai.com`) | Loaded sidebar links with `/c/{id}` | Automatic native SPA loading; matching snapshots in this tab | Conditional native support | Conditional native support |
 | Gemini (`gemini.google.com`) | Loaded sidebar links with `/app/{id}` | Automatic native SPA loading; matching snapshots in this tab | Unsupported | Conditional native support |
 | Claude (`claude.ai`) | Loaded sidebar links with `/chat/{id}` | Automatic native SPA loading; matching snapshots in this tab | Unsupported | Unsupported |
 | DeepSeek (`chat.deepseek.com`) | Loaded links with `/a/chat/s/{id}` | Current loaded DOM; previously captured snapshots in this tab | Unsupported | Unsupported |
+| Grok (`grok.com`) | Current page only | Loaded user/assistant message test IDs; optional embedded media | Unsupported | Unsupported |
 | Other matched hosts | Current page only | Generic loaded-DOM conversion; ZIP of available content | Unsupported | Unsupported |
 
 Selection, filtering, pagination and export operate on genuine discovered IDs. Scroll or open the native sidebar and rescan to reveal additional entries. Virtualized entries accumulate in memory until reload. Generic pages use a pathname/query identifier; this is a page identifier rather than a verified native conversation ID. No adapter calls a private API or loads a background tab. ChatGPT/Gemini/Claude exports click native SPA links in the current tab and wait for new settled messages. A missing link, full-page reload or timeout fails explicitly. The starting chat is restored after success/cancellation; loading can mark chats read.
@@ -19,6 +20,10 @@ Explicit export or preview captures the current Markdown body in a temporary cac
 Native welcome/start routes (for example Gemini `/app`, ChatGPT `/`, Claude `/new`) are excluded from discovery and ZIP input. Only generic site adapters synthesize current-page identities. Returning to a starting welcome page waits for the old messages to disappear and the page to settle.
 
 After ZIP download initiation, Activity offers **Review backed-up chats** containing only successful targets. Check the actual ZIP files before removing anything. Acknowledge checking the files to enable supported archive/delete shortcuts; each still requires normal confirmation. Failed/skipped exports are excluded. Work/school accounts may restrict Gemini deletion. [Official Google instructions](https://support.google.com/gemini/answer/13666746).
+
+## Live export evidence (2026-11-11)
+
+Authenticated Safari Userscripts current-chat HTML downloads succeeded on ChatGPT, Gemini, Grok, Claude and DeepSeek. ChatGPT included five user/five assistant messages and four embedded images; Grok embedded its visible image once and also exported embedded Markdown. Gemini included its generated image. Preview/direct HTML/Markdown embedding on/off across all five providers is covered by production-bundle fixtures. Other inherited hosts are generic and are not claimed live verified. No real native cleanup was executed.
 
 ## Native mutation checks
 
@@ -41,7 +46,7 @@ All 48 inherited metadata entries are preserved exactly, plus 3 targeted rules f
 | `*://gemini.google.com/*` | Gemini |
 | `*://aistudio.google.com/*` | Generic current page |
 | `*://notebooklm.google.com/*` | Generic current page |
-| `*://grok.com/*` | Generic current page |
+| `*://grok.com/*` | Current page with Grok message boundaries |
 | `*://chat.deepseek.com/*` | DeepSeek |
 | `*://claude.ai/*` | Claude |
 | `*://copilot.microsoft.com/*` | Generic current page |

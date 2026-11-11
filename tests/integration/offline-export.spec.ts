@@ -44,11 +44,11 @@ for (const platform of ["chatgpt", "gemini"] as const) {
         route.fulfill({
           contentType: "text/html",
           body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline fixture</title>
-        <aside><a href="${prefix}one">Chat one</a><a href="${prefix}two">Chat two</a></aside><main></main><script>
+        <main><form>Unrelated pane</form></main><main><button>Other controls</button></main><aside><a href="${prefix}one">Chat one</a><a href="${prefix}two">Chat two</a></aside><main></main><script>
         localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{format:'${format}',embedMedia:true}}));
         function render(id) {
           const body = '<p>UNIQUE-'+id+'</p><img alt="Map '+id+'" src="/assets/'+id+'.png"><audio controls src="/assets/'+id+'.wav"></audio><div class="attachment-card" data-file-name="'+id+'.csv"><a href="/assets/'+id+'.csv">'+id+'.csv</a></div><pre><code class="language-js">const value = 42;</code></pre><table><tr><th>A</th></tr><tr><td>42</td></tr></table><a href="https://example.com/help">Source help</a>';
-          document.querySelector('main').innerHTML = ${platform === "gemini" ? "'<user-query>Prompt '+id+'</user-query><model-response>'+body+'</model-response>'" : "'<article data-message-author-role=\"user\">Prompt '+id+'</article><article data-message-author-role=\"assistant\">'+body+'</article>'"};
+          document.querySelectorAll('main')[2].innerHTML = ${platform === "gemini" ? "'<user-query>Prompt '+id+'</user-query><model-response>'+body+'</model-response>'" : '\'<div aria-label="Conversation"><div data-talvt-turn-state="complete"><div><h4 data-conversation-role="user">You said:</h4><div data-content-search-unit-key="fallback-turn-0:0:user">Prompt \'+id+\'</div></div><div data-content-search-unit-key="fallback-turn-0:2:assistant"><h4 data-conversation-role="assistant">ChatGPT said:</h4>\'+body+\'</div></div></div>\''};
         }
         render('one');document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState(null,'',a.href);render(a.pathname.split('/').pop());});
         </script>`,
@@ -154,12 +154,23 @@ for (const platform of ["chatgpt", "gemini"] as const) {
   }
 }
 
-for (const platform of ["chatgpt", "gemini"] as const) {
+for (const platform of [
+  "chatgpt",
+  "gemini",
+  "grok",
+  "claude",
+  "deepseek",
+] as const) {
   test(`${platform} preview exposes format and embedding controls and blocks stale downloads after failure`, async ({
     page,
   }, testInfo) => {
-    const host = platform === "gemini" ? "gemini.google.com" : "chatgpt.com";
-    const path = platform === "gemini" ? "/app/one" : "/c/one";
+    const { host, path } = {
+      chatgpt: { host: "chatgpt.com", path: "/c/one" },
+      gemini: { host: "gemini.google.com", path: "/app/one" },
+      grok: { host: "grok.com", path: "/c/one" },
+      claude: { host: "claude.ai", path: "/chat/one" },
+      deepseek: { host: "chat.deepseek.com", path: "/a/chat/s/one" },
+    }[platform];
     let failMedia = false;
     let captureRequests = 0;
     await page.route(`https://${host}/assets/**`, (route) => {
@@ -177,10 +188,18 @@ for (const platform of ["chatgpt", "gemini"] as const) {
     });
     const content =
       '<p>Preview content</p><img alt="Map" src="/assets/map.png"><div class="attachment-card" data-file-name="input.csv"><a href="/assets/input.csv">input.csv</a></div>';
+    const messages =
+      platform === "gemini"
+        ? `<user-query>Prompt</user-query><model-response>${content}</model-response>`
+        : platform === "deepseek"
+          ? `<div class="ds-message">Prompt</div><div class="ds-message"><div class="ds-assistant-message-main-content">${content}</div></div>`
+          : platform === "chatgpt"
+            ? `<article data-message-author-role="user">Prompt</article><article data-message-author-role="assistant">${content}</article>`
+            : `<div data-testid="user-message">Prompt</div><div data-testid="assistant-message">${content}</div>`;
     await page.route(`https://${host}${path}`, (route) =>
       route.fulfill({
         contentType: "text/html",
-        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview fixture</title><aside><a href="${path}">Preview chat</a></aside><main>${platform === "gemini" ? `<user-query>Prompt</user-query><model-response>${content}</model-response>` : `<article data-message-author-role="user">Prompt</article><article data-message-author-role="assistant">${content}</article>`}</main><script>localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0}));</script>`,
+        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview chat</title><aside><a href="${path}">Preview chat</a></aside><main>${messages}</main><script>localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0}));</script>`,
       }),
     );
     await page.goto(`https://${host}${path}`);

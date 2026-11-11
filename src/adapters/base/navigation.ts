@@ -1,34 +1,12 @@
 import { elementMarkdown } from "../../markdown/legacy";
 import type { ExportOptions } from "../../types";
+import {
+  messageNodes,
+  messageRole,
+  visibleMessageElement as visible,
+} from "../../markdown/messages";
+export { messageNodes } from "../../markdown/messages";
 
-const selectors: Record<string, string> = {
-  chatgpt:
-    '[data-message-author-role="user"], [data-message-author-role="assistant"]',
-  gemini: "user-query, model-response",
-  claude:
-    '[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-response',
-};
-function visible(node: Element): boolean {
-  for (let n: Element | null = node; n; n = n.parentElement) {
-    if (
-      n.hasAttribute("hidden") ||
-      n.getAttribute("aria-hidden") === "true" ||
-      getComputedStyle(n).display === "none" ||
-      getComputedStyle(n).visibility === "hidden"
-    )
-      return false;
-  }
-  return !node.closest("#__safari_md_export_root__, nav, aside");
-}
-export function messageNodes(platform: string): Element[] {
-  const candidates = [
-    ...document.querySelectorAll(selectors[platform] || "[data-no-messages]"),
-  ].filter(visible);
-  return candidates.filter(
-    (node) =>
-      !candidates.some((other) => other !== node && other.contains(node)),
-  );
-}
 export function messageBody(
   platform: string,
   options: ExportOptions,
@@ -37,10 +15,8 @@ export function messageBody(
   if (!nodes.length) return;
   const body = nodes
     .map((node) => {
-      const user = node.matches(
-        'user-query, [data-testid="user-message"], [data-message-author-role="user"]',
-      );
-      return `## ${user ? "User" : "Assistant"}\n\n${elementMarkdown(node, options)}`;
+      const body = elementMarkdown(node, options).trim();
+      return body ? `## ${messageRole(node)}\n\n${body}\n` : "";
     })
     .join("\n");
   if (!options.outline) return body;

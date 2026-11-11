@@ -148,3 +148,13 @@ Context: Direct home exports downloaded immediately and HTML forced embedding, h
 Decision: Open a local Export options dialog before capture. Honor embedMedia for both formats everywhere; selecting HTML defaults it on with an editable switch. Allow validated HTTP(S) images only in linked HTML with matching CSP and a network/expiry warning. Preserve strict data-only embedded exports and failed-backup cleanup gates.
 Consequences: Users can choose size/network requirements before downloading. Linked files can need internet/authentication; opening or cancelling options captures no media. No dependencies or native mutation changes.
 Related files: src/app/App.tsx, src/components/Settings.tsx, src/markdown/media.ts, src/operations/document.ts, tests/integration/offline-export.spec.ts
+
+# ADR-0016: Share observed visible message boundaries
+
+Date: 2026-11-11
+Status: Accepted
+
+Context: Live ChatGPT no longer exposed legacy author roles and had three main regions. Some assistant replies exposed neither legacy roles nor search keys. Grok/DeepSeek also use distinct message containers.
+Decision: Share visible provider boundaries between conversion, media scoping and navigation. Recognize ChatGPT search keys plus direct role-heading containers; deduplicate nested wrappers and preserve image-only replies. Prefer the visible Conversation root for generic fallback. Use observed Grok/Claude test IDs and DeepSeek message classes without guessing hashed-class roles.
+Consequences: Current-chat exports work on the five inspected Safari providers. Loaded content remains partial; fixture tests establish the full export matrix, while live native cleanup remains unverified.
+Related files: src/markdown/messages.ts, src/markdown/legacy-converter.js, src/markdown/attachments.ts, src/adapters/base/navigation.ts, tests/unit/messages.test.ts, tests/integration/offline-export.spec.ts

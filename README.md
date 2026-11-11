@@ -1,10 +1,12 @@
-# AI Chat Markdown Manager v2.3.2
+# AI Chat Markdown Manager v2.3.3
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.2.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.3.zip)
 
 ## 1. Overview
 
 A local userscript for turning AI conversations into Markdown, automatically loading selected chats for ZIP backups, and downloading YouTube captions as TXT/VTT. A floating React interface runs inside a Shadow DOM. No server, account connection, telemetry, or CDN is required.
+
+v2.3.3 fixes current ChatGPT message extraction, including image-only replies, and shares visible message boundaries across media capture and navigation. HTML and Markdown exports offer an editable media/input embedding switch.
 
 This release preserves the v1.2.0 converter and all 48 domain/path match rules, adding 3 targeted YouTube rules. Discovery is partial. ChatGPT batch archive/delete and Gemini batch delete use recognized native controls with mandatory confirmation and verified outcomes.
 
@@ -36,7 +38,7 @@ This release preserves the v1.2.0 converter and all 48 domain/path match rules, 
 | DeepSeek | Links `/a/chat/s/id` + current page | Loaded DOM / explicit in-tab snapshots | Unsupported | Unsupported |
 | Other inherited matches | Current page only | Generic loaded DOM / in-tab snapshots | Unsupported | Unsupported |
 
-These are implementation capabilities, not claims of authenticated live verification. Chromium/WebKit fixture tests cover the bundle; native mutations have not been tested on a signed-in account. Every inherited domain and its verification status is in [PLATFORMS.md](docs/PLATFORMS.md).
+Current-chat downloads were verified in authenticated Safari sessions on ChatGPT, Gemini, Grok, Claude and DeepSeek. Chromium/WebKit fixtures cover the broader export matrix; native mutations have not been tested on a signed-in account. Every inherited domain and its verification status is in [PLATFORMS.md](docs/PLATFORMS.md).
 
 ## 5. Safari installation
 
@@ -88,7 +90,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.3.2, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.3.3, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -98,7 +100,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.3.2. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.3.3. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -148,7 +150,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.2`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.3`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
@@ -161,7 +163,7 @@ npm run build
 npm run test:integration
 ```
 
-105 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 123 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit embedded-media/caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+112 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 132 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit embedded-media/caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 
@@ -191,7 +193,7 @@ No conversation uploads or telemetry are implemented. Same-origin website script
 - Automatic chat loading requires native SPA links and does not guarantee complete account history. Snapshots stay within tab/memory limits.
 - YouTube captions/translations depend on video availability, signed URLs, site restrictions and browser permissions.
 - Native actions depend on recognized current website controls. Deletion is irreversible; ChatGPT archives restore through its settings.
-- Signed-in live platform behavior, actual Safari extension injection and real touch hardware remain unverified.
+- Live Safari current-chat downloads are verified on five providers; live bulk cleanup, Tampermonkey and real touch hardware remain unverified.
 - Modern CSS/ES2022 and an enabled userscript extension are required; host CSP, downloads and permissions may differ.
 - Some technical errors and accessible control labels remain English in the Russian interface.
 

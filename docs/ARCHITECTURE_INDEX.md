@@ -18,6 +18,7 @@
 | `src/adapters/base/native-actions.ts` | Shared scoped native menu/confirmation/outcome checks |
 | `src/adapters/chatgpt/index.ts` | Runtime-gated ChatGPT archive/delete |
 | `src/adapters/gemini/index.ts` | Runtime-gated Gemini delete; no archive |
+| `src/markdown/messages.ts` | Shared visible provider message boundaries and roles for conversion/media/navigation |
 | `src/markdown/attachments.ts` | Nested message attachments, safe file URLs, bounded decoded-image embedding and unavailable labels |
 | `src/markdown/media.ts` | Bounded asynchronous capture of referenced media/input bytes; strict offline failure |
 | `src/operations/document.ts` | Markdown wrapper and allowlisted HTML, inline/linked image CSP and MIME |
@@ -41,7 +42,7 @@
 | `tests/integration/native-actions.spec.ts` | Native archive/delete, frozen targets, backups, review and cancellation |
 | `tests/integration/loading-captions.spec.ts` | Three-platform batch loading, cancellation and automatic multilingual caption downloads |
 | `dist/AI-Chat-Markdown-Manager.user.js` | Standalone installable release |
-| `AI-Chat-Markdown-Manager-v2.3.2.zip`, `SHA256SUMS-v2.3.2` | Release archive and root-relative integrity hashes |
+| `AI-Chat-Markdown-Manager-v2.3.3.zip`, `SHA256SUMS-v2.3.3` | Release archive and root-relative integrity hashes |
 | `docs/screenshots/` | Verified local-fixture UI screenshots |
 | `Save-Page-as-Markdown-Safari.user.js`, `README.txt` | Unchanged v1.2 provenance baseline |
 

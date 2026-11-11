@@ -84,9 +84,16 @@
 - Verification: 105 unit tests, 123 production-bundle browser cases, lint/strict types/build; both providers exercise each format and embed choice, exact bytes, cancellation and error recovery. See VERIFICATION.md for fixture/manual boundaries.
 - Prepared v2.3.2 userscript, ZIP and versioned hashes for authorized commit/push; preserved unrelated historical artifacts, extracted releases and private transport log. No real account mutated.
 
+## 2026-11-11 — v2.3.3 current provider DOM extraction
+- Reproduced live ChatGPT empty-content failure; replaced divergent selectors with shared visible message boundaries. Search-key and role-heading fallback preserve mixed layouts and image-only replies. Active Conversation root takes precedence over unrelated main regions.
+- Added Grok/Claude observed test IDs and DeepSeek loaded message boundaries with neutral unknown roles. No new native mutation capabilities.
+- Computer verification: updated existing Safari Userscripts installation; current HTML downloads succeeded on ChatGPT, Gemini, Grok, Claude and DeepSeek. ChatGPT output retained five user/five assistant messages and four embedded images; Grok excluded a hidden duplicate and downloaded embedded Markdown too.
+- Verification: 112 unit tests, 132 browser cases, lint/strict types/build; all five provider fixtures cover direct/preview format and embedding choices, byte integrity and recoverable errors. Bulk cleanup and backup gates remain fixture-tested.
+- Prepared v2.3.3 userscript, ZIP and hashes; preserved unrelated historical artifacts and private transport log. No real chat mutated.
+
 ## Remaining verification boundaries
-- Limited read-only authenticated Gemini image inspection; no live installed-exporter verification or uploaded-document example. No authenticated ChatGPT/Claude/DeepSeek export verification.
+- Safari installed current-chat exports verified on five providers; live bulk/preview matrices and uploaded-document examples remain fixture-backed.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.
-- Actual Safari Userscripts/Tampermonkey extension installation, download permissions/CSP and physical touch-device testing remain manual follow-up.
+- Tampermonkey, other browsers/extensions, all inherited hosts and physical touch devices remain manual follow-up.
 - Automatic SPA loading covers ChatGPT/Gemini/Claude, but missing/virtualized native links and partial loaded history can still cause per-item failures. Other adapters require loaded content/snapshots.
 - YouTube downloads are fixture-tested; live caption availability, restrictions and browser permissions vary.
