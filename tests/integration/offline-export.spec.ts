@@ -146,3 +146,151 @@ for (const platform of ["chatgpt", "gemini"] as const) {
     });
   }
 }
+
+for (const platform of ["chatgpt", "gemini"] as const) {
+  test(`${platform} preview exposes format and embedding controls and blocks stale downloads after failure`, async ({
+    page,
+  }, testInfo) => {
+    const host = platform === "gemini" ? "gemini.google.com" : "chatgpt.com";
+    const path = platform === "gemini" ? "/app/one" : "/c/one";
+    let failMedia = false;
+    await page.route(`https://${host}/assets/**`, (route) => {
+      if (failMedia) return route.fulfill({ status: 403, body: "expired" });
+      return route.request().url().endsWith(".png")
+        ? route.fulfill({
+            contentType: "image/png",
+            body: Buffer.from(png, "base64"),
+          })
+        : route.fulfill({
+            contentType: "text/csv",
+            body: "exact preview input bytes",
+          });
+    });
+    const content =
+      '<p>Preview content</p><img alt="Map" src="/assets/map.png"><div class="attachment-card" data-file-name="input.csv"><a href="/assets/input.csv">input.csv</a></div>';
+    await page.route(`https://${host}${path}`, (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview fixture</title><aside><a href="${path}">Preview chat</a></aside><main>${platform === "gemini" ? `<user-query>Prompt</user-query><model-response>${content}</model-response>` : `<article data-message-author-role="user">Prompt</article><article data-message-author-role="assistant">${content}</article>`}</main><script>localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0}));</script>`,
+      }),
+    );
+    await page.goto(`https://${host}${path}`);
+    await page.addScriptTag({
+      path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+    });
+    await page
+      .getByRole("button", { name: "Open Markdown Manager", exact: true })
+      .click();
+    // HTML is visible even when the persisted default is Markdown.
+    const directDownload = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Save current chat as HTML", exact: false })
+      .click();
+    const direct = await directDownload;
+    expect(direct.suggestedFilename()).toMatch(/\.html$/);
+    expect(readFileSync((await direct.path())!, "utf8")).toContain(
+      "data:image/png;base64,",
+    );
+    await page
+      .getByRole("button", { name: "Manage conversations", exact: false })
+      .click();
+    const openPreview = async () => {
+      await page
+        .getByRole("button", { name: "Actions for Preview chat", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Preview / export", exact: true })
+        .click();
+    };
+    await openPreview();
+    const dialog = page.getByRole("dialog");
+    const format = dialog.getByRole("combobox", { name: "File format" });
+    const embed = dialog.getByRole("switch", {
+      name: "Embed media and input files",
+    });
+    const images = dialog.getByRole("switch", {
+      name: "Include images",
+      exact: true,
+    });
+    const files = dialog.getByRole("switch", {
+      name: "Include links and input files",
+      exact: true,
+    });
+    await expect(format).toHaveValue("markdown");
+    await expect(embed).not.toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Download Markdown", exact: true }),
+    ).toBeEnabled();
+    await expect(dialog.locator("pre")).not.toContainText(
+      "data:application/octet-stream",
+    );
+    await embed.check();
+    const markdownButton = dialog.getByRole("button", {
+      name: "Download Markdown",
+      exact: true,
+    });
+    await expect(markdownButton).toBeEnabled();
+    await expect(dialog.locator("pre")).toContainText("data:image/png;base64,");
+    const markdownDownload = page.waitForEvent("download");
+    await markdownButton.click();
+    const markdown = await markdownDownload;
+    expect(markdown.suggestedFilename()).toMatch(/\.md$/);
+    const markdownText = readFileSync((await markdown.path())!, "utf8");
+    expect(markdownText).toContain("data:image/png;base64,");
+    expect(markdownText).toContain(
+      Buffer.from("exact preview input bytes").toString("base64"),
+    );
+    await dialog.screenshot({
+      path: testInfo.outputPath("preview-export.png"),
+    });
+    await images.uncheck();
+    await expect(markdownButton).toBeEnabled();
+    await expect(dialog.locator("pre")).not.toContainText("data:image");
+    await images.check();
+    await expect(markdownButton).toBeEnabled();
+    await files.uncheck();
+    await expect(markdownButton).toBeEnabled();
+    await expect(dialog.locator("pre")).not.toContainText(
+      "data:application/octet-stream",
+    );
+    await files.check();
+    await expect(markdownButton).toBeEnabled();
+    await format.selectOption("html");
+    const htmlButton = dialog.getByRole("button", {
+      name: "Download HTML",
+      exact: true,
+    });
+    await expect(htmlButton).toBeEnabled();
+    await expect(embed).toBeChecked();
+    await expect(embed).toBeDisabled();
+    const htmlDownload = page.waitForEvent("download");
+    await htmlButton.click();
+    const html = await htmlDownload;
+    expect(html.suggestedFilename()).toMatch(/\.html$/);
+    const htmlText = readFileSync((await html.path())!, "utf8");
+    expect(htmlText).toContain("<!doctype html>");
+    expect(htmlText).toContain("data:image/png;base64,");
+    expect(htmlText).toContain(
+      Buffer.from("exact preview input bytes").toString("base64"),
+    );
+    await dialog.getByRole("button", { name: "Close dialog" }).click();
+    // Invalidate cached body by changing the actual loaded message content.
+    await page.locator("main p").evaluate((p) => {
+      p.textContent = "Changed preview content";
+    });
+    await openPreview();
+    await expect(markdownButton).toBeEnabled();
+    failMedia = true;
+    await format.selectOption("html");
+    await expect(dialog.getByRole("alert")).toBeVisible();
+    await expect(htmlButton).toBeDisabled();
+    await expect(dialog.locator("pre")).toBeEmpty();
+    failMedia = false;
+    await dialog.getByRole("button", { name: "Retry preview" }).click();
+    await expect(htmlButton).toBeEnabled();
+    await expect(dialog.locator("pre")).toContainText(
+      "Changed preview content",
+    );
+    await expect(page).toHaveURL(`https://${host}${path}`);
+  });
+}

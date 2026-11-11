@@ -128,3 +128,13 @@ Context: Users need plane-readable HTML and Markdown carrying accessible media/i
 Decision: Add HTML and an independent Markdown embed option, leaving default Markdown references compatible. Capture only referenced loaded resources with bounded, cancellable browser-session fetch; keep decoded-image fallback. Reject a chat when an included resource is inaccessible. Bundle Marked, rebuild an allowlisted document and apply data-only media CSP. Use the same format for current/selection/preview/ZIP/required backups. Retain exact-ID native action engine; Gemini has local ZIP plus delete, without invented native archive.
 Consequences: Offline exports grow and require capture while online; 20 MiB/file, 64 MiB/chat, 100-resource bounds can reject large chats. CORS/CSP/expired links/streaming and partial history remain limits. Failed chats never enter successful-backup review; required full-backup failure prevents every native action. Explicit media requests extend ADR-0012's no-fetch policy; default link mode keeps it. Browser fixtures are not real-account verification.
 Related files: src/markdown/media.ts, src/operations/document.ts, src/adapters/base/index.ts, src/app/App.tsx, tests/unit/offline-export.test.ts, tests/integration/offline-export.spec.ts, tests/integration/native-actions.spec.ts
+
+# ADR-0014: Preview owns visible export options
+
+Date: 2026-11-11
+Status: Accepted
+
+Context: v2.3.0 exposed format and embedding outside preview, making offline exports hard to discover.
+Decision: Show format, embed, image and link/file controls in preview, with local options and fresh adapter capture per change. Clear old output before capture; block downloads on failure and abort on close. Show explicit Markdown and HTML actions on home.
+Consequences: Both providers use the tested export pipeline; preview preferences do not silently alter batch defaults. Existing access/size limits remain.
+Related files: src/app/App.tsx, src/components/Conversations.tsx, tests/integration/offline-export.spec.ts.

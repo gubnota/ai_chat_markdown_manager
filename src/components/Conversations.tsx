@@ -235,7 +235,7 @@ export function Conversations({
                     }}
                   >
                     <Eye size={14} />
-                    {t("Preview Markdown", "Предпросмотр")}
+                    {t("Preview / export", "Предпросмотр / экспорт")}
                   </button>
                   <button
                     disabled={busy}

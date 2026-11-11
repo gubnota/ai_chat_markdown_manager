@@ -724,11 +724,22 @@ kbd {
   margin: 10px 0;
   font-size: 0.9em;
 }
-.dialog label {
+.dialog label:not(.toggle-row) {
   display: block;
   margin: 12px 0;
 }
-.dialog label input {
+.dialog .toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+}
+.dialog .toggle-row input {
+  flex-shrink: 0;
+}
+.dialog label input:not([type="checkbox"]),
+.dialog label select {
   display: block;
   width: 100%;
   margin-top: 7px;
@@ -742,7 +753,7 @@ kbd {
   border-radius: 9px;
   padding: 14px;
   font-size: 0.85em;
-  max-height: 50vh;
+  max-height: 30vh;
   overflow: auto;
 }
 .confirm-list {

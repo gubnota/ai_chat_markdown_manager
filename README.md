@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.3.0
+# AI Chat Markdown Manager v2.3.1
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.0.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.1.zip)
 
 ## 1. Overview
 
@@ -62,9 +62,11 @@ Use **Export selected content** after highlighting webpage text, or Shift-click 
 
 Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. In default Markdown link mode, attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
 
-For a plane/offline copy, open **Settings → File format → HTML · offline** before saving or creating a batch ZIP. HTML bundles its styles, enabled images, audio/video sources and input-file bytes into one `.html` per chat. Open it in a browser without the original login or network; embedded input files have download links. Source/help links remain external. Keep **Image references** and **Keep links** enabled to include all supported media. The export/archive screen also offers the format switch.
+For a plane/offline copy, use **Save current chat as HTML** directly in the home menu. For batch ZIPs choose **File format → HTML · offline** on the export/archive screen or in Settings. HTML bundles its styles, enabled images, audio/video sources and input-file bytes into one `.html` per chat. Open it in a browser without the original login or network; embedded input files have download links. Source/help links remain external. Keep **Image references** and **Keep links** enabled to include all supported media. The export/archive screen also offers the format switch.
 
-For `.md`, enable **Embed media and input files**. It stores binary resources as base64 data URLs; your Markdown viewer must support data images/download links. The default Markdown mode retains external references for compatibility. Loaded blob image previews are copied through canvas without native attachment clicks; this can preserve only the exposed preview resolution.
+In **Manage conversations → ⋯ beside a chat → Preview / export**, choose **File format** (Markdown or HTML), **Embed media and input files**, **Include images**, and **Include links and input files**. Each change refreshes the preview; use **Download Markdown** or **Download HTML** when ready. Failed refreshes disable download until corrected or retried. Preview choices apply to that preview only.
+
+For `.md`, enable **Embed media and input files** in the preview or Settings. It stores binary resources as base64 data URLs; your Markdown viewer must support data images/download links. The default Markdown mode retains external references for compatibility. Loaded blob image previews are copied through canvas without native attachment clicks; this can preserve only the exposed preview resolution.
 
 Capture while online. Requests use the browser session and only URLs exposed by the loaded conversation; no private account API is used. CORS/CSP, expired links, missing file URLs, streaming-only media and unsupported image formats can block capture. An unavailable included resource **fails that chat’s offline export**; it is excluded from successful-backup cleanup. Required backups must succeed for every target before native actions start. Limits: **20 MiB/file, 64 MiB/chat, 100 unique resources**; canvas previews retain their 16-megapixel / 12-MiB URL bounds. Loaded history may still be partial—review the files before deleting.
 
@@ -80,13 +82,13 @@ Select chats and use **Export selected**, **ZIP all discovered**, or the Archive
 
 Native SPA links must remain available. A missing/virtualized link, full-page reload or load timeout produces an individual failure; stale messages are never substituted. Scroll the platform sidebar and rescan if necessary. Other platforms still require current content or a matching temporary snapshot. Discovery and loaded history remain partial.
 
-The ZIP contains successful `.md` files and an optional `manifest.json` with per-item results. A fully failed batch produces a report, not an empty successful backup. Preview/export caches up to 20 chats / approximately 8 MiB in memory; reload clears it. Image/link/outline options must match cached content; the three automatic adapters reload when necessary.
+The ZIP contains successful `.md` or `.html` files and an optional `manifest.json` with per-item results. A fully failed batch produces a report, not an empty successful backup. Preview/export caches up to 20 chats / approximately 8 MiB in memory; reload clears it. Image/link/outline options must match cached content; the three automatic adapters reload when necessary.
 
 Cancel stops queued work; completed results remain valid. **Retry failed exports** retries failed items only. Filenames are sanitized and collisions receive numeric suffixes.
 
 ## YouTube captions
 
-1. Install v2.3.0, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.3.1, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -96,7 +98,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.3.0. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.3.1. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -146,7 +148,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.0`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.1`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 

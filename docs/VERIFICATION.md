@@ -1,4 +1,4 @@
-# Verification — v2.3.0
+# Verification — v2.3.1
 
 Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are locked in `package-lock.json`.
 
@@ -9,11 +9,11 @@ Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are
 | `npm run lint` | Pass; source, tests and Vite/Playwright config |
 | `npm run typecheck` | Pass; strict TypeScript, typed legacy JS boundary |
 | `npm test` | 103 pass in 7 files: core, Gemini, ChatGPT, navigation, timedtext, attachments, offline export |
-| `npm run build` | Pass; self-contained userscript, v2.3.0 ZIP and versioned checksums |
-| `npm run test:integration` | 117 pass: 39 cases each in Chromium, desktop WebKit and mobile WebKit |
+| `npm run build` | Pass; self-contained userscript, v2.3.1 ZIP and versioned checksums |
+| `npm run test:integration` | 123 pass: 41 cases each in Chromium, desktop WebKit and mobile WebKit; six preview cases rerun after final layout changes |
 | Metadata / release integrity | Original 48 @match entries plus 3 targeted YouTube entries; no global wildcard, remote runtime imports or source maps; ZIP script equals dist |
 
-The production bundle is approximately 412.8 kB before compression. Verify current artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.0`. Historical ZIPs and the preexisting modified `SHA256SUMS` are preserved independently.
+The production bundle is approximately 415.5 kB before compression. Verify current artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.1`. Historical ZIPs and the preexisting modified `SHA256SUMS` are preserved independently.
 
 ## Unit coverage
 
@@ -42,6 +42,7 @@ Tests inject `dist/AI-Chat-Markdown-Manager.user.js` into intercepted or local s
 - Successful ZIP review excludes failed exports and requires file-check acknowledgment plus normal typed Delete confirmation.
 - Wrong native confirmation fails without clicking Delete.
 - ChatGPT/Gemini HTML and embedded Markdown current/two-chat ZIP downloads preserve exact media/input bytes and correct identities; original routes restore. Actual exported HTML files opened via file:// with browser networking disabled render images, decode PCM audio and expose input downloads without HTTP requests.
+- ChatGPT/Gemini preview starts from default linked Markdown, exposes format/embed/image/file toggles, regenerates captured bytes, downloads real `.md`/`.html` files, clears stale output after inaccessible-file failure and supports retry. Home HTML export is visible from default Markdown settings.
 - Both providers complete required HTML backup before native cleanup; inaccessible input files prevent all native actions in required-backup mode. Partial embedded Markdown ZIP review excludes failed chats before acknowledged/typed deletion.
 
 Desktop/mobile screenshots in `docs/screenshots/` show local fixtures. Mobile WebKit uses device emulation and pointer input; it does not establish physical touch behavior. No real account was mutated.

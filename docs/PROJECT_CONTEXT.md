@@ -3,14 +3,15 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.3.0, 2026-11-11.
+- Release: 2.3.1, 2026-11-11.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2.3.0 adds standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
+- v2.3.1 exposes preview format/embed/image/file controls with fresh capture, error-safe downloads and direct home Markdown/HTML actions.
+- v2.3.1 adds standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
 - Offline media failures exclude that chat from successful-backup cleanup; Gemini uses a local ZIP archive then native delete.
 - v2.2 adds native ChatGPT batch archive/delete, Gemini delete, and actions on reviewed successful backups.
 - v2.1.1 excludes native start pages from batches and adds successful-export review.
@@ -129,6 +130,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.0` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.1` from repository root.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
 - Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

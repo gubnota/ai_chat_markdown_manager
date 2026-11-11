@@ -122,7 +122,7 @@ export function Dialog({
           if (e.key === "Tab") {
             const elements = [
               ...e.currentTarget.querySelectorAll<HTMLElement>(
-                'button:not(:disabled),input,select,[tabindex="0"]',
+                'button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex="0"]',
               ),
             ];
             const root = e.currentTarget.getRootNode() as ShadowRoot;

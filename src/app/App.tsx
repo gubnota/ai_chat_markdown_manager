@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import type {
   Conversation,
+  ExportOptions,
   OperationKind,
   OperationProgress,
   PlatformAdapter,
@@ -116,10 +117,11 @@ export function App({
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [preview, setPreview] = useState<{
-    title: string;
+    conversation: Conversation;
+    options: ExportOptions;
     text: string;
     name: string;
-    format: "markdown" | "html";
+    error?: string;
   }>();
   const [confirm, setConfirm] = useState<Confirmation>();
   const [phrase, setPhrase] = useState("");
@@ -270,59 +272,68 @@ export function App({
     return () => document.removeEventListener("pointerdown", outside);
   }, [host, settings.autoMinimize, confirm, preview, runner]);
   const currentDocument = useCallback(
-    async (selection = false, signal?: AbortSignal) => {
+    async (
+      selection = false,
+      signal?: AbortSignal,
+      options = settings.export,
+    ) => {
       const list = await adapter.discoverConversations();
       const current = list.find((c) => c.current);
       if (!current) throw new Error("Current page is unavailable.");
       const body = selection
         ? await embedMarkdownMedia(
             extractMarkdown({
-              ...settings.export,
+              ...options,
               metadata: false,
               source: false,
               selection: true,
             }),
             [document.querySelector("main") || document.body],
-            settings.export,
+            options,
             signal,
           )
-        : await adapter.exportConversation(current, settings.export, signal);
+        : await adapter.exportConversation(current, options, signal);
       return {
-        text: exportDocument(body, current, settings.export),
+        text: exportDocument(body, current, options),
         current,
       };
     },
     [adapter, settings.export],
   );
   const quick = useCallback(
-    async (mode: "save" | "copy" | "selection") => {
+    async (
+      mode: "save" | "copy" | "selection",
+      format = settings.export.format,
+    ) => {
       if (runner.running || busy || operationLock.current) return;
       operationLock.current = true;
       const controller = new AbortController();
       operationAbort.current = controller;
       setBusy(true);
+      const options = { ...settings.export, format };
       try {
         const { text, current } = await currentDocument(
           mode === "selection" || settings.export.selection,
           controller.signal,
+          options,
         );
         if (mode === "copy") {
           await copyMarkdown(text);
           notify(
-            settings.export.format === "html"
+            format === "html"
               ? t("HTML copied.", "HTML скопирован.")
               : t("Markdown copied.", "Markdown скопирован."),
           );
         } else {
           download(
             text,
-            filename(current, settings.export.filename, settings.export.format),
-            exportMime(settings.export.format),
+            filename(current, options.filename, format),
+            exportMime(format),
           );
           notify(
             t(
-              `${settings.export.format === "html" ? "HTML" : "Markdown"} downloaded. Loaded content may be partial.`,
-              `${settings.export.format === "html" ? "HTML" : "Markdown"} сохранён. Доступное содержимое может быть частичным.`,
+              `${format === "html" ? "HTML" : "Markdown"} downloaded. Loaded content may be partial.`,
+              `${format === "html" ? "HTML" : "Markdown"} сохранён. Доступное содержимое может быть частичным.`,
             ),
           );
         }
@@ -472,7 +483,7 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.3.0",
+                  version: "2.3.1",
                   format: settings.export.format,
                   embeddedMedia:
                     settings.export.format === "html" ||
@@ -548,27 +559,45 @@ export function App({
     setPhrase("");
     setConfirm({ kind, items: targets.map((c) => ({ ...c })), all });
   };
-  const previewConversation = async (c: Conversation) => {
+  const previewConversation = async (
+    c: Conversation,
+    options = settings.export,
+  ) => {
     if (busy || runner.running || operationLock.current) return;
     operationLock.current = true;
+    const controller = new AbortController();
+    operationAbort.current = controller;
     setBusy(true);
+    setToast("");
+    const pending = {
+      conversation: c,
+      options,
+      text: "",
+      name: filename(c, options.filename, options.format),
+    };
+    setPreview(pending);
     const restore = adapter.beginExportSession?.();
     try {
-      const body = await adapter.exportConversation(c, settings.export);
-      setPreview({
-        title: c.title,
-        text: exportDocument(body, c, settings.export),
-        name: filename(c, settings.export.filename, settings.export.format),
-        format: settings.export.format,
-      });
+      const body = await adapter.exportConversation(
+        c,
+        options,
+        controller.signal,
+      );
+      const text = exportDocument(body, c, options);
+      if (!controller.signal.aborted) setPreview({ ...pending, text });
     } catch (e) {
-      notify(e instanceof Error ? e.message : String(e));
+      if (!controller.signal.aborted) {
+        const error = e instanceof Error ? e.message : String(e);
+        setPreview({ ...pending, error });
+        notify(error);
+      }
     } finally {
       try {
         await restore?.();
       } catch (e) {
         notify(String(e));
       }
+      operationAbort.current = undefined;
       operationLock.current = false;
       setBusy(false);
       await scan();
@@ -732,16 +761,38 @@ export function App({
                 <ActionRow
                   icon={Download}
                   title={t(
-                    `Save current chat as ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
-                    `Сохранить беседу в ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
+                    "Save current chat as Markdown",
+                    "Сохранить беседу в Markdown",
                   )}
                   description={t(
                     "Download the loaded conversation",
                     "Скачать загруженную беседу",
                   )}
-                  shortcut="⌥⇧ M"
+                  shortcut={
+                    settings.export.format === "markdown" ? "⌥⇧ M" : undefined
+                  }
                   disabled={busy}
-                  onClick={(e) => void quick(e.shiftKey ? "selection" : "save")}
+                  onClick={(e) =>
+                    void quick(e.shiftKey ? "selection" : "save", "markdown")
+                  }
+                />
+                <ActionRow
+                  icon={FileDown}
+                  title={t(
+                    "Save current chat as HTML",
+                    "Сохранить беседу в HTML",
+                  )}
+                  description={t(
+                    "Offline document with embedded media and input files",
+                    "Офлайн-документ со встроенными медиа и файлами",
+                  )}
+                  shortcut={
+                    settings.export.format === "html" ? "⌥⇧ M" : undefined
+                  }
+                  disabled={busy}
+                  onClick={(e) =>
+                    void quick(e.shiftKey ? "selection" : "save", "html")
+                  }
                 />
                 <ActionRow
                   icon={Copy}
@@ -1230,24 +1281,110 @@ export function App({
       {preview && (
         <Dialog
           title={t(
-            `${preview.format === "html" ? "HTML source" : "Markdown"} preview`,
+            `${preview.options.format === "html" ? "HTML source" : "Markdown"} preview`,
             "Предпросмотр экспорта",
           )}
-          onClose={() => setPreview(undefined)}
+          onClose={() => {
+            operationAbort.current?.abort();
+            setPreview(undefined);
+          }}
         >
-          <p>{preview.title}</p>
+          <p>{preview.conversation.title}</p>
+          <label>
+            {t("File format", "Формат файла")}
+            <select
+              aria-label="File format"
+              value={preview.options.format}
+              disabled={busy}
+              onChange={(e) =>
+                void previewConversation(preview.conversation, {
+                  ...preview.options,
+                  format: e.target.value as "markdown" | "html",
+                })
+              }
+            >
+              <option value="markdown">Markdown (.md)</option>
+              <option value="html">HTML · offline (.html)</option>
+            </select>
+          </label>
+          <Toggle
+            label={t(
+              "Embed media and input files",
+              "Встроить медиа и входные файлы",
+            )}
+            checked={
+              preview.options.embedMedia || preview.options.format === "html"
+            }
+            disabled={busy || preview.options.format === "html"}
+            onChange={(embedMedia) =>
+              void previewConversation(preview.conversation, {
+                ...preview.options,
+                embedMedia,
+              })
+            }
+          />
+          {(
+            [
+              ["images", "Include images", "Включить изображения"],
+              [
+                "links",
+                "Include links and input files",
+                "Включить ссылки и входные файлы",
+              ],
+            ] as const
+          ).map(([key, en, rus]) => (
+            <Toggle
+              key={key}
+              label={t(en, rus)}
+              checked={preview.options[key]}
+              disabled={busy}
+              onChange={(value) =>
+                void previewConversation(preview.conversation, {
+                  ...preview.options,
+                  [key]: value,
+                })
+              }
+            />
+          ))}
+          <p className="hint">
+            {t(
+              "HTML embeds enabled media for offline use. Markdown embedding requires a viewer that supports data URLs. Changing options refreshes this preview from the chat.",
+              "HTML встраивает включённые медиа для офлайн-просмотра. Для Markdown нужен просмотрщик с поддержкой data URL. Изменение настроек обновляет предпросмотр из беседы.",
+            )}
+          </p>
+          {busy && (
+            <p role="status">
+              {t("Preparing export…", "Подготовка экспорта…")}
+            </p>
+          )}
+          {preview.error && <p role="alert">{preview.error}</p>}
           <pre className="preview" tabIndex={0}>
             {preview.text}
           </pre>
+          {preview.error && (
+            <button
+              disabled={busy}
+              onClick={() =>
+                void previewConversation(preview.conversation, preview.options)
+              }
+            >
+              {t("Retry preview", "Повторить предпросмотр")}
+            </button>
+          )}
           <button
             className="primary"
+            disabled={busy || !preview.text || !!preview.error}
             onClick={() => {
-              download(preview.text, preview.name, exportMime(preview.format));
+              download(
+                preview.text,
+                preview.name,
+                exportMime(preview.options.format),
+              );
             }}
           >
             {t(
-              `Download ${preview.format === "html" ? "HTML" : "Markdown"}`,
-              "Скачать экспорт",
+              `Download ${preview.options.format === "html" ? "HTML" : "Markdown"}`,
+              `Скачать ${preview.options.format === "html" ? "HTML" : "Markdown"}`,
             )}
           </button>
         </Dialog>

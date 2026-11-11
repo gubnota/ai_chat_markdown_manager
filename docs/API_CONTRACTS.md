@@ -61,3 +61,6 @@ After a ZIP download is initiated successfully, the app keeps an in-memory revie
 Origin-local prefix `__ai_chat_md_v2__:`. Settings defaults/schema/clamps: `src/storage/index.ts`; legacy booleans read from `__safari_md_export_settings_v1__`, legacy anchor migrated separately. Unknown/invalid values fall back safely. Selection stores at most 10,000 stable keys. History at most 30 summaries without title, URL, IDs or content. Cache is never persisted. Storage denial must not block the current session.
 
 FAB anchor persists independently of flyout size; clamp to viewport and avoid detected Send controls. Panel dimensions must never overwrite anchor coordinates. Alt+Shift+E toggles/restores; Alt+Shift+M exports; Shift-click exports highlighted content; Escape minimizes or closes the active dialog first. See `src/app/App.tsx` for dispatch order.
+
+## Preview export UI
+Preview retains a conversation identity and local ExportOptions snapshot. Format/embed/image/link changes clear previous output and recapture through the adapter with an AbortSignal and route restoration. Download stays disabled during capture or after failure; retry recaptures the selected options. Closing aborts capture and prevents late results reopening the dialog. Home Markdown/HTML actions override only the format for that export; configured shortcut/batch defaults remain unchanged.

@@ -71,6 +71,12 @@
 - Synthetic tests only; no real-account mutation or authenticated installed-exporter verification. Missing loaded history, expired URLs, CSP/CORS, streaming-only and oversized media remain explicit limits. See VERIFICATION.md.
 - Prepared v2.3.0 installable userscript/ZIP/checksums for authorized commit and push to origin/main.
 
+## 2026-11-11 — v2.3.1 visible preview exports
+- User reported no export/embed controls in Markdown preview and no visible HTML export. Standing auto-approval/build/push authorization applies; recorded IMPLEMENTATION_PLAN_2.3.1.md.
+- Added preview-local format/embed/images/links-and-input-files controls, automatic recapture, disabled stale downloads on error, retry and abort-on-close. Added direct home Markdown and offline HTML actions independent of configured default format.
+- Kept shared provider/media/HTML pipelines and native cleanup gates; corrected dialog toggle styling and disabled-control focus handling. Updated bilingual installation/use guidance and release artifacts.
+- Verification: 103 unit tests, 123 production-bundle browser checks, lint/strict types/build passed; versioned release integrity recorded in VERIFICATION.md. Preserved unrelated historical artifacts, extracted releases and private transport log.
+
 ## Remaining verification boundaries
 - Limited read-only authenticated Gemini image inspection; no live installed-exporter verification or uploaded-document example. No authenticated ChatGPT/Claude/DeepSeek export verification.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.
