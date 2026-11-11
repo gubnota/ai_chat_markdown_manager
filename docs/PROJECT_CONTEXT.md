@@ -52,7 +52,7 @@
 - New code is MIT OR Apache-2.0; inherited/vendor licenses retain their terms.
 - Preserve independent FAB anchoring and Send-button avoidance.
 - Keep `.DS_Store`, dependencies and temporary test output out of Git.
-- Track the installable script, release ZIP and screenshots.
+- Track the installable script and screenshots. Generate versioned release ZIPs and checksums locally; ignore them in Git.
 
 ## Core workflows
 - Open the FAB or restore it with Alt+Shift+E.
@@ -132,6 +132,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.3` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.3` from repository root after a local build.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
-- Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.
+- Distribution: tracked `dist/AI-Chat-Markdown-Manager.user.js`; local builds also generate an ignored root release ZIP.

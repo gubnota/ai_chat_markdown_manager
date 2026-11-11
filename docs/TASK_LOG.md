@@ -91,6 +91,12 @@
 - Verification: 112 unit tests, 132 browser cases, lint/strict types/build; all five provider fixtures cover direct/preview format and embedding choices, byte integrity and recoverable errors. Bulk cleanup and backup gates remain fixture-tested.
 - Prepared v2.3.3 userscript, ZIP and hashes; preserved unrelated historical artifacts and private transport log. No real chat mutated.
 
+## 2026-11-11 — Remove generated release artifacts from history
+
+- Rewrote all 13 existing commits to remove versioned release ZIPs and checksum files; cleaned the local checkpoint tree too. Saved a pre-rewrite bundle outside the repository.
+- Added recursive basename ignore patterns; retained local build generation and the tracked installable userscript. Updated README and project policy to remove repository ZIP links.
+- Validation: inspected every rewritten commit tree and the checkpoint tree; root/nested ignore coverage passed and unrelated local changes were preserved. Runtime code is unchanged.
+
 ## Remaining verification boundaries
 - Safari installed current-chat exports verified on five providers; live bulk/preview matrices and uploaded-document examples remain fixture-backed.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.

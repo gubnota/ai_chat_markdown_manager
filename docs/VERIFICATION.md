@@ -13,7 +13,7 @@ Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are
 | `npm run test:integration` | 132 pass: 44 cases each in Chromium, desktop WebKit and mobile WebKit |
 | Metadata / release integrity | Original 48 @match entries plus 3 targeted YouTube entries; no global wildcard, remote runtime imports or source maps; ZIP script equals dist |
 
-The production bundle is approximately 418.2 kB before compression. Verify current artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.3`. Historical ZIPs and the preexisting modified `SHA256SUMS` are preserved independently.
+The production bundle is approximately 418.2 kB before compression. After a local build, verify artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.3`. Versioned release ZIPs and checksum files are ignored local outputs and have been removed from Git history. The unversioned `SHA256SUMS` is outside this cleanup.
 
 ## Unit coverage
 

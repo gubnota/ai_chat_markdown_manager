@@ -158,3 +158,13 @@ Context: Live ChatGPT no longer exposed legacy author roles and had three main r
 Decision: Share visible provider boundaries between conversion, media scoping and navigation. Recognize ChatGPT search keys plus direct role-heading containers; deduplicate nested wrappers and preserve image-only replies. Prefer the visible Conversation root for generic fallback. Use observed Grok/Claude test IDs and DeepSeek message classes without guessing hashed-class roles.
 Consequences: Current-chat exports work on the five inspected Safari providers. Loaded content remains partial; fixture tests establish the full export matrix, while live native cleanup remains unverified.
 Related files: src/markdown/messages.ts, src/markdown/legacy-converter.js, src/markdown/attachments.ts, src/adapters/base/navigation.ts, tests/unit/messages.test.ts, tests/integration/offline-export.spec.ts
+
+# ADR-0017: Keep versioned release archives outside Git history
+
+Date: 2026-11-11
+Status: Accepted
+
+Context: Generated release archives and per-version checksums accumulated in commits; the user requested their removal from all history.
+Decision: Remove every `AI-Chat-Markdown-Manager-v*.zip` and `SHA256SUMS-v*` path from Git history and ignore both basename patterns at every directory depth. Keep producing these files locally with `npm run build`; retain the tracked installable userscript and unversioned `SHA256SUMS`.
+Consequences: Commit IDs change and existing clones must reconcile with rewritten main. Keep an external pre-rewrite Git bundle for recovery. README installation uses the tracked script; local ZIP generation replaces repository ZIP links.
+Related files: .gitignore, README.md, README.ru.md, scripts/release.mjs, docs/PROJECT_CONTEXT.md, docs/ARCHITECTURE_INDEX.md

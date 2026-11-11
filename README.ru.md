@@ -1,6 +1,6 @@
 # AI Chat Markdown Manager v2.3.3
 
-[English](README.md) · [Установочный скрипт](dist/AI-Chat-Markdown-Manager.user.js) · [ZIP релиза](AI-Chat-Markdown-Manager-v2.3.3.zip)
+[English](README.md) · [Установочный скрипт](dist/AI-Chat-Markdown-Manager.user.js)
 
 ## 1. Обзор
 
@@ -149,7 +149,7 @@ npm run dev
 npm run build
 ```
 
-Проверка строгих типов предшествует production IIFE-сборке. Результаты: `dist/AI-Chat-Markdown-Manager.user.js`, ZIP релиза и `SHA256SUMS-v2.3.3` в корне. Код, стили, React, Lucide, Marked и fflate встроены локально. Динамических импортов, удалённых зависимостей и source maps нет. [Архитектура](docs/ARCHITECTURE.md).
+Проверка строгих типов предшествует production IIFE-сборке. Команда `npm run build` создаёт `dist/AI-Chat-Markdown-Manager.user.js`, ZIP релиза и `SHA256SUMS-v2.3.3` в корне. Версионные ZIP и файлы контрольных сумм — локальные результаты сборки, игнорируемые Git. Код, стили, React, Lucide, Marked и fflate встроены локально. Динамических импортов, удалённых зависимостей и source maps нет. [Архитектура](docs/ARCHITECTURE.md).
 
 ## 18. Тестирование
 

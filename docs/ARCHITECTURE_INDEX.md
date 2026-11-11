@@ -42,7 +42,7 @@
 | `tests/integration/native-actions.spec.ts` | Native archive/delete, frozen targets, backups, review and cancellation |
 | `tests/integration/loading-captions.spec.ts` | Three-platform batch loading, cancellation and automatic multilingual caption downloads |
 | `dist/AI-Chat-Markdown-Manager.user.js` | Standalone installable release |
-| `AI-Chat-Markdown-Manager-v2.3.3.zip`, `SHA256SUMS-v2.3.3` | Release archive and root-relative integrity hashes |
+| `AI-Chat-Markdown-Manager-v*.zip`, `SHA256SUMS-v*` | Locally generated release archives and root-relative integrity hashes; ignored by Git |
 | `docs/screenshots/` | Verified local-fixture UI screenshots |
 | `Save-Page-as-Markdown-Safari.user.js`, `README.txt` | Unchanged v1.2 provenance baseline |
 
