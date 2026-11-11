@@ -24,7 +24,7 @@ Explicit preview/export converts the loaded current DOM. A bounded memory cache 
 
 The minimally ported `legacy-converter.js` retains its original metadata and MIT notice. It remains JavaScript to avoid a large rewrite; `legacy.ts` and `legacy-converter.d.ts` provide the typed boundary. ChatGPT/Gemini/Claude role-message nodes use inherited element conversion under User/Assistant headings, preserving outlines. Generic conversion remains the fallback. Wrapper metadata quotes YAML strings, emits partial-content warnings, and never manufactures conversation dates.
 
-`src/operations/export.ts` sanitizes filenames, deduplicates case-insensitively, builds ZIPs with local fflate, creates Blob downloads and handles clipboard fallback. No image embedding or image fetch occurs. The separate YouTube module performs bounded caption/watch requests only. Generated object URLs are revoked after a delay. Manifest/report IDs and source links are sensitive user data.
+`src/operations/export.ts` sanitizes filenames, deduplicates case-insensitively, builds ZIPs with local fflate, creates Blob downloads and handles clipboard fallback. Optional embedded Markdown and HTML await `src/markdown/media.ts` to capture bounded exposed media/input bytes before navigation; failures reject that chat. `src/operations/document.ts` renders HTML with bundled Marked, an allowlisted DOM rebuild and data-only media CSP. The separate YouTube module performs bounded caption/watch requests. Generated object URLs are revoked after a delay. Manifest/report IDs and source links are sensitive user data.
 
 ## YouTube captions
 

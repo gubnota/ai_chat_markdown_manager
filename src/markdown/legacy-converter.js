@@ -320,8 +320,11 @@ export function createConverter(options = {}) {
     if (tag === 'SUMMARY') return '\n\n**' + markdownInline(childrenToMarkdown(el, state)) + '**\n\n';
     if (tag === 'KBD') return inlineCode(el.textContent || '');
     if (tag === 'VIDEO' || tag === 'AUDIO') {
-      const url = absoluteUrl(el.getAttribute('src') || el.querySelector('source')?.getAttribute('src'));
-      return url ? `\n\n[${tag === 'VIDEO' ? 'Video' : 'Audio'}](${mdUrl(url)})\n\n` : '';
+      if (!config.links) return '';
+      const raw = el.currentSrc || el.getAttribute('src') || el.querySelector('source')?.getAttribute('src');
+      const embedded = (config.format === 'html' || config.embedMedia) && /^(blob:|data:(?:audio|video)\/)/i.test(raw || '') ? raw : '';
+      const url = absoluteUrl(raw) || embedded;
+      return url ? `\n\n[${tag === 'VIDEO' ? 'Video' : 'Audio'}](${mdUrl(url)})\n\n` : ((config.format === 'html' || config.embedMedia) ? '\n\nAttachment: audio/video — direct link unavailable.\n\n' : '');
     }
     const content = childrenToMarkdown(el, state);
     if (['DIV', 'MAIN', 'SECTION', 'ARTICLE', 'FIGURE', 'DETAILS', 'DL', 'HEADER'].includes(tag)) {

@@ -117,3 +117,14 @@ Context: Authenticated Gemini DOM inspection found generated images exposed only
 Decision: Extend ADR-0011's external-reference policy with bounded local PNG canvas copies for loaded blob message images and bounded raster data URLs. Limit canvas conversion to 16,777,216 pixels and URLs to 12 MiB. Preserve HTTP links, independent toggles and unavailable notes; traverse nested cards individually. No attachment fetch, native action or security-setting change.
 Consequences: Temporary images survive navigation in current/batch exports. Markdown grows and requires data-image renderer support; tainted, unloaded or oversized images remain unavailable. This supersedes ADR-0011's blanket no-embedded-media/blob-data exclusion. Uploaded-document controls remain fixture-tested.
 Related files: src/markdown/attachments.ts, src/markdown/legacy-converter.js, tests/unit/attachments.test.ts, tests/integration/attachments.spec.ts
+
+
+# ADR-0013: Strict offline documents and download-first cleanup
+
+Date: 2026-11-11
+Status: Accepted
+
+Context: Users need plane-readable HTML and Markdown carrying accessible media/input files for ChatGPT/Gemini, then bulk cleanup without accepting a broken offline backup.
+Decision: Add HTML and an independent Markdown embed option, leaving default Markdown references compatible. Capture only referenced loaded resources with bounded, cancellable browser-session fetch; keep decoded-image fallback. Reject a chat when an included resource is inaccessible. Bundle Marked, rebuild an allowlisted document and apply data-only media CSP. Use the same format for current/selection/preview/ZIP/required backups. Retain exact-ID native action engine; Gemini has local ZIP plus delete, without invented native archive.
+Consequences: Offline exports grow and require capture while online; 20 MiB/file, 64 MiB/chat, 100-resource bounds can reject large chats. CORS/CSP/expired links/streaming and partial history remain limits. Failed chats never enter successful-backup review; required full-backup failure prevents every native action. Explicit media requests extend ADR-0012's no-fetch policy; default link mode keeps it. Browser fixtures are not real-account verification.
+Related files: src/markdown/media.ts, src/operations/document.ts, src/adapters/base/index.ts, src/app/App.tsx, tests/unit/offline-export.test.ts, tests/integration/offline-export.spec.ts, tests/integration/native-actions.spec.ts

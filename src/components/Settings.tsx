@@ -124,7 +124,29 @@ export function Settings({
         </small>
       </section>
       <section className="settings-card">
-        <h3>Markdown</h3>
+        <h3>{t("Export format", "Формат экспорта")}</h3>
+        <label>
+          {t("File format", "Формат файла")}
+          <select
+            aria-label="File format"
+            value={value.export.format}
+            onChange={(e) =>
+              exp("format", e.target.value as "markdown" | "html")
+            }
+          >
+            <option value="markdown">Markdown (.md)</option>
+            <option value="html">HTML · offline (.html)</option>
+          </select>
+        </label>
+        <Toggle
+          label={t(
+            "Embed media and input files",
+            "Встраивать медиа и входные файлы",
+          )}
+          checked={value.export.embedMedia || value.export.format === "html"}
+          disabled={value.export.format === "html"}
+          onChange={(v) => exp("embedMedia", v)}
+        />
         {(
           [
             ["metadata", "Front matter", "Метаданные YAML"],
@@ -146,8 +168,8 @@ export function Settings({
         ))}
         <p className="hint">
           {t(
-            "Code blocks preserve fences and language. Images and files use links exposed by the page; these may expire or require login. Missing attachment links are noted. Media is not downloaded.",
-            "Блоки кода сохраняют ограждения и язык. Ссылки на изображения и файлы берутся со страницы: они могут истечь или требовать входа. Отсутствующие ссылки отмечаются. Медиа не загружается.",
+            "HTML always embeds enabled images, audio/video and input files for offline use. Enable embedding for Markdown too (requires a data-URL-capable viewer). Inaccessible files fail that chat’s export; it is excluded from cleanup. Limits: 20 MiB/file, 64 MiB/chat, 100 resources. Only loaded content is available; turn on images and links to include all media.",
+            "HTML встраивает включённые изображения, аудио/видео и файлы для офлайн-просмотра. Для Markdown включите встраивание (нужен просмотрщик с data URL). Недоступные файлы прерывают экспорт беседы и исключают её из очистки. Лимиты: 20 МиБ/файл, 64 МиБ/беседа, 100 ресурсов. Включите изображения и ссылки для всех медиа.",
           )}
         </p>
         <label>

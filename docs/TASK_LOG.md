@@ -61,6 +61,16 @@
 - Prepared v2.2.2 with updated bilingual guides, privacy, contracts, ADR and scoped release artifacts. Verified 93 unit tests, 87 production-bundle browser checks, lint/types/build, ZIP script equality and versioned checksums. Standing authorization covers build, commit and push. See VERIFICATION.md for scope.
 - Preserved unrelated old artifacts, unversioned checksums and private untracked log. `.DS_Store` remains ignored.
 
+## 2026-11-11 — v2.3.0 offline exports and bulk cleanup
+- User explicitly auto-approved planning, implementation, build and Git push. Recorded scoped plan before editing; preserved unrelated historical ZIP/checksum changes, extracted directory and private transport log.
+- Added standalone offline HTML and optional embedded Markdown for current/selection/preview/batch/required-backup flows; settings default to existing Markdown link mode. HTML embeds enabled resources automatically.
+- Capture only referenced loaded-content image/audio/video/input-file URLs, bounded to 20 MiB/resource, 64 MiB/chat and 100 resources with cancellation/timeouts. Preserve exact input bytes and readable image pixels; never click attachment controls or use private account APIs.
+- Missing/inaccessible included resources reject that chat. Required-backup failures prevent every native action; partial ZIP review includes only successful chats and retains acknowledgment/typed confirmation.
+- Added bundled Marked with full license notices, allowlisted static HTML/CSP, format-aware filenames/MIME/manifests and bilingual controls/guides. ChatGPT supports native archive/delete; Gemini uses local ZIP archive plus native delete.
+- Verification: 103 unit tests, 117 production-bundle browser checks, lint/strict types/build, versioned checksums and ZIP/dist equality. Offline browser tests open actual file:// HTML with networking disabled, render images and decode PCM audio. Both providers exercise current/batch export and cleanup failure gates.
+- Synthetic tests only; no real-account mutation or authenticated installed-exporter verification. Missing loaded history, expired URLs, CSP/CORS, streaming-only and oversized media remain explicit limits. See VERIFICATION.md.
+- Prepared v2.3.0 installable userscript/ZIP/checksums for authorized commit and push to origin/main.
+
 ## Remaining verification boundaries
 - Limited read-only authenticated Gemini image inspection; no live installed-exporter verification or uploaded-document example. No authenticated ChatGPT/Claude/DeepSeek export verification.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.

@@ -125,7 +125,7 @@ test("post-backup review includes only successful exports and clears before a fa
     "open its More menu and choose Delete",
   );
   await expect(page.locator(".backup-review")).toContainText(
-    "check these Markdown files before deleting",
+    "check these exported files before deleting",
   );
   await page
     .getByRole("button", { name: "Retry failed exports", exact: true })

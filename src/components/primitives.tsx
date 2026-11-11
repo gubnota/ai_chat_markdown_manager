@@ -56,11 +56,13 @@ export function Toggle({
   checked,
   onChange,
   description,
+  disabled = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;
   description?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="toggle-row">
@@ -71,6 +73,7 @@ export function Toggle({
       <input
         type="checkbox"
         role="switch"
+        disabled={disabled}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />

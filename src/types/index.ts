@@ -24,6 +24,8 @@ export type ConversationSelection = Set<string>;
 export const conversationKey = (c: ConversationIdentifier): string =>
   `${c.platform}:${c.id}`;
 export interface ExportOptions {
+  format: "markdown" | "html";
+  embedMedia: boolean;
   images: boolean;
   links: boolean;
   metadata: boolean;

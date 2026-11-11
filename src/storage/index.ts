@@ -34,6 +34,8 @@ export const defaults: Settings = {
   backupDelete: false,
   history: true,
   export: {
+    format: "markdown",
+    embedMedia: false,
     images: true,
     links: true,
     metadata: true,
@@ -89,6 +91,7 @@ export function loadSettings(): Settings {
     if (typeof val === typeof defaults.export[key])
       Object.assign(value.export, { [key]: val });
   }
+  value.export.format = value.export.format === "html" ? "html" : "markdown";
   value.theme = ["light", "dark", "system"].includes(value.theme)
     ? value.theme
     : "system";

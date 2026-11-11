@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.2.2
+# AI Chat Markdown Manager v2.3.0
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.2.2.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.0.zip)
 
 ## 1. Overview
 
@@ -60,9 +60,13 @@ The inherited converter handles headings, lists, tables, fenced code with langua
 
 Use **Export selected content** after highlighting webpage text, or Shift-click Save. Empty selections and empty content produce errors. Exports always warn when completeness is partial. Unknown timestamps are omitted, and filenames use `undated`; no dates or account history are invented.
 
-Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. Attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
+Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. In default Markdown link mode, attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
 
-HTTP(S) images/files remain external links and may expire or require the original login. Loaded temporary blob images are embedded as PNG data URLs copied from their decoded pixels, without requests or native attachment actions. Raster data images are retained too. Each embedded image is limited to 16 megapixels for canvas conversion and a 12 MiB URL. This enlarges Markdown and needs a viewer that supports inline data images. Unloaded, oversized or canvas-restricted previews keep an unavailable note. The exporter never uses private account APIs.
+For a plane/offline copy, open **Settings → File format → HTML · offline** before saving or creating a batch ZIP. HTML bundles its styles, enabled images, audio/video sources and input-file bytes into one `.html` per chat. Open it in a browser without the original login or network; embedded input files have download links. Source/help links remain external. Keep **Image references** and **Keep links** enabled to include all supported media. The export/archive screen also offers the format switch.
+
+For `.md`, enable **Embed media and input files**. It stores binary resources as base64 data URLs; your Markdown viewer must support data images/download links. The default Markdown mode retains external references for compatibility. Loaded blob image previews are copied through canvas without native attachment clicks; this can preserve only the exposed preview resolution.
+
+Capture while online. Requests use the browser session and only URLs exposed by the loaded conversation; no private account API is used. CORS/CSP, expired links, missing file URLs, streaming-only media and unsupported image formats can block capture. An unavailable included resource **fails that chat’s offline export**; it is excluded from successful-backup cleanup. Required backups must succeed for every target before native actions start. Limits: **20 MiB/file, 64 MiB/chat, 100 unique resources**; canvas previews retain their 16-megapixel / 12-MiB URL bounds. Loaded history may still be partial—review the files before deleting.
 
 ## 9. Selecting conversations
 
@@ -82,7 +86,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.2.2, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.3.0, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -92,7 +96,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.2.2. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.3.0. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -142,7 +146,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.2.2`. Code, styles, React, Lucide and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.0`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
@@ -155,7 +159,7 @@ npm run build
 npm run test:integration
 ```
 
-93 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 87 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+103 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 117 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit embedded-media/caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 
@@ -174,7 +178,7 @@ Download confirmation, destination and retention are controlled by your browser.
 
 ## 20. Security and privacy
 
-The script reads rendered conversation content, sidebar titles, IDs and URLs; it does not access private APIs or authentication cookies. YouTube signed caption URLs are read from public player data and used temporarily for caption requests, never persisted. Preferences, anchor and selection IDs are stored in the current site's localStorage. History stores counts/state/time only. Explicit Markdown snapshots remain in tab memory; downloads contain conversation text and optional source URLs.
+The script reads rendered conversation content, sidebar titles, IDs and URLs; it does not access private APIs or authentication cookies. YouTube signed caption URLs are read from public player data and used temporarily for caption requests, never persisted. Preferences, anchor and selection IDs are stored in the current site's localStorage. History stores counts/state/time only. Explicit Markdown/media snapshots remain in tab memory; embedding requests may send browser-managed session credentials to the exposed resource host; downloads contain conversation text and optional source URLs.
 
 No conversation uploads or telemetry are implemented. Same-origin website scripts can read localStorage and the open Shadow DOM; this UI is style isolation, not a security boundary. Review exported reports before sharing because they contain IDs/errors. [Privacy details](docs/PRIVACY.md) · [Security reporting](SECURITY.md).
 

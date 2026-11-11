@@ -1,5 +1,5 @@
 import { strToU8, zipSync } from "fflate";
-import type { Conversation } from "../types";
+import type { Conversation, ExportOptions } from "../types";
 // Filenames must remove Windows-invalid control characters too.
 export function safeFilename(value: string): string {
   const clean =
@@ -17,6 +17,7 @@ export function safeFilename(value: string): string {
 export function filename(
   c: Conversation,
   pattern = "{platform}-{date}-{slug}",
+  format: ExportOptions["format"] = "markdown",
 ): string {
   return (
     safeFilename(
@@ -25,14 +26,16 @@ export function filename(
         .replaceAll("{date}", c.updatedAt?.slice(0, 10) || "undated")
         .replaceAll("{slug}", c.title)
         .replaceAll("{id}", c.id),
-    ) + ".md"
+    ) + (format === "html" ? ".html" : ".md")
   );
 }
 export function uniqueFilename(name: string, used: Set<string>): string {
-  const stem = name.replace(/\.md$/i, "");
+  const extension = name.match(/\.(?:md|html)$/i)?.[0] || ".md";
+  const stem = name.slice(0, name.length - extension.length);
   let candidate = name,
     index = 2;
-  while (used.has(candidate.toLowerCase())) candidate = `${stem}-${index++}.md`;
+  while (used.has(candidate.toLowerCase()))
+    candidate = `${stem}-${index++}${extension}`;
   used.add(candidate.toLowerCase());
   return candidate;
 }

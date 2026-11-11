@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { unzipSync, strFromU8 } from "fflate";
 
 async function fixture(
   page: Page,
@@ -9,6 +11,9 @@ async function fixture(
     wrongTitle?: boolean;
     failRemoval?: boolean;
     slow?: boolean;
+    format?: "html" | "markdown";
+    embedMedia?: boolean;
+    failedMedia?: boolean;
   } = {},
 ) {
   const platform = options.platform || "chatgpt";
@@ -21,10 +26,10 @@ async function fixture(
   <aside>${["one", "two", "three"].map((id) => `<div data-conversation-id="${id}"><a href="${prefix}${id}">Chat ${id}</a><button aria-label="More options">⋮</button></div>`).join("")}</aside><main></main><script>
   const opts=${JSON.stringify(options)}, prefix=${JSON.stringify(prefix)}, platform=${JSON.stringify(platform)};
   window.nativeActions=[]; window.visits=[];
-  localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({backupArchive:!!opts.backup,backupDelete:!!opts.backup,delayMs:0,autoMinimize:false}));
+  localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({backupArchive:!!opts.backup,backupDelete:!!opts.backup,delayMs:0,autoMinimize:false,export:{format:opts.format||"markdown",embedMedia:!!opts.embedMedia}}));
   function render(id) { document.querySelector('main').innerHTML=platform==='gemini'
-    ? '<user-query>Question '+id+'</user-query><model-response>Answer UNIQUE-'+id+'</model-response>'
-    : '<article data-message-author-role="user">Question '+id+'</article><article data-message-author-role="assistant">Answer UNIQUE-'+id+'</article>'; }
+    ? '<user-query>Question '+id+'</user-query><model-response>Answer UNIQUE-'+id+(opts.failedMedia&&id==='two'?'<div class="attachment-card" data-file-name="private.csv"><a href="/unavailable.csv">private.csv</a></div>':'')+'</model-response>'
+    : '<article data-message-author-role="user">Question '+id+'</article><article data-message-author-role="assistant">Answer UNIQUE-'+id+(opts.failedMedia&&id==='two'?'<div class="attachment-card" data-file-name="private.csv"><a href="/unavailable.csv">private.csv</a></div>':'')+'</article>';  }
   render('one');
   document.querySelectorAll('aside a').forEach(link=>link.onclick=e=>{e.preventDefault();const id=link.pathname.split('/').pop();window.visits.push(id);history.pushState(null,'',link.href);const main=document.querySelector('main');main.setAttribute('aria-busy','true');setTimeout(()=>{render(id);main.removeAttribute('aria-busy');},opts.slow?2500:350);});
   document.querySelectorAll('aside button').forEach(button=>button.onclick=()=>{
@@ -237,3 +242,101 @@ test("cancel during required backup never starts native deletion", async ({
   await expect(page).toHaveURL(/\/c\/one$/);
   expect(await actions(page)).toEqual([]);
 });
+
+for (const platform of ["chatgpt", "gemini"]) {
+  test(`${platform} offline backup completes before native cleanup and restores the starting route`, async ({
+    page,
+  }) => {
+    await fixture(page, { platform, backup: true, format: "html" });
+    await select(page, "one", "two");
+    const archive = platform === "chatgpt";
+    await page
+      .getByRole("button", {
+        name: archive ? "Archive" : "Delete",
+        exact: true,
+      })
+      .click();
+    const downloaded = page.waitForEvent("download");
+    await confirm(page, 2, archive ? undefined : "DELETE");
+    const entries = unzipSync(readFileSync((await (await downloaded).path())!));
+    const docs = Object.entries(entries)
+      .filter(([name]) => name.endsWith(".html"))
+      .map(([, bytes]) => strFromU8(bytes));
+    expect(docs).toHaveLength(2);
+    expect(docs.some((text) => text.includes("UNIQUE-one"))).toBe(true);
+    expect(docs.some((text) => text.includes("UNIQUE-two"))).toBe(true);
+    await expect(
+      page.getByRole("button", { name: "Export report", exact: true }),
+    ).toBeEnabled();
+    const prefix = platform === "gemini" ? "/app/" : "/c/";
+    expect((await actions(page)).map((a) => [a.kind, a.id, a.at])).toEqual([
+      [archive ? "archive" : "delete", "one", prefix + "one"],
+      [archive ? "archive" : "delete", "two", prefix + "one"],
+    ]);
+    await expect(page.locator("aside a")).toHaveText(["Chat three"]);
+  });
+  test(`${platform} inaccessible offline file blocks required backup and every native action`, async ({
+    page,
+  }) => {
+    await fixture(page, {
+      platform,
+      backup: true,
+      format: "html",
+      failedMedia: true,
+    });
+    await select(page, "one", "two");
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await confirm(page, 2, "DELETE");
+    await expect(
+      page.getByText("Backup did not finish. No native action was started.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    expect(await actions(page)).toEqual([]);
+    await expect(page.locator("aside a")).toHaveCount(3);
+  });
+  test(`${platform} offline ZIP review excludes inaccessible files before deleting successful backups`, async ({
+    page,
+  }) => {
+    await fixture(page, {
+      platform,
+      format: "markdown",
+      embedMedia: true,
+      failedMedia: true,
+    });
+    await select(page, "one", "two");
+    const downloaded = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Export selected", exact: true })
+      .click();
+    const entries = unzipSync(readFileSync((await (await downloaded).path())!));
+    expect(JSON.parse(strFromU8(entries["manifest.json"]))).toMatchObject({
+      completed: 1,
+      failed: 1,
+      embeddedMedia: true,
+    });
+    expect(
+      Object.keys(entries).filter((name) => name.endsWith(".md")),
+    ).toHaveLength(1);
+    await page.locator(".backup-review summary").click();
+    await expect(page.locator(".backup-review li a")).toHaveText(["Chat one"]);
+    const remove = page.getByRole("button", {
+      name: "Delete backed-up chats",
+      exact: true,
+    });
+    await expect(remove).toBeDisabled();
+    await page
+      .getByLabel("I opened the ZIP and checked these files", { exact: true })
+      .check();
+    await remove.click();
+    await confirm(page, 1, "DELETE");
+    await expect(
+      page.getByRole("button", { name: "Export report", exact: true }),
+    ).toBeEnabled();
+    expect((await actions(page)).map((a) => a.id)).toEqual(["one"]);
+    await expect(page.locator("aside a")).toHaveText([
+      "Chat two",
+      "Chat three",
+    ]);
+  });
+}

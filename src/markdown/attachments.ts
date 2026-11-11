@@ -20,13 +20,16 @@ const rasterData =
   /^data:image\/(?:png|jpeg|gif|webp|avif|bmp);base64,[a-z0-9+/=\r\n]+$/i;
 
 /** Preserve decoded temporary previews locally; never fetch a private blob URL. */
-export function embeddedImageSource(image: HTMLImageElement): string {
+export function embeddedImageSource(
+  image: HTMLImageElement,
+  allowHttp = false,
+): string {
   if (!inMessage(image)) return "";
   const source = image.currentSrc || image.getAttribute("src") || "";
   if (source.length > maxImageUrlLength) return "";
   if (rasterData.test(source)) return source;
   if (
-    !source.startsWith("blob:") ||
+    !(source.startsWith("blob:") || (allowHttp && /^https?:/.test(source))) ||
     !image.complete ||
     !image.naturalWidth ||
     !image.naturalHeight ||

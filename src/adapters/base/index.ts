@@ -1,5 +1,6 @@
 import { conversationTitle } from "./native-actions";
-import { messageBody, navigateConversation } from "./navigation";
+import { messageBody, messageNodes, navigateConversation } from "./navigation";
+import { embedMarkdownMedia, needsEmbeddedMedia } from "../../markdown/media";
 import { extractMarkdown } from "../../markdown/legacy";
 import {
   type Conversation,
@@ -130,6 +131,7 @@ export class DOMAdapter implements PlatformAdapter {
       options.images,
       options.links,
       options.outline,
+      needsEmbeddedMedia(options),
     ]);
     if (!c.current) {
       const snapshot = this.snapshots.get(c.id);
@@ -153,7 +155,7 @@ export class DOMAdapter implements PlatformAdapter {
       throw new Error(
         "Conversation changed before extraction. Retry the export.",
       );
-    const body =
+    const rawBody =
       messageBody(this.id, options) ??
       extractMarkdown({
         ...options,
@@ -161,6 +163,17 @@ export class DOMAdapter implements PlatformAdapter {
         source: false,
         selection: false,
       });
+    const nodes = messageNodes(this.id);
+    const body = await embedMarkdownMedia(
+      rawBody,
+      nodes.length ? nodes : [document.querySelector("main") || document.body],
+      options,
+      signal,
+    );
+    if (this.currentId() !== c.id)
+      throw new Error(
+        "Conversation changed during media capture. Retry the export.",
+      );
     this.snapshots.delete(c.id);
     this.snapshots.set(c.id, { signature, body });
     // Bound memory to 20 conversations and approximately 8 MiB of UTF-16 text.

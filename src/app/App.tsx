@@ -39,7 +39,9 @@ import {
   sendRects,
   type Point,
 } from "../utils/position";
-import { conversationDocument, extractMarkdown } from "../markdown/legacy";
+import { extractMarkdown } from "../markdown/legacy";
+import { embedMarkdownMedia } from "../markdown/media";
+import { exportDocument, exportMime } from "../operations/document";
 import {
   copyMarkdown,
   download,
@@ -48,7 +50,12 @@ import {
   uniqueFilename,
 } from "../operations/export";
 import { BatchRunner, idleProgress } from "../operations/batch";
-import { ActionRow, Dialog, IconButton } from "../components/primitives";
+import {
+  ActionRow,
+  Dialog,
+  IconButton,
+  Toggle,
+} from "../components/primitives";
 import { Settings } from "../components/Settings";
 import { Conversations } from "../components/Conversations";
 import { YouTubeCaptions } from "../components/YouTubeCaptions";
@@ -108,7 +115,12 @@ export function App({
   const [backupChecked, setBackupChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
-  const [preview, setPreview] = useState<{ title: string; text: string }>();
+  const [preview, setPreview] = useState<{
+    title: string;
+    text: string;
+    name: string;
+    format: "markdown" | "html";
+  }>();
   const [confirm, setConfirm] = useState<Confirmation>();
   const [phrase, setPhrase] = useState("");
   const [systemDark, setSystemDark] = useState(
@@ -258,20 +270,25 @@ export function App({
     return () => document.removeEventListener("pointerdown", outside);
   }, [host, settings.autoMinimize, confirm, preview, runner]);
   const currentDocument = useCallback(
-    async (selection = false) => {
+    async (selection = false, signal?: AbortSignal) => {
       const list = await adapter.discoverConversations();
       const current = list.find((c) => c.current);
       if (!current) throw new Error("Current page is unavailable.");
       const body = selection
-        ? extractMarkdown({
-            ...settings.export,
-            metadata: false,
-            source: false,
-            selection: true,
-          })
-        : await adapter.exportConversation(current, settings.export);
+        ? await embedMarkdownMedia(
+            extractMarkdown({
+              ...settings.export,
+              metadata: false,
+              source: false,
+              selection: true,
+            }),
+            [document.querySelector("main") || document.body],
+            settings.export,
+            signal,
+          )
+        : await adapter.exportConversation(current, settings.export, signal);
       return {
-        text: conversationDocument(body, current, settings.export),
+        text: exportDocument(body, current, settings.export),
         current,
       };
     },
@@ -280,25 +297,42 @@ export function App({
   const quick = useCallback(
     async (mode: "save" | "copy" | "selection") => {
       if (runner.running || busy || operationLock.current) return;
+      operationLock.current = true;
+      const controller = new AbortController();
+      operationAbort.current = controller;
+      setBusy(true);
       try {
         const { text, current } = await currentDocument(
           mode === "selection" || settings.export.selection,
+          controller.signal,
         );
         if (mode === "copy") {
           await copyMarkdown(text);
-          notify(t("Markdown copied.", "Markdown скопирован."));
+          notify(
+            settings.export.format === "html"
+              ? t("HTML copied.", "HTML скопирован.")
+              : t("Markdown copied.", "Markdown скопирован."),
+          );
         } else {
-          download(text, filename(current, settings.export.filename));
+          download(
+            text,
+            filename(current, settings.export.filename, settings.export.format),
+            exportMime(settings.export.format),
+          );
           notify(
             t(
-              "Markdown downloaded. Loaded content may be partial.",
-              "Markdown сохранён. Доступное содержимое может быть частичным.",
+              `${settings.export.format === "html" ? "HTML" : "Markdown"} downloaded. Loaded content may be partial.`,
+              `${settings.export.format === "html" ? "HTML" : "Markdown"} сохранён. Доступное содержимое может быть частичным.`,
             ),
           );
         }
         await scan();
       } catch (e) {
         notify(e instanceof Error ? e.message : String(e));
+      } finally {
+        operationAbort.current = undefined;
+        operationLock.current = false;
+        setBusy(false);
       }
     },
     [currentDocument, runner, settings.export, notify, ru, scan, busy],
@@ -372,8 +406,11 @@ export function App({
               signal,
             );
             files.set(
-              uniqueFilename(filename(c, settings.export.filename), used),
-              conversationDocument(body, c, settings.export),
+              uniqueFilename(
+                filename(c, settings.export.filename, settings.export.format),
+                used,
+              ),
+              exportDocument(body, c, settings.export),
             );
           },
           setProgress,
@@ -383,7 +420,13 @@ export function App({
             "Backup did not finish. No native action was started.",
           );
         download(
-          makeZip(files, { operation: "backup", results: backup.results }),
+          makeZip(files, {
+            operation: "backup",
+            format: settings.export.format,
+            embeddedMedia:
+              settings.export.format === "html" || settings.export.embedMedia,
+            results: backup.results,
+          }),
           `chat-backup-${Date.now()}.zip`,
           "application/zip",
         );
@@ -411,8 +454,11 @@ export function App({
               signal,
             );
             files.set(
-              uniqueFilename(filename(c, settings.export.filename), used),
-              conversationDocument(body, c, settings.export),
+              uniqueFilename(
+                filename(c, settings.export.filename, settings.export.format),
+                used,
+              ),
+              exportDocument(body, c, settings.export),
             );
           } else if (kind === "archive")
             await adapter.archiveConversation(c, signal);
@@ -426,7 +472,11 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.2.2",
+                  version: "2.3.0",
+                  format: settings.export.format,
+                  embeddedMedia:
+                    settings.export.format === "html" ||
+                    settings.export.embedMedia,
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -438,7 +488,7 @@ export function App({
                 }
               : undefined,
           ),
-          `chat-markdown-${Date.now()}.zip`,
+          `chat-${settings.export.format}-${Date.now()}.zip`,
           "application/zip",
         );
         const successful = new Set(
@@ -507,7 +557,9 @@ export function App({
       const body = await adapter.exportConversation(c, settings.export);
       setPreview({
         title: c.title,
-        text: conversationDocument(body, c, settings.export),
+        text: exportDocument(body, c, settings.export),
+        name: filename(c, settings.export.filename, settings.export.format),
+        format: settings.export.format,
       });
     } catch (e) {
       notify(e instanceof Error ? e.message : String(e));
@@ -533,7 +585,7 @@ export function App({
   const titles: Record<Screen, string> = {
     home: "Markdown Manager",
     conversations: t("Conversations", "Беседы"),
-    export: t("Export Markdown", "Экспорт Markdown"),
+    export: t("Export conversations", "Экспорт бесед"),
     archive: t("Archive conversations", "Архив бесед"),
     settings: t("Settings", "Настройки"),
     activity: t("Activity", "Операции"),
@@ -680,8 +732,8 @@ export function App({
                 <ActionRow
                   icon={Download}
                   title={t(
-                    "Save current chat as Markdown",
-                    "Сохранить беседу в Markdown",
+                    `Save current chat as ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
+                    `Сохранить беседу в ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
                   )}
                   description={t(
                     "Download the loaded conversation",
@@ -693,7 +745,10 @@ export function App({
                 />
                 <ActionRow
                   icon={Copy}
-                  title={t("Copy Markdown", "Копировать Markdown")}
+                  title={t(
+                    `Copy ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
+                    "Копировать экспорт",
+                  )}
                   description={t(
                     "Copy to your clipboard",
                     "Копировать в буфер обмена",
@@ -837,8 +892,8 @@ export function App({
               <h2>
                 {screen === "export"
                   ? t(
-                      "Your conversations, in Markdown",
-                      "Ваши беседы в Markdown",
+                      `Your conversations, in ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
+                      `Ваши беседы в ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
                     )
                   : t("Back up or archive", "Копия или архив")}
               </h2>
@@ -846,6 +901,49 @@ export function App({
                 {t(
                   "ChatGPT, Gemini and Claude exports open selected chats sequentially, wait for messages, and return to the starting chat. Keep this tab open until finished. Loading may mark chats read. Discovery and loaded message history can be partial; unavailable chats are listed in the report.",
                   "Экспорт ChatGPT, Gemini и Claude по очереди открывает выбранные беседы, ждёт сообщения и возвращается к исходной. Держите вкладку открытой до завершения. Беседы могут помечаться прочитанными. История может быть частичной; недоступные беседы указаны в отчёте.",
+                )}
+              </p>
+              <label>
+                {t("File format", "Формат файла")}
+                <select
+                  aria-label="File format"
+                  disabled={busy}
+                  value={settings.export.format}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      export: {
+                        ...s.export,
+                        format: e.target.value as "markdown" | "html",
+                      },
+                    }))
+                  }
+                >
+                  <option value="markdown">Markdown (.md)</option>
+                  <option value="html">HTML · offline (.html)</option>
+                </select>
+              </label>
+              <Toggle
+                label={t(
+                  "Embed media and input files",
+                  "Встраивать медиа и входные файлы",
+                )}
+                checked={
+                  settings.export.embedMedia ||
+                  settings.export.format === "html"
+                }
+                disabled={busy || settings.export.format === "html"}
+                onChange={(embedMedia) =>
+                  setSettings((s) => ({
+                    ...s,
+                    export: { ...s.export, embedMedia },
+                  }))
+                }
+              />
+              <p className="hint">
+                {t(
+                  "HTML embeds enabled media automatically. Inaccessible files fail that chat’s backup and exclude it from cleanup. Only loaded content is included.",
+                  "HTML автоматически встраивает включённые медиа. Недоступный файл прерывает копирование беседы и исключает её из очистки. Включается только загруженное содержимое.",
                 )}
               </p>
               <div className="summary-grid">
@@ -893,8 +991,8 @@ export function App({
                   </strong>
                   <p>
                     {t(
-                      "ChatGPT archive moves discovered chats out of the sidebar. You can restore them from ChatGPT Settings → Data controls → Archived chats. Other platforms may not support archiving.",
-                      "Архивация ChatGPT убирает беседы из боковой панели. Восстановить их можно в настройках ChatGPT → Управление данными → Архивированные чаты. Другие платформы могут не поддерживать архивацию.",
+                      "ChatGPT archive moves discovered chats out of the sidebar. You can restore them from ChatGPT Settings → Data controls → Archived chats. Gemini has no native archive control: download its offline ZIP here, verify it, then delete successfully backed-up chats from the review screen.",
+                      "Архивация ChatGPT убирает беседы из боковой панели. Восстановить их можно в настройках ChatGPT → Управление данными → Архивированные чаты. В Gemini нет нативного архива: скачайте ZIP, проверьте его и удалите успешно скопированные беседы через список проверки.",
                     )}
                   </p>
                   <button
@@ -1016,8 +1114,8 @@ export function App({
                   </summary>
                   <p className="hint">
                     {t(
-                      "Open the downloaded ZIP and check these Markdown files before deleting anything. Exports can be partial. A ZIP backup does not remove chats from the website.",
-                      "Откройте скачанный ZIP и проверьте Markdown-файлы перед удалением. Экспорт может быть частичным. ZIP-копия не удаляет беседы с сайта.",
+                      "Open the downloaded ZIP and check these exported files before deleting anything. Exports can be partial. A ZIP backup does not remove chats from the website.",
+                      "Откройте скачанный ZIP и проверьте экспортированные файлы перед удалением. Экспорт может быть частичным. ZIP-копия не удаляет беседы с сайта.",
                     )}
                   </p>
                   {adapter.capabilities.archive === "supported" ||
@@ -1131,7 +1229,10 @@ export function App({
       )}
       {preview && (
         <Dialog
-          title={t("Markdown preview", "Предпросмотр Markdown")}
+          title={t(
+            `${preview.format === "html" ? "HTML source" : "Markdown"} preview`,
+            "Предпросмотр экспорта",
+          )}
           onClose={() => setPreview(undefined)}
         >
           <p>{preview.title}</p>
@@ -1141,10 +1242,13 @@ export function App({
           <button
             className="primary"
             onClick={() => {
-              download(preview.text, "preview.md");
+              download(preview.text, preview.name, exportMime(preview.format));
             }}
           >
-            {t("Download Markdown", "Скачать Markdown")}
+            {t(
+              `Download ${preview.format === "html" ? "HTML" : "Markdown"}`,
+              "Скачать экспорт",
+            )}
           </button>
         </Dialog>
       )}
