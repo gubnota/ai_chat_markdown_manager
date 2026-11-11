@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.3.1
+# AI Chat Markdown Manager v2.3.2
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.1.zip)
+[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js) · [Release ZIP](AI-Chat-Markdown-Manager-v2.3.2.zip)
 
 ## 1. Overview
 
@@ -62,7 +62,7 @@ Use **Export selected content** after highlighting webpage text, or Shift-click 
 
 Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. In default Markdown link mode, attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
 
-For a plane/offline copy, use **Save current chat as HTML** directly in the home menu. For batch ZIPs choose **File format → HTML · offline** on the export/archive screen or in Settings. HTML bundles its styles, enabled images, audio/video sources and input-file bytes into one `.html` per chat. Open it in a browser without the original login or network; embedded input files have download links. Source/help links remain external. Keep **Image references** and **Keep links** enabled to include all supported media. The export/archive screen also offers the format switch.
+Choose **Save current chat as Markdown** or **Save current chat as HTML** in the home menu to open **Export options**. Set **Embed media and input files** on or off, then press **Download Markdown** or **Download HTML**. Opening or cancelling this dialog does not capture media. For a plane/offline copy, choose HTML and leave embedding enabled (the HTML default). With embedding off, either format retains external resource links that require internet and may expire. For batch ZIPs choose **File format → HTML (.html)** and enable embedding on the export/archive screen or in Settings. Embedded HTML bundles its styles, enabled images, audio/video sources and input-file bytes into one `.html` per chat. Open it in a browser without the original login or network; embedded input files have download links. Source/help links remain external. Keep **Image references** and **Keep links** enabled to include all supported media. The export/archive screen also offers the format switch.
 
 In **Manage conversations → ⋯ beside a chat → Preview / export**, choose **File format** (Markdown or HTML), **Embed media and input files**, **Include images**, and **Include links and input files**. Each change refreshes the preview; use **Download Markdown** or **Download HTML** when ready. Failed refreshes disable download until corrected or retried. Preview choices apply to that preview only.
 
@@ -88,7 +88,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.3.1, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.3.2, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -98,7 +98,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.3.1. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.3.2. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -148,7 +148,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.1`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Output: `dist/AI-Chat-Markdown-Manager.user.js`, root release ZIP and `SHA256SUMS-v2.3.2`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
@@ -161,7 +161,7 @@ npm run build
 npm run test:integration
 ```
 
-103 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 117 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit embedded-media/caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
+105 unit tests cover conversion, storage, identity, batching, Gemini safety, navigation and timedtext. 123 browser checks cover the production bundle in Chromium, desktop WebKit and mobile WebKit, including native batch actions, backup/review gates, three-platform batch loading/restoration, cancellation, automatic caption languages, TXT/VTT downloads, XML fallback and video changes. The idle manager makes no outgoing requests; explicit embedded-media/caption actions, native navigation and native archive/delete use the host site. [Exact verification scope](docs/VERIFICATION.md). WebKit automation is distinct from testing Safari's Userscripts extension.
 
 ## 19. Troubleshooting
 

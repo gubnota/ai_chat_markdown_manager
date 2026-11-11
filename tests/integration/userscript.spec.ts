@@ -176,6 +176,10 @@ test("downloaded Markdown and bulk ZIP contain genuine loaded content and failur
   await page
     .getByRole("button", { name: "Save current chat as Markdown" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Export options" })
+    .getByRole("button", { name: "Download Markdown", exact: true })
+    .click();
   const single = await singleEvent;
   const text = readFileSync((await single.path())!, "utf8");
   expect(text).toContain("const privacy");
@@ -237,6 +241,10 @@ test("ZIP retains genuine exported conversations across SPA navigation", async (
   await page
     .getByRole("button", { name: "Save current chat as Markdown" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Export options" })
+    .getByRole("button", { name: "Download Markdown", exact: true })
+    .click();
   await first;
   await page.evaluate(() => {
     history.pushState({}, "", "/c/research");
@@ -247,6 +255,10 @@ test("ZIP retains genuine exported conversations across SPA navigation", async (
   const second = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Save current chat as Markdown" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Export options" })
+    .getByRole("button", { name: "Download Markdown", exact: true })
     .click();
   await second;
   await page.getByRole("button", { name: "Manage conversations" }).click();

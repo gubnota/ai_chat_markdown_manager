@@ -123,6 +123,11 @@ export function App({
     name: string;
     error?: string;
   }>();
+  const [exportChoice, setExportChoice] = useState<{
+    selection: boolean;
+    options: ExportOptions;
+    error?: string;
+  }>();
   const [confirm, setConfirm] = useState<Confirmation>();
   const [phrase, setPhrase] = useState("");
   const [systemDark, setSystemDark] = useState(
@@ -263,6 +268,7 @@ export function App({
         settings.autoMinimize &&
         !confirm &&
         !preview &&
+        !exportChoice &&
         !runner.running &&
         !e.composedPath().includes(host)
       )
@@ -270,7 +276,7 @@ export function App({
     };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
-  }, [host, settings.autoMinimize, confirm, preview, runner]);
+  }, [host, settings.autoMinimize, confirm, preview, exportChoice, runner]);
   const currentDocument = useCallback(
     async (
       selection = false,
@@ -301,19 +307,17 @@ export function App({
     [adapter, settings.export],
   );
   const quick = useCallback(
-    async (
-      mode: "save" | "copy" | "selection",
-      format = settings.export.format,
-    ) => {
-      if (runner.running || busy || operationLock.current) return;
+    async (mode: "save" | "copy" | "selection", options = settings.export) => {
+      if (runner.running || busy || operationLock.current)
+        return { ok: false, error: "Another operation is running." };
       operationLock.current = true;
       const controller = new AbortController();
       operationAbort.current = controller;
       setBusy(true);
-      const options = { ...settings.export, format };
+      const { format } = options;
       try {
         const { text, current } = await currentDocument(
-          mode === "selection" || settings.export.selection,
+          mode === "selection" || options.selection,
           controller.signal,
           options,
         );
@@ -338,8 +342,11 @@ export function App({
           );
         }
         await scan();
+        return { ok: true };
       } catch (e) {
-        notify(e instanceof Error ? e.message : String(e));
+        const error = e instanceof Error ? e.message : String(e);
+        notify(error);
+        return { ok: false, error };
       } finally {
         operationAbort.current = undefined;
         operationLock.current = false;
@@ -350,7 +357,7 @@ export function App({
   );
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !confirm && !preview) {
+      if (e.key === "Escape" && !confirm && !preview && !exportChoice) {
         setOpen(false);
         fab.current?.focus();
       }
@@ -366,14 +373,14 @@ export function App({
         e.preventDefault();
         setHidden(false);
         setOpen((v) => !v);
-      } else if (e.code === "KeyM") {
+      } else if (e.code === "KeyM" && !confirm && !preview && !exportChoice) {
         e.preventDefault();
         void quick("save");
       }
     };
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
-  }, [settings.shortcuts, quick, confirm, preview]);
+  }, [settings.shortcuts, quick, confirm, preview, exportChoice]);
   const execute = async (kind: OperationKind, targets: Conversation[]) => {
     if (runner.running || busy || operationLock.current || !targets.length)
       return;
@@ -434,8 +441,7 @@ export function App({
           makeZip(files, {
             operation: "backup",
             format: settings.export.format,
-            embeddedMedia:
-              settings.export.format === "html" || settings.export.embedMedia,
+            embeddedMedia: settings.export.embedMedia,
             results: backup.results,
           }),
           `chat-backup-${Date.now()}.zip`,
@@ -483,11 +489,9 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.3.1",
+                  version: "2.3.2",
                   format: settings.export.format,
-                  embeddedMedia:
-                    settings.export.format === "html" ||
-                    settings.export.embedMedia,
+                  embeddedMedia: settings.export.embedMedia,
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -773,7 +777,10 @@ export function App({
                   }
                   disabled={busy}
                   onClick={(e) =>
-                    void quick(e.shiftKey ? "selection" : "save", "markdown")
+                    setExportChoice({
+                      selection: e.shiftKey,
+                      options: { ...settings.export, format: "markdown" },
+                    })
                   }
                 />
                 <ActionRow
@@ -783,15 +790,22 @@ export function App({
                     "Сохранить беседу в HTML",
                   )}
                   description={t(
-                    "Offline document with embedded media and input files",
-                    "Офлайн-документ со встроенными медиа и файлами",
+                    "Choose whether to embed media and input files",
+                    "Выберите, встраивать ли медиа и входные файлы",
                   )}
                   shortcut={
                     settings.export.format === "html" ? "⌥⇧ M" : undefined
                   }
                   disabled={busy}
                   onClick={(e) =>
-                    void quick(e.shiftKey ? "selection" : "save", "html")
+                    setExportChoice({
+                      selection: e.shiftKey,
+                      options: {
+                        ...settings.export,
+                        format: "html",
+                        embedMedia: true,
+                      },
+                    })
                   }
                 />
                 <ActionRow
@@ -818,7 +832,12 @@ export function App({
                     "Только выделенный текст страницы",
                   )}
                   disabled={busy}
-                  onClick={() => void quick("selection")}
+                  onClick={() =>
+                    setExportChoice({
+                      selection: true,
+                      options: { ...settings.export },
+                    })
+                  }
                 />
                 <h3>{t("Library", "Библиотека")}</h3>
                 <ActionRow
@@ -966,12 +985,14 @@ export function App({
                       export: {
                         ...s.export,
                         format: e.target.value as "markdown" | "html",
+                        embedMedia:
+                          e.target.value === "html" || s.export.embedMedia,
                       },
                     }))
                   }
                 >
                   <option value="markdown">Markdown (.md)</option>
-                  <option value="html">HTML · offline (.html)</option>
+                  <option value="html">HTML (.html)</option>
                 </select>
               </label>
               <Toggle
@@ -979,11 +1000,8 @@ export function App({
                   "Embed media and input files",
                   "Встраивать медиа и входные файлы",
                 )}
-                checked={
-                  settings.export.embedMedia ||
-                  settings.export.format === "html"
-                }
-                disabled={busy || settings.export.format === "html"}
+                checked={settings.export.embedMedia}
+                disabled={busy}
                 onChange={(embedMedia) =>
                   setSettings((s) => ({
                     ...s,
@@ -993,8 +1011,8 @@ export function App({
               />
               <p className="hint">
                 {t(
-                  "HTML embeds enabled media automatically. Inaccessible files fail that chat’s backup and exclude it from cleanup. Only loaded content is included.",
-                  "HTML автоматически встраивает включённые медиа. Недоступный файл прерывает копирование беседы и исключает её из очистки. Включается только загруженное содержимое.",
+                  "Enable embedding for offline media and input files. With embedding off, external links require internet and may expire. Inaccessible included files fail an embedded backup and exclude it from cleanup.",
+                  "Включите встраивание для офлайн-медиа и входных файлов. Без него внешним ссылкам нужен интернет, и они могут истечь. Недоступный файл прерывает встроенную копию и исключает беседу из очистки.",
                 )}
               </p>
               <div className="summary-grid">
@@ -1278,6 +1296,106 @@ export function App({
           </IconButton>
         </div>
       )}
+      {exportChoice && (
+        <Dialog
+          title={t("Export options", "Настройки экспорта")}
+          onClose={() => {
+            operationAbort.current?.abort();
+            setExportChoice(undefined);
+          }}
+        >
+          <label>
+            {t("File format", "Формат файла")}
+            <select
+              aria-label="File format"
+              value={exportChoice.options.format}
+              disabled={busy}
+              onChange={(e) => {
+                const format = e.target.value as "markdown" | "html";
+                setExportChoice({
+                  ...exportChoice,
+                  error: undefined,
+                  options: {
+                    ...exportChoice.options,
+                    format,
+                    embedMedia:
+                      format === "html" || exportChoice.options.embedMedia,
+                  },
+                });
+              }}
+            >
+              <option value="markdown">Markdown (.md)</option>
+              <option value="html">HTML (.html)</option>
+            </select>
+          </label>
+          {(
+            [
+              [
+                "embedMedia",
+                "Embed media and input files",
+                "Встроить медиа и входные файлы",
+              ],
+              ["images", "Include images", "Включить изображения"],
+              [
+                "links",
+                "Include links and input files",
+                "Включить ссылки и входные файлы",
+              ],
+            ] as const
+          ).map(([key, en, rus]) => (
+            <Toggle
+              key={key}
+              label={t(en, rus)}
+              checked={exportChoice.options[key]}
+              disabled={busy}
+              onChange={(value) =>
+                setExportChoice({
+                  ...exportChoice,
+                  error: undefined,
+                  options: { ...exportChoice.options, [key]: value },
+                })
+              }
+            />
+          ))}
+          <p className="hint">
+            {exportChoice.options.embedMedia
+              ? t(
+                  "Media and input files will be embedded for offline use. Markdown viewers must support data URLs.",
+                  "Медиа и входные файлы будут встроены для офлайн-просмотра. Просмотрщик Markdown должен поддерживать data URL.",
+                )
+              : t(
+                  "Media and input files remain external links: internet and access to the originals may be required; links may expire.",
+                  "Медиа и входные файлы останутся внешними ссылками: может потребоваться интернет и доступ к оригиналам; ссылки могут истечь.",
+                )}
+          </p>
+          {busy && (
+            <p role="status">
+              {t("Preparing export…", "Подготовка экспорта…")}
+            </p>
+          )}
+          {exportChoice.error && <p role="alert">{exportChoice.error}</p>}
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={async () => {
+              const result = await quick(
+                exportChoice.selection ? "selection" : "save",
+                exportChoice.options,
+              );
+              if (result.ok) setExportChoice(undefined);
+              else
+                setExportChoice(
+                  (current) => current && { ...current, error: result.error },
+                );
+            }}
+          >
+            {t(
+              `Download ${exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
+              `Скачать ${exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
+            )}
+          </button>
+        </Dialog>
+      )}
       {preview && (
         <Dialog
           title={t(
@@ -1300,11 +1418,13 @@ export function App({
                 void previewConversation(preview.conversation, {
                   ...preview.options,
                   format: e.target.value as "markdown" | "html",
+                  embedMedia:
+                    e.target.value === "html" || preview.options.embedMedia,
                 })
               }
             >
               <option value="markdown">Markdown (.md)</option>
-              <option value="html">HTML · offline (.html)</option>
+              <option value="html">HTML (.html)</option>
             </select>
           </label>
           <Toggle
@@ -1312,10 +1432,8 @@ export function App({
               "Embed media and input files",
               "Встроить медиа и входные файлы",
             )}
-            checked={
-              preview.options.embedMedia || preview.options.format === "html"
-            }
-            disabled={busy || preview.options.format === "html"}
+            checked={preview.options.embedMedia}
+            disabled={busy}
             onChange={(embedMedia) =>
               void previewConversation(preview.conversation, {
                 ...preview.options,
@@ -1348,8 +1466,8 @@ export function App({
           ))}
           <p className="hint">
             {t(
-              "HTML embeds enabled media for offline use. Markdown embedding requires a viewer that supports data URLs. Changing options refreshes this preview from the chat.",
-              "HTML встраивает включённые медиа для офлайн-просмотра. Для Markdown нужен просмотрщик с поддержкой data URL. Изменение настроек обновляет предпросмотр из беседы.",
+              "Enable embedding for offline media and input files; otherwise external links need internet and may expire. Markdown embedding requires a viewer that supports data URLs. Changing options refreshes this preview.",
+              "Включите встраивание для офлайн-медиа и файлов; иначе ссылкам нужен интернет, и они могут истечь. Для Markdown нужен просмотрщик с поддержкой data URL. Настройки обновляют предпросмотр.",
             )}
           </p>
           {busy && (

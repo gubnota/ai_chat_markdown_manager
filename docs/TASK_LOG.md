@@ -77,6 +77,13 @@
 - Kept shared provider/media/HTML pipelines and native cleanup gates; corrected dialog toggle styling and disabled-control focus handling. Updated bilingual installation/use guidance and release artifacts.
 - Verification: 103 unit tests, 123 production-bundle browser checks, lint/strict types/build passed; versioned release integrity recorded in VERIFICATION.md. Preserved unrelated historical artifacts, extracted releases and private transport log.
 
+## 2026-11-11 — v2.3.2 choose embedding before download
+- User reported no embed choice when selecting direct HTML/Markdown export. Standing auto-approval/build/push applies; recorded IMPLEMENTATION_PLAN_2.3.2.md before editing.
+- Added direct Export options with format/embed/images/files, explicit Download, cancellation and retryable failures. No resource capture starts before Download.
+- Both formats honor embedding in direct/preview/settings/batch/backup exports. HTML defaults embedding on but permits linked mode with safe HTTP(S) images, matching CSP and internet/expiry guidance. Native cleanup gates remain unchanged.
+- Verification: 105 unit tests, 123 production-bundle browser cases, lint/strict types/build; both providers exercise each format and embed choice, exact bytes, cancellation and error recovery. See VERIFICATION.md for fixture/manual boundaries.
+- Prepared v2.3.2 userscript, ZIP and versioned hashes for authorized commit/push; preserved unrelated historical artifacts, extracted releases and private transport log. No real account mutated.
+
 ## Remaining verification boundaries
 - Limited read-only authenticated Gemini image inspection; no live installed-exporter verification or uploaded-document example. No authenticated ChatGPT/Claude/DeepSeek export verification.
 - No real-account mutation tests. Native support remains conditional on recognized current website controls.

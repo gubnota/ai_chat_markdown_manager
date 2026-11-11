@@ -45,7 +45,7 @@ for (const platform of ["chatgpt", "gemini"] as const) {
           contentType: "text/html",
           body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline fixture</title>
         <aside><a href="${prefix}one">Chat one</a><a href="${prefix}two">Chat two</a></aside><main></main><script>
-        localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{format:'${format}',embedMedia:${format === "markdown"}}}));
+        localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{format:'${format}',embedMedia:true}}));
         function render(id) {
           const body = '<p>UNIQUE-'+id+'</p><img alt="Map '+id+'" src="/assets/'+id+'.png"><audio controls src="/assets/'+id+'.wav"></audio><div class="attachment-card" data-file-name="'+id+'.csv"><a href="/assets/'+id+'.csv">'+id+'.csv</a></div><pre><code class="language-js">const value = 42;</code></pre><table><tr><th>A</th></tr><tr><td>42</td></tr></table><a href="https://example.com/help">Source help</a>';
           document.querySelector('main').innerHTML = ${platform === "gemini" ? "'<user-query>Prompt '+id+'</user-query><model-response>'+body+'</model-response>'" : "'<article data-message-author-role=\"user\">Prompt '+id+'</article><article data-message-author-role=\"assistant\">'+body+'</article>'"};
@@ -66,6 +66,13 @@ for (const platform of ["chatgpt", "gemini"] as const) {
         .getByRole("button", {
           name: `Save current chat as ${format === "html" ? "HTML" : "Markdown"}`,
           exact: false,
+        })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Export options" })
+        .getByRole("button", {
+          name: format === "html" ? "Download HTML" : "Download Markdown",
+          exact: true,
         })
         .click();
       const current = await currentDownload;
@@ -154,7 +161,9 @@ for (const platform of ["chatgpt", "gemini"] as const) {
     const host = platform === "gemini" ? "gemini.google.com" : "chatgpt.com";
     const path = platform === "gemini" ? "/app/one" : "/c/one";
     let failMedia = false;
+    let captureRequests = 0;
     await page.route(`https://${host}/assets/**`, (route) => {
+      if (route.request().resourceType() === "fetch") captureRequests++;
       if (failMedia) return route.fulfill({ status: 403, body: "expired" });
       return route.request().url().endsWith(".png")
         ? route.fulfill({
@@ -181,16 +190,99 @@ for (const platform of ["chatgpt", "gemini"] as const) {
     await page
       .getByRole("button", { name: "Open Markdown Manager", exact: true })
       .click();
-    // HTML is visible even when the persisted default is Markdown.
-    const directDownload = page.waitForEvent("download");
+    const choice = page.getByRole("dialog", { name: "Export options" });
+    const choiceEmbed = choice.getByRole("switch", {
+      name: "Embed media and input files",
+    });
+    const downloadedFiles: string[] = [];
+    page.on("download", (download) =>
+      downloadedFiles.push(download.suggestedFilename()),
+    );
+    // No export capture or download occurs until the user confirms the choices.
     await page
       .getByRole("button", { name: "Save current chat as HTML", exact: false })
       .click();
-    const direct = await directDownload;
-    expect(direct.suggestedFilename()).toMatch(/\.html$/);
-    expect(readFileSync((await direct.path())!, "utf8")).toContain(
-      "data:image/png;base64,",
+    await expect(choiceEmbed).toBeChecked();
+    await expect(choiceEmbed).toBeEnabled();
+    const beforeCancel = captureRequests;
+    await choice.getByRole("button", { name: "Close dialog" }).click();
+    expect(captureRequests).toBe(beforeCancel);
+    expect(downloadedFiles).toEqual([]);
+    for (const format of ["markdown", "html"] as const) {
+      for (const embedded of [false, true]) {
+        const label = format === "html" ? "HTML" : "Markdown";
+        const before = captureRequests;
+        await page
+          .getByRole("button", {
+            name: `Save current chat as ${label}`,
+            exact: false,
+          })
+          .click();
+        await expect(
+          choice.getByRole("combobox", { name: "File format" }),
+        ).toHaveValue(format);
+        await expect(choiceEmbed).toBeEnabled();
+        await choiceEmbed.setChecked(embedded);
+        expect(captureRequests).toBe(before);
+        await expect(choice.locator(".hint")).toContainText(
+          embedded ? "offline" : "external links",
+        );
+        if (format === "html" && !embedded) {
+          await choice.screenshot({
+            path: testInfo.outputPath("export-options.png"),
+          });
+        }
+        const directDownload = page.waitForEvent("download");
+        await choice
+          .getByRole("button", { name: `Download ${label}`, exact: true })
+          .click();
+        const direct = await directDownload;
+        expect(direct.suggestedFilename()).toMatch(
+          format === "html" ? /\.html$/ : /\.md$/,
+        );
+        const text = readFileSync((await direct.path())!, "utf8");
+        if (embedded) {
+          expect(captureRequests).toBeGreaterThan(before);
+          expect(text).toContain(`data:image/png;base64,${png}`);
+          expect(text).toContain(
+            Buffer.from("exact preview input bytes").toString("base64"),
+          );
+        } else {
+          expect(captureRequests).toBe(before);
+          expect(text).toContain(`https://${host}/assets/map.png`);
+          expect(text).toContain(`https://${host}/assets/input.csv`);
+          expect(text).not.toContain("data:image");
+          expect(text).not.toContain("data:application/octet-stream");
+          if (format === "html")
+            expect(text).toContain("media and file links require internet");
+        }
+        await expect(choice).not.toBeVisible();
+      }
+    }
+    // An embedded export failure keeps the choices available for correction.
+    failMedia = true;
+    await page.locator("main p").evaluate((p) => {
+      p.textContent = "Changed direct export content";
+    });
+    await page
+      .getByRole("button", { name: "Save current chat as HTML", exact: false })
+      .click();
+    await choice
+      .getByRole("button", { name: "Download HTML", exact: true })
+      .click();
+    await expect(choice.getByRole("alert")).toContainText(
+      "could not be embedded",
     );
+    expect(downloadedFiles).toHaveLength(4);
+    await choiceEmbed.uncheck();
+    const recoveredDownload = page.waitForEvent("download");
+    await choice
+      .getByRole("button", { name: "Download HTML", exact: true })
+      .click();
+    expect(
+      readFileSync((await (await recoveredDownload).path())!, "utf8"),
+    ).toContain("Linked conversation export");
+    failMedia = false;
     await page
       .getByRole("button", { name: "Manage conversations", exact: false })
       .click();
@@ -262,7 +354,15 @@ for (const platform of ["chatgpt", "gemini"] as const) {
     });
     await expect(htmlButton).toBeEnabled();
     await expect(embed).toBeChecked();
-    await expect(embed).toBeDisabled();
+    await expect(embed).toBeEnabled();
+    await embed.uncheck();
+    await expect(htmlButton).toBeEnabled();
+    await expect(dialog.locator("pre")).toContainText(
+      `https://${host}/assets/map.png`,
+    );
+    await expect(dialog.locator("pre")).not.toContainText("data:image");
+    await embed.check();
+    await expect(htmlButton).toBeEnabled();
     const htmlDownload = page.waitForEvent("download");
     await htmlButton.click();
     const html = await htmlDownload;

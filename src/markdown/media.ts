@@ -14,7 +14,7 @@ const mdUrl = (url: string) =>
     .replace(/\)/g, "%29")
     .replace(/\s/g, "%20");
 export const needsEmbeddedMedia = (options: ExportOptions) =>
-  options.format === "html" || options.embedMedia;
+  options.embedMedia;
 
 function visible(element: Element): boolean {
   for (let node: Element | null = element; node; node = node.parentElement) {

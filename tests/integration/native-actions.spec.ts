@@ -26,7 +26,7 @@ async function fixture(
   <aside>${["one", "two", "three"].map((id) => `<div data-conversation-id="${id}"><a href="${prefix}${id}">Chat ${id}</a><button aria-label="More options">⋮</button></div>`).join("")}</aside><main></main><script>
   const opts=${JSON.stringify(options)}, prefix=${JSON.stringify(prefix)}, platform=${JSON.stringify(platform)};
   window.nativeActions=[]; window.visits=[];
-  localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({backupArchive:!!opts.backup,backupDelete:!!opts.backup,delayMs:0,autoMinimize:false,export:{format:opts.format||"markdown",embedMedia:!!opts.embedMedia}}));
+  localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({backupArchive:!!opts.backup,backupDelete:!!opts.backup,delayMs:0,autoMinimize:false,export:{format:opts.format||"markdown",embedMedia:opts.embedMedia ?? opts.format === "html"}}));
   function render(id) { document.querySelector('main').innerHTML=platform==='gemini'
     ? '<user-query>Question '+id+'</user-query><model-response>Answer UNIQUE-'+id+(opts.failedMedia&&id==='two'?'<div class="attachment-card" data-file-name="private.csv"><a href="/unavailable.csv">private.csv</a></div>':'')+'</model-response>'
     : '<article data-message-author-role="user">Question '+id+'</article><article data-message-author-role="assistant">Answer UNIQUE-'+id+(opts.failedMedia&&id==='two'?'<div class="attachment-card" data-file-name="private.csv"><a href="/unavailable.csv">private.csv</a></div>':'')+'</article>';  }

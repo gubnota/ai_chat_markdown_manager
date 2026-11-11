@@ -138,3 +138,13 @@ Context: v2.3.0 exposed format and embedding outside preview, making offline exp
 Decision: Show format, embed, image and link/file controls in preview, with local options and fresh adapter capture per change. Clear old output before capture; block downloads on failure and abort on close. Show explicit Markdown and HTML actions on home.
 Consequences: Both providers use the tested export pipeline; preview preferences do not silently alter batch defaults. Existing access/size limits remain.
 Related files: src/app/App.tsx, src/components/Conversations.tsx, tests/integration/offline-export.spec.ts.
+
+# ADR-0015: Offer embedding before direct downloads
+
+Date: 2026-11-11
+Status: Accepted
+
+Context: Direct home exports downloaded immediately and HTML forced embedding, hiding the requested choice.
+Decision: Open a local Export options dialog before capture. Honor embedMedia for both formats everywhere; selecting HTML defaults it on with an editable switch. Allow validated HTTP(S) images only in linked HTML with matching CSP and a network/expiry warning. Preserve strict data-only embedded exports and failed-backup cleanup gates.
+Consequences: Users can choose size/network requirements before downloading. Linked files can need internet/authentication; opening or cancelling options captures no media. No dependencies or native mutation changes.
+Related files: src/app/App.tsx, src/components/Settings.tsx, src/markdown/media.ts, src/operations/document.ts, tests/integration/offline-export.spec.ts

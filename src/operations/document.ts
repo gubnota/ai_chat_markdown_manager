@@ -25,7 +25,11 @@ export const exportMime = (format: ExportOptions["format"]) =>
   `text/${format === "html" ? "html" : "markdown"};charset=utf-8`;
 
 /** Rebuild an allowlisted tree. No page HTML, event handlers or styles are retained. */
-export function offlineHtml(source: string, title: string): string {
+export function offlineHtml(
+  source: string,
+  title: string,
+  embedMedia = true,
+): string {
   const template = document.createElement("template");
   template.innerHTML = markdown.parse(source, { async: false }) as string;
   const output = document.createElement("div");
@@ -40,7 +44,7 @@ export function offlineHtml(source: string, title: string): string {
     const el = document.createElement(tag);
     if (tag === "img") {
       const src = node.getAttribute("src") || "";
-      if (!raster.test(src))
+      if (!raster.test(src) && (embedMedia || !/^https?:\/\//i.test(src)))
         throw new Error(
           "Offline HTML still contains an unavailable image. Keep the original chat.",
         );
@@ -82,10 +86,10 @@ export function offlineHtml(source: string, title: string): string {
   for (const child of template.content.childNodes) append(child, output);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:${embedMedia ? "" : " https: http:"}; media-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>${escape(title)}</title><style>
 :root{color-scheme:light dark;font:17px/1.65 system-ui,sans-serif}body{max-width:900px;margin:auto;padding:32px 22px;overflow-wrap:anywhere}h1,h2,h3{line-height:1.25}h2{margin-top:2em;border-top:1px solid #8886;padding-top:1em}pre{padding:16px;background:#8882;overflow:auto;white-space:pre-wrap}code{font-family:ui-monospace,monospace}blockquote{margin-left:0;padding-left:18px;border-left:3px solid #8888}img,video{max-width:100%;height:auto}audio{display:block;max-width:100%}table{border-collapse:collapse;display:block;overflow:auto}td,th{border:1px solid #8886;padding:6px 12px}a{color:#4c8bdc}header{font-size:.85em;color:gray} @media print{body{max-width:none;padding:0}pre{white-space:pre-wrap}}
-</style></head><body><header>Offline conversation archive · external source links require internet</header>${output.innerHTML}</body></html>`;
+</style></head><body><header>${embedMedia ? "Offline conversation archive · external source links require internet" : "Linked conversation export · media and file links require internet and may expire"}</header>${output.innerHTML}</body></html>`;
 }
 export function exportDocument(
   body: string,
@@ -99,5 +103,5 @@ export function exportDocument(
     /^---\n([\s\S]*?)\n---\n/,
     (_, metadata: string) => `\`\`\`yaml\n${metadata}\n\`\`\`\n`,
   );
-  return offlineHtml(source, c.title);
+  return offlineHtml(source, c.title, options.embedMedia);
 }

@@ -59,13 +59,18 @@ describe("offline resources", () => {
     );
     expect(result).toContain("[Help](https://example.com/help)");
   });
-  it("makes no media requests in ordinary Markdown link mode", async () => {
-    const { root, text } = fixture('<img src="https://files.test/map.png">');
-    const fetcher = vi.fn();
-    vi.stubGlobal("fetch", fetcher);
-    expect(await embedMarkdownMedia(text, [root], defaults.export)).toBe(text);
-    expect(fetcher).not.toHaveBeenCalled();
-  });
+  it.each(["markdown", "html"] as const)(
+    "makes no media requests in %s link mode",
+    async (format) => {
+      const { root, text } = fixture('<img src="https://files.test/map.png">');
+      const fetcher = vi.fn();
+      vi.stubGlobal("fetch", fetcher);
+      expect(
+        await embedMarkdownMedia(text, [root], { ...defaults.export, format }),
+      ).toBe(text);
+      expect(fetcher).not.toHaveBeenCalled();
+    },
+  );
   it.each([403, 404])(
     "fails closed on HTTP %s without claiming an offline backup",
     async (status) => {
@@ -128,7 +133,7 @@ describe("offline resources", () => {
       embedMarkdownMedia(text, [root], options, controller.signal),
     ).rejects.toThrow();
   });
-  it("HTML forces embedding even with the Markdown embed switch off", async () => {
+  it("HTML embeds media when the embed switch is on", async () => {
     const { root, text } = fixture(
       '<img alt="map" src="https://files.test/map.png">',
     );
@@ -143,7 +148,7 @@ describe("offline resources", () => {
       await embedMarkdownMedia(text, [root], {
         ...options,
         format: "html",
-        embedMedia: false,
+        embedMedia: true,
       }),
     ).toContain("data:image/png;base64,");
   });
@@ -191,6 +196,34 @@ describe("standalone HTML", () => {
     expect(() =>
       offlineHtml("![online](https://evil.test/image.png)", "title"),
     ).toThrow(/unavailable image/);
+  });
+  it("linked HTML retains safe external media/file links and labels its network dependence", () => {
+    const source =
+      '![map](https://files.test/map.png)\n\n[input.csv](https://files.test/input.csv)\n\n<img src="javascript:alert(1)">';
+    expect(() => offlineHtml(source, "title", false)).toThrow(
+      /unavailable image/,
+    );
+    const html = exportDocument(source.split("\n\n<img")[0], chat, {
+      ...options,
+      format: "html",
+      embedMedia: false,
+    });
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    expect(doc.querySelector("img")?.getAttribute("src")).toBe(
+      "https://files.test/map.png",
+    );
+    expect(
+      doc.querySelector('a[href="https://files.test/input.csv"]'),
+    ).not.toBeNull();
+    expect(doc.querySelector("header")?.textContent).toContain(
+      "require internet",
+    );
+    expect(
+      doc
+        .querySelector('meta[http-equiv="Content-Security-Policy"]')
+        ?.getAttribute("content"),
+    ).toContain("img-src data: https: http:");
+    expect(doc.querySelector("script,iframe,[onerror]")).toBeNull();
   });
   it("keeps Markdown as default and validates migrated format values", () => {
     expect(exportDocument("body", chat, defaults.export)).not.toContain(

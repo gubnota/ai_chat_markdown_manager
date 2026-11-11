@@ -131,11 +131,19 @@ export function Settings({
             aria-label="File format"
             value={value.export.format}
             onChange={(e) =>
-              exp("format", e.target.value as "markdown" | "html")
+              onChange({
+                ...value,
+                export: {
+                  ...value.export,
+                  format: e.target.value as "markdown" | "html",
+                  embedMedia:
+                    e.target.value === "html" || value.export.embedMedia,
+                },
+              })
             }
           >
             <option value="markdown">Markdown (.md)</option>
-            <option value="html">HTML · offline (.html)</option>
+            <option value="html">HTML (.html)</option>
           </select>
         </label>
         <Toggle
@@ -143,8 +151,7 @@ export function Settings({
             "Embed media and input files",
             "Встраивать медиа и входные файлы",
           )}
-          checked={value.export.embedMedia || value.export.format === "html"}
-          disabled={value.export.format === "html"}
+          checked={value.export.embedMedia}
           onChange={(v) => exp("embedMedia", v)}
         />
         {(

@@ -3,15 +3,16 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.3.1, 2026-11-11.
+- Release: 2.3.2, 2026-11-11.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
-- v2.3.1 exposes preview format/embed/image/file controls with fresh capture, error-safe downloads and direct home Markdown/HTML actions.
-- v2.3.1 adds standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
+- v2.3.2 opens export options before direct Markdown/HTML downloads; embedding is editable for both formats in direct, preview, settings and batch flows.
+- v2.3.1 exposed preview format/embed/image/file controls with fresh capture and error-safe downloads.
+- v2.3.0 added standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
 - Offline media failures exclude that chat from successful-backup cleanup; Gemini uses a local ZIP archive then native delete.
 - v2.2 adds native ChatGPT batch archive/delete, Gemini delete, and actions on reviewed successful backups.
 - v2.1.1 excludes native start pages from batches and adds successful-export review.
@@ -98,8 +99,8 @@
 - Downloads and clipboard may contain sensitive conversation content.
 - Open Shadow DOM and same-origin storage are not security boundaries.
 - Host scripts/extensions can access same-origin data.
-- Default Markdown keeps external links; optional embedding and HTML fetch exposed resources with browser session credentials.
-- HTML uses data-only media, inline styles and restrictive CSP; missing included resources fail offline export.
+- Embedding controls resource requests for both formats; default Markdown keeps links, and selecting HTML defaults embedding on with an editable switch.
+- Embedded HTML uses data-only media and fails on missing included resources; linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
 - Media limits: 20 MiB/file, 64 MiB/chat, 100 resources; 20-second requests. Canvas previews remain bounded.
 - See `docs/PRIVACY.md` for reset behavior and storage details.
 
@@ -130,6 +131,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.1` from repository root.
+- Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.2` from repository root.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
 - Distribution: `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

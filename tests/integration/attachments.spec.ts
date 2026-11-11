@@ -42,6 +42,10 @@ test("Gemini current and batch downloads preserve uploaded files and generated i
       exact: false,
     })
     .click();
+  await page
+    .getByRole("dialog", { name: "Export options" })
+    .getByRole("button", { name: "Download Markdown", exact: true })
+    .click();
   const single = readFileSync((await (await singleDownload).path())!, "utf8");
   expect(single).toContain(
     "![Upload one](https://files.example/one-upload.png)",
@@ -127,6 +131,10 @@ test("Gemini temporary images survive current and batch exports after blob revoc
       name: "Save current chat as Markdown",
       exact: false,
     })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Export options" })
+    .getByRole("button", { name: "Download Markdown", exact: true })
     .click();
   const single = readFileSync((await (await singleDownload).path())!, "utf8");
   const one = await page.evaluate(
