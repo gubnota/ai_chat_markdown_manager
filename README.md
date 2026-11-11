@@ -1,12 +1,12 @@
-# AI Chat Markdown Manager v2.3.3
+# AI Chat Markdown Manager v2.4.0
 
-[Русский](README.ru.md) · [Installable script](dist/AI-Chat-Markdown-Manager.user.js)
+[Русский](README.ru.md) · [Build and install](#17-build)
 
 ## 1. Overview
 
 A local userscript for turning AI conversations into Markdown, automatically loading selected chats for ZIP backups, and downloading YouTube captions as TXT/VTT. A floating React interface runs inside a Shadow DOM. No server, account connection, telemetry, or CDN is required.
 
-v2.3.3 fixes current ChatGPT message extraction, including image-only replies, and shares visible message boundaries across media capture and navigation. HTML and Markdown exports offer an editable media/input embedding switch.
+v2.4.0 adds HTML/Markdown ZIPs with separate offline images, media and input/reference files, editable filenames, a styled format selector and export progress. Loaded SVG diagrams are captured as PNG, fixing the false unavailable-attachment error in ChatGPT.
 
 This release preserves the v1.2.0 converter and all 48 domain/path match rules, adding 3 targeted YouTube rules. Discovery is partial. ChatGPT batch archive/delete and Gemini batch delete use recognized native controls with mandatory confirmation and verified outcomes.
 
@@ -48,11 +48,15 @@ Install [Userscripts](https://github.com/quoid/userscripts), enable it in Safari
 
 Install [Tampermonkey](https://www.tampermonkey.net/), open its dashboard and create a new script. Replace the template with the complete distributable, save, enable it and reload a matching website. Disable duplicate versions. [Installation and upgrade guide](docs/INSTALL-TAMPERMONKEY.md).
 
+Enable **Save media as separate files (ZIP)** for a document plus an `assets/` directory. Blob images and loaded SVG diagrams become PNG files; accessible input/reference files retain their bytes. Edit **Filename** before downloading. Unpack the whole ZIP and keep its folders together; HTML/Markdown links resolve locally. External citations still require internet. The same option works in preview, settings and batch backups.
+
 ## 7. Quick start
 
 1. Open a conversation and let its messages load.
 2. Click the floating file icon. Drag it to a convenient position.
-3. Choose **Save current chat as Markdown** or **Copy Markdown**.
+3. Build first with `npm ci` and `npm run build`; generated installation files are kept locally.
+
+Choose **Save current chat as Markdown** or **Copy Markdown**.
 4. Open **Manage conversations**. Scroll the website's own history to discover more entries.
 5. Select chats and choose an export action. Read Activity for individual failures.
 
@@ -90,7 +94,7 @@ Cancel stops queued work; completed results remain valid. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.3.3, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.4.0, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -100,7 +104,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.3.3. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.4.0. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -150,7 +154,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.3.3`. Versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.4.0`. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 

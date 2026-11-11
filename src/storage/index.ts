@@ -36,6 +36,7 @@ export const defaults: Settings = {
   export: {
     format: "markdown",
     embedMedia: false,
+    mediaFiles: false,
     images: true,
     links: true,
     metadata: true,

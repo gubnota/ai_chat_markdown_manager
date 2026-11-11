@@ -189,3 +189,17 @@ it("does not accept an unchanged image-only response on a new route", async () =
     ),
   ).rejects.toThrow("no stale content was exported");
 });
+it("rasterizes a decoded ChatGPT SVG diagram without retaining active markup", () => {
+  const image = loadedBlob(679, 432);
+  image.src =
+    "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E";
+  const drawImage = vi.fn();
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    drawImage,
+  } as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
+    "data:image/png;base64,AAAA",
+  );
+  expect(embeddedImageSource(image)).toBe("data:image/png;base64,AAAA");
+  expect(drawImage).toHaveBeenCalledWith(image, 0, 0);
+});

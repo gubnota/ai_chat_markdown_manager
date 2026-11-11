@@ -40,14 +40,15 @@ export function uniqueFilename(name: string, used: Set<string>): string {
   return candidate;
 }
 export function makeZip(
-  files: Map<string, string>,
+  files: Map<string, string | Uint8Array>,
   manifest: unknown | undefined,
 ): Uint8Array {
   const entries: Record<string, Uint8Array> = Object.create(null) as Record<
     string,
     Uint8Array
   >;
-  for (const [name, body] of files) entries[name] = strToU8(body);
+  for (const [name, body] of files)
+    entries[name] = typeof body === "string" ? strToU8(body) : body;
   if (manifest !== undefined)
     entries["manifest.json"] = strToU8(JSON.stringify(manifest, null, 2));
   return zipSync(entries, { level: 6 });

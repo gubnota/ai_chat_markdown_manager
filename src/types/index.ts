@@ -26,6 +26,7 @@ export const conversationKey = (c: ConversationIdentifier): string =>
 export interface ExportOptions {
   format: "markdown" | "html";
   embedMedia: boolean;
+  mediaFiles: boolean;
   images: boolean;
   links: boolean;
   metadata: boolean;

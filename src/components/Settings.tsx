@@ -1,5 +1,6 @@
 import type { Settings as SettingsType } from "../storage";
 import { Toggle } from "./primitives";
+import { FormatSelect } from "./FormatSelect";
 export function Settings({
   value,
   onChange,
@@ -127,31 +128,35 @@ export function Settings({
         <h3>{t("Export format", "Формат экспорта")}</h3>
         <label>
           {t("File format", "Формат файла")}
-          <select
-            aria-label="File format"
+          <FormatSelect
             value={value.export.format}
-            onChange={(e) =>
+            onChange={(format) =>
               onChange({
                 ...value,
                 export: {
                   ...value.export,
-                  format: e.target.value as "markdown" | "html",
-                  embedMedia:
-                    e.target.value === "html" || value.export.embedMedia,
+                  format: format,
+                  embedMedia: format === "html" || value.export.embedMedia,
                 },
               })
             }
-          >
-            <option value="markdown">Markdown (.md)</option>
-            <option value="html">HTML (.html)</option>
-          </select>
+          />
         </label>
+        <Toggle
+          label={t(
+            "Save ZIP with separate media and input files",
+            "Сохранить ZIP с медиа и входными файлами",
+          )}
+          checked={value.export.mediaFiles}
+          onChange={(v) => exp("mediaFiles", v)}
+        />
         <Toggle
           label={t(
             "Embed media and input files",
             "Встраивать медиа и входные файлы",
           )}
-          checked={value.export.embedMedia}
+          checked={!value.export.mediaFiles && value.export.embedMedia}
+          disabled={value.export.mediaFiles}
           onChange={(v) => exp("embedMedia", v)}
         />
         {(

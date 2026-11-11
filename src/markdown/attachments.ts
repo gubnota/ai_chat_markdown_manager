@@ -25,7 +25,11 @@ export function embeddedImageSource(
   if (source.length > maxImageUrlLength) return "";
   if (rasterData.test(source)) return source;
   if (
-    !(source.startsWith("blob:") || (allowHttp && /^https?:/.test(source))) ||
+    !(
+      source.startsWith("blob:") ||
+      /^data:image\/svg\+xml(?:[;,])/i.test(source) ||
+      (allowHttp && /^https?:/.test(source))
+    ) ||
     !image.complete ||
     !image.naturalWidth ||
     !image.naturalHeight ||

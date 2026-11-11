@@ -42,13 +42,14 @@ import {
 } from "../utils/position";
 import { extractMarkdown } from "../markdown/legacy";
 import { embedMarkdownMedia } from "../markdown/media";
-import { exportDocument, exportMime } from "../operations/document";
+import { exportMime } from "../operations/document";
 import {
   copyMarkdown,
   download,
   filename,
   makeZip,
   uniqueFilename,
+  safeFilename,
 } from "../operations/export";
 import { BatchRunner, idleProgress } from "../operations/batch";
 import {
@@ -57,6 +58,13 @@ import {
   IconButton,
   Toggle,
 } from "../components/primitives";
+import { FormatSelect, ExportProgress } from "../components/FormatSelect";
+import {
+  prepareDocument,
+  renamedDocument,
+  type PreparedDocument,
+  type ExportFiles,
+} from "../operations/package";
 import { Settings } from "../components/Settings";
 import { Conversations } from "../components/Conversations";
 import { YouTubeCaptions } from "../components/YouTubeCaptions";
@@ -115,12 +123,14 @@ export function App({
   const [backedUp, setBackedUp] = useState<Conversation[]>([]);
   const [backupChecked, setBackupChecked] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [exportStage, setExportStage] = useState("");
   const [toast, setToast] = useState("");
   const [preview, setPreview] = useState<{
     conversation: Conversation;
     options: ExportOptions;
     text: string;
     name: string;
+    bundle?: PreparedDocument;
     error?: string;
   }>();
   const [exportChoice, setExportChoice] = useState<{
@@ -300,7 +310,12 @@ export function App({
           )
         : await adapter.exportConversation(current, options, signal);
       return {
-        text: exportDocument(body, current, options),
+        ...prepareDocument(
+          body,
+          current,
+          options,
+          filename(current, options.filename, options.format),
+        ),
         current,
       };
     },
@@ -314,15 +329,31 @@ export function App({
       const controller = new AbortController();
       operationAbort.current = controller;
       setBusy(true);
+      setExportStage(
+        t(
+          "Capturing messages, images and input files…",
+          "Сохраняем сообщения, изображения и файлы…",
+        ),
+      );
       const { format } = options;
       try {
-        const { text, current } = await currentDocument(
+        const prepared = await currentDocument(
           mode === "selection" || options.selection,
           controller.signal,
-          options,
+          mode === "copy"
+            ? {
+                ...options,
+                mediaFiles: false,
+                embedMedia: options.mediaFiles || options.embedMedia,
+              }
+            : options,
         );
+        controller.signal.throwIfAborted();
+        setExportStage(t("Preparing download…", "Подготавливаем загрузку…"));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        controller.signal.throwIfAborted();
         if (mode === "copy") {
-          await copyMarkdown(text);
+          await copyMarkdown(prepared.text);
           notify(
             format === "html"
               ? t("HTML copied.", "HTML скопирован.")
@@ -330,9 +361,16 @@ export function App({
           );
         } else {
           download(
-            text,
-            filename(current, options.filename, format),
-            exportMime(format),
+            options.mediaFiles
+              ? makeZip(
+                  prepared.files,
+                  options.manifest ? { format, mediaFiles: true } : undefined,
+                )
+              : prepared.text,
+            options.mediaFiles
+              ? prepared.name.replace(/\.(md|html)$/i, ".zip")
+              : prepared.name,
+            options.mediaFiles ? "application/zip" : exportMime(format),
           );
           notify(
             t(
@@ -398,7 +436,7 @@ export function App({
     setBusy(true);
     setOpen(true);
     setScreen("activity");
-    const files = new Map<string, string>();
+    const files: ExportFiles = new Map();
     const used = new Set<string>();
     const restore = adapter.beginExportSession?.();
     let needsRestore = kind === "export";
@@ -423,13 +461,12 @@ export function App({
               settings.export,
               signal,
             );
-            files.set(
-              uniqueFilename(
-                filename(c, settings.export.filename, settings.export.format),
-                used,
-              ),
-              exportDocument(body, c, settings.export),
+            const name = uniqueFilename(
+              filename(c, settings.export.filename, settings.export.format),
+              used,
             );
+            const prepared = prepareDocument(body, c, settings.export, name);
+            for (const [path, data] of prepared.files) files.set(path, data);
           },
           setProgress,
         );
@@ -442,6 +479,7 @@ export function App({
             operation: "backup",
             format: settings.export.format,
             embeddedMedia: settings.export.embedMedia,
+            mediaFiles: settings.export.mediaFiles,
             results: backup.results,
           }),
           `chat-backup-${Date.now()}.zip`,
@@ -470,13 +508,12 @@ export function App({
               settings.export,
               signal,
             );
-            files.set(
-              uniqueFilename(
-                filename(c, settings.export.filename, settings.export.format),
-                used,
-              ),
-              exportDocument(body, c, settings.export),
+            const name = uniqueFilename(
+              filename(c, settings.export.filename, settings.export.format),
+              used,
             );
+            const prepared = prepareDocument(body, c, settings.export, name);
+            for (const [path, data] of prepared.files) files.set(path, data);
           } else if (kind === "archive")
             await adapter.archiveConversation(c, signal);
           else await adapter.deleteConversation(c, signal);
@@ -489,9 +526,10 @@ export function App({
             files,
             settings.export.manifest
               ? {
-                  version: "2.3.2",
+                  version: "2.4.0",
                   format: settings.export.format,
                   embeddedMedia: settings.export.embedMedia,
+                  mediaFiles: settings.export.mediaFiles,
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -573,11 +611,21 @@ export function App({
     operationAbort.current = controller;
     setBusy(true);
     setToast("");
+    setExportStage(
+      t(
+        "Capturing messages, images and input files…",
+        "Сохраняем сообщения, изображения и файлы…",
+      ),
+    );
     const pending = {
       conversation: c,
       options,
       text: "",
-      name: filename(c, options.filename, options.format),
+      name:
+        preview && conversationKey(preview.conversation) === conversationKey(c)
+          ? preview.name.replace(/\.(md|html)$/i, "") +
+            (options.format === "html" ? ".html" : ".md")
+          : filename(c, options.filename, options.format),
     };
     setPreview(pending);
     const restore = adapter.beginExportSession?.();
@@ -587,8 +635,10 @@ export function App({
         options,
         controller.signal,
       );
-      const text = exportDocument(body, c, options);
-      if (!controller.signal.aborted) setPreview({ ...pending, text });
+      setExportStage(t("Preparing preview…", "Подготавливаем предпросмотр…"));
+      const bundle = prepareDocument(body, c, options, pending.name);
+      if (!controller.signal.aborted)
+        setPreview({ ...pending, text: bundle.text, bundle });
     } catch (e) {
       if (!controller.signal.aborted) {
         const error = e instanceof Error ? e.message : String(e);
@@ -607,6 +657,20 @@ export function App({
       await scan();
     }
   };
+  function currentOptions(format = settings.export.format): ExportOptions {
+    const current = items.find((item) => item.current);
+    return {
+      ...settings.export,
+      format,
+      embedMedia: format === "html" || settings.export.embedMedia,
+      filename: current
+        ? filename(current, settings.export.filename, format).replace(
+            /\.(html|md)$/i,
+            "",
+          )
+        : settings.export.filename,
+    };
+  }
   const place = panelPosition(
     position,
     panelSize.width,
@@ -779,7 +843,7 @@ export function App({
                   onClick={(e) =>
                     setExportChoice({
                       selection: e.shiftKey,
-                      options: { ...settings.export, format: "markdown" },
+                      options: currentOptions("markdown"),
                     })
                   }
                 />
@@ -800,11 +864,7 @@ export function App({
                   onClick={(e) =>
                     setExportChoice({
                       selection: e.shiftKey,
-                      options: {
-                        ...settings.export,
-                        format: "html",
-                        embedMedia: true,
-                      },
+                      options: currentOptions("html"),
                     })
                   }
                 />
@@ -835,7 +895,7 @@ export function App({
                   onClick={() =>
                     setExportChoice({
                       selection: true,
-                      options: { ...settings.export },
+                      options: currentOptions(),
                     })
                   }
                 />
@@ -975,33 +1035,44 @@ export function App({
               </p>
               <label>
                 {t("File format", "Формат файла")}
-                <select
-                  aria-label="File format"
+                <FormatSelect
                   disabled={busy}
                   value={settings.export.format}
-                  onChange={(e) =>
+                  onChange={(format) =>
                     setSettings((s) => ({
                       ...s,
                       export: {
                         ...s.export,
-                        format: e.target.value as "markdown" | "html",
-                        embedMedia:
-                          e.target.value === "html" || s.export.embedMedia,
+                        format: format,
+                        embedMedia: format === "html" || s.export.embedMedia,
                       },
                     }))
                   }
-                >
-                  <option value="markdown">Markdown (.md)</option>
-                  <option value="html">HTML (.html)</option>
-                </select>
+                />
               </label>
+              <Toggle
+                label={t(
+                  "Save ZIP with separate media and input files",
+                  "Сохранить ZIP с медиа и входными файлами",
+                )}
+                checked={settings.export.mediaFiles}
+                disabled={busy}
+                onChange={(mediaFiles) =>
+                  setSettings((s) => ({
+                    ...s,
+                    export: { ...s.export, mediaFiles },
+                  }))
+                }
+              />
               <Toggle
                 label={t(
                   "Embed media and input files",
                   "Встраивать медиа и входные файлы",
                 )}
-                checked={settings.export.embedMedia}
-                disabled={busy}
+                checked={
+                  !settings.export.mediaFiles && settings.export.embedMedia
+                }
+                disabled={busy || settings.export.mediaFiles}
                 onChange={(embedMedia) =>
                   setSettings((s) => ({
                     ...s,
@@ -1306,12 +1377,10 @@ export function App({
         >
           <label>
             {t("File format", "Формат файла")}
-            <select
-              aria-label="File format"
+            <FormatSelect
               value={exportChoice.options.format}
               disabled={busy}
-              onChange={(e) => {
-                const format = e.target.value as "markdown" | "html";
+              onChange={(format) => {
                 setExportChoice({
                   ...exportChoice,
                   error: undefined,
@@ -1323,13 +1392,15 @@ export function App({
                   },
                 });
               }}
-            >
-              <option value="markdown">Markdown (.md)</option>
-              <option value="html">HTML (.html)</option>
-            </select>
+            />
           </label>
           {(
             [
+              [
+                "mediaFiles",
+                "Save ZIP with separate media and input files",
+                "Сохранить ZIP с медиа и входными файлами",
+              ],
               [
                 "embedMedia",
                 "Embed media and input files",
@@ -1346,8 +1417,15 @@ export function App({
             <Toggle
               key={key}
               label={t(en, rus)}
-              checked={exportChoice.options[key]}
-              disabled={busy}
+              checked={
+                key === "embedMedia" && exportChoice.options.mediaFiles
+                  ? false
+                  : exportChoice.options[key]
+              }
+              disabled={
+                busy ||
+                (key === "embedMedia" && exportChoice.options.mediaFiles)
+              }
               onChange={(value) =>
                 setExportChoice({
                   ...exportChoice,
@@ -1358,21 +1436,47 @@ export function App({
             />
           ))}
           <p className="hint">
-            {exportChoice.options.embedMedia
+            {exportChoice.options.mediaFiles
               ? t(
-                  "Media and input files will be embedded for offline use. Markdown viewers must support data URLs.",
-                  "Медиа и входные файлы будут встроены для офлайн-просмотра. Просмотрщик Markdown должен поддерживать data URL.",
+                  "ZIP includes the document and separate assets. Extract the whole ZIP before opening; source links still need internet.",
+                  "ZIP содержит документ и отдельные файлы. Распакуйте весь архив перед открытием; внешним ссылкам нужен интернет.",
                 )
-              : t(
-                  "Media and input files remain external links: internet and access to the originals may be required; links may expire.",
-                  "Медиа и входные файлы останутся внешними ссылками: может потребоваться интернет и доступ к оригиналам; ссылки могут истечь.",
-                )}
+              : exportChoice.options.embedMedia
+                ? t(
+                    "Media and input files will be embedded for offline use. Markdown viewers must support data URLs.",
+                    "Медиа и входные файлы будут встроены для офлайн-просмотра. Просмотрщик Markdown должен поддерживать data URL.",
+                  )
+                : t(
+                    "Media and input files remain external links: internet and access to the originals may be required; links may expire.",
+                    "Медиа и входные файлы останутся внешними ссылками: может потребоваться интернет и доступ к оригиналам; ссылки могут истечь.",
+                  )}
           </p>
-          {busy && (
-            <p role="status">
-              {t("Preparing export…", "Подготовка экспорта…")}
-            </p>
-          )}
+          {busy && <ExportProgress label={exportStage} />}
+          <label>
+            {t("Filename", "Имя файла")}
+            <input
+              aria-label="Filename"
+              disabled={busy}
+              value={exportChoice.options.filename}
+              onChange={(e) =>
+                setExportChoice({
+                  ...exportChoice,
+                  options: {
+                    ...exportChoice.options,
+                    filename: e.target.value.replace(/\.(html|md|zip)$/i, ""),
+                  },
+                })
+              }
+            />
+            <small>
+              .
+              {exportChoice.options.mediaFiles
+                ? "zip"
+                : exportChoice.options.format === "html"
+                  ? "html"
+                  : "md"}
+            </small>
+          </label>
           {exportChoice.error && <p role="alert">{exportChoice.error}</p>}
           <button
             className="primary"
@@ -1390,8 +1494,8 @@ export function App({
             }}
           >
             {t(
-              `Download ${exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
-              `Скачать ${exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
+              `Download ${exportChoice.options.mediaFiles ? "ZIP" : exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
+              `Скачать ${exportChoice.options.mediaFiles ? "ZIP" : exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
             )}
           </button>
         </Dialog>
@@ -1410,30 +1514,39 @@ export function App({
           <p>{preview.conversation.title}</p>
           <label>
             {t("File format", "Формат файла")}
-            <select
-              aria-label="File format"
+            <FormatSelect
               value={preview.options.format}
               disabled={busy}
-              onChange={(e) =>
+              onChange={(format) =>
                 void previewConversation(preview.conversation, {
                   ...preview.options,
-                  format: e.target.value as "markdown" | "html",
-                  embedMedia:
-                    e.target.value === "html" || preview.options.embedMedia,
+                  format: format,
+                  embedMedia: format === "html" || preview.options.embedMedia,
                 })
               }
-            >
-              <option value="markdown">Markdown (.md)</option>
-              <option value="html">HTML (.html)</option>
-            </select>
+            />
           </label>
+          <Toggle
+            label={t(
+              "Save ZIP with separate media and input files",
+              "Сохранить ZIP с медиа и входными файлами",
+            )}
+            checked={preview.options.mediaFiles}
+            disabled={busy}
+            onChange={(mediaFiles) =>
+              void previewConversation(preview.conversation, {
+                ...preview.options,
+                mediaFiles,
+              })
+            }
+          />
           <Toggle
             label={t(
               "Embed media and input files",
               "Встроить медиа и входные файлы",
             )}
-            checked={preview.options.embedMedia}
-            disabled={busy}
+            checked={!preview.options.mediaFiles && preview.options.embedMedia}
+            disabled={busy || preview.options.mediaFiles}
             onChange={(embedMedia) =>
               void previewConversation(preview.conversation, {
                 ...preview.options,
@@ -1465,16 +1578,42 @@ export function App({
             />
           ))}
           <p className="hint">
-            {t(
-              "Enable embedding for offline media and input files; otherwise external links need internet and may expire. Markdown embedding requires a viewer that supports data URLs. Changing options refreshes this preview.",
-              "Включите встраивание для офлайн-медиа и файлов; иначе ссылкам нужен интернет, и они могут истечь. Для Markdown нужен просмотрщик с поддержкой data URL. Настройки обновляют предпросмотр.",
-            )}
+            {preview.options.mediaFiles
+              ? t(
+                  "Unpack the whole ZIP before opening the document. Media and input files use local relative links; external citations still need internet. Changing options refreshes this preview.",
+                  "Распакуйте весь ZIP перед открытием документа. Медиа и файлы используют локальные ссылки; внешним источникам нужен интернет. Настройки обновляют предпросмотр.",
+                )
+              : t(
+                  "Enable embedding for offline media and input files; otherwise external links need internet and may expire. Markdown embedding requires a viewer that supports data URLs. Changing options refreshes this preview.",
+                  "Включите встраивание для офлайн-медиа и файлов; иначе ссылкам нужен интернет, и они могут истечь. Для Markdown нужен просмотрщик с поддержкой data URL. Настройки обновляют предпросмотр.",
+                )}
           </p>
-          {busy && (
-            <p role="status">
-              {t("Preparing export…", "Подготовка экспорта…")}
-            </p>
-          )}
+          {busy && <ExportProgress label={exportStage} />}
+          <label>
+            {t("Filename", "Имя файла")}
+            <input
+              aria-label="Filename"
+              disabled={busy}
+              value={preview.name.replace(/\.(md|html)$/i, "")}
+              onChange={(e) =>
+                setPreview({
+                  ...preview,
+                  name:
+                    safeFilename(
+                      e.target.value.replace(/\.(html|md|zip)$/i, ""),
+                    ) + (preview.options.format === "html" ? ".html" : ".md"),
+                })
+              }
+            />
+            <small>
+              .
+              {preview.options.mediaFiles
+                ? "zip"
+                : preview.options.format === "html"
+                  ? "html"
+                  : "md"}
+            </small>
+          </label>
           {preview.error && <p role="alert">{preview.error}</p>}
           <pre className="preview" tabIndex={0}>
             {preview.text}
@@ -1494,15 +1633,26 @@ export function App({
             disabled={busy || !preview.text || !!preview.error}
             onClick={() => {
               download(
-                preview.text,
-                preview.name,
-                exportMime(preview.options.format),
+                preview.options.mediaFiles && preview.bundle
+                  ? makeZip(
+                      renamedDocument(preview.bundle, preview.name),
+                      preview.options.manifest
+                        ? { format: preview.options.format, mediaFiles: true }
+                        : undefined,
+                    )
+                  : preview.text,
+                preview.options.mediaFiles
+                  ? preview.name.replace(/\.(md|html)$/i, ".zip")
+                  : preview.name,
+                preview.options.mediaFiles
+                  ? "application/zip"
+                  : exportMime(preview.options.format),
               );
             }}
           >
             {t(
-              `Download ${preview.options.format === "html" ? "HTML" : "Markdown"}`,
-              `Скачать ${preview.options.format === "html" ? "HTML" : "Markdown"}`,
+              `Download ${preview.options.mediaFiles ? "ZIP" : preview.options.format === "html" ? "HTML" : "Markdown"}`,
+              `Скачать ${preview.options.mediaFiles ? "ZIP" : preview.options.format === "html" ? "HTML" : "Markdown"}`,
             )}
           </button>
         </Dialog>

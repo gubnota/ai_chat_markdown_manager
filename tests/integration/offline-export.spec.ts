@@ -239,7 +239,7 @@ for (const platform of [
           .click();
         await expect(
           choice.getByRole("combobox", { name: "File format" }),
-        ).toHaveValue(format);
+        ).toContainText(format === "html" ? "HTML (.html)" : "Markdown (.md)");
         await expect(choiceEmbed).toBeEnabled();
         await choiceEmbed.setChecked(embedded);
         expect(captureRequests).toBe(before);
@@ -327,7 +327,7 @@ for (const platform of [
       name: "Include links and input files",
       exact: true,
     });
-    await expect(format).toHaveValue("markdown");
+    await expect(format).toContainText("Markdown (.md)");
     await expect(embed).not.toBeChecked();
     await expect(
       dialog.getByRole("button", { name: "Download Markdown", exact: true }),
@@ -366,7 +366,10 @@ for (const platform of [
     );
     await files.check();
     await expect(markdownButton).toBeEnabled();
-    await format.selectOption("html");
+    await format.click();
+    await dialog
+      .getByRole("option", { name: "HTML (.html)", exact: true })
+      .click();
     const htmlButton = dialog.getByRole("button", {
       name: "Download HTML",
       exact: true,
@@ -400,7 +403,10 @@ for (const platform of [
     await openPreview();
     await expect(markdownButton).toBeEnabled();
     failMedia = true;
-    await format.selectOption("html");
+    await format.click();
+    await dialog
+      .getByRole("option", { name: "HTML (.html)", exact: true })
+      .click();
     await expect(dialog.getByRole("alert")).toBeVisible();
     await expect(htmlButton).toBeDisabled();
     await expect(dialog.locator("pre")).toBeEmpty();

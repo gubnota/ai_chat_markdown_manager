@@ -3,13 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.3.3, 2026-11-11.
+- Release: 2.4.0, 2026-11-11.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
+- v2.4.0 adds separate-file offline ZIPs, loaded SVG-to-PNG capture, custom format selector, editable names and progress.
 - v2.3.3 fixes current ChatGPT extraction (search keys and role-heading containers), including image-only replies; shared visible boundaries cover Grok/Claude/DeepSeek too.
 - HTML/Markdown embedding remains editable in direct, preview, settings and batch flows.
 - v2.3.1 exposed preview format/embed/image/file controls with fresh capture and error-safe downloads.
@@ -52,7 +53,7 @@
 - New code is MIT OR Apache-2.0; inherited/vendor licenses retain their terms.
 - Preserve independent FAB anchoring and Send-button avoidance.
 - Keep `.DS_Store`, dependencies and temporary test output out of Git.
-- Track the installable script and screenshots. Generate versioned release ZIPs and checksums locally; ignore them in Git.
+- Track source and screenshots. Generate the userscript, versioned release ZIPs and checksums locally; ignore them in Git.
 
 ## Core workflows
 - Open the FAB or restore it with Alt+Shift+E.
@@ -101,7 +102,7 @@
 - Open Shadow DOM and same-origin storage are not security boundaries.
 - Host scripts/extensions can access same-origin data.
 - Embedding controls resource requests for both formats; default Markdown keeps links, and selecting HTML defaults embedding on with an editable switch.
-- Embedded HTML uses data-only media and fails on missing included resources; linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
+- Embedded HTML uses data-only media; ZIP HTML permits only its generated local assets. Offline capture fails on missing included resources; linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
 - Media limits: 20 MiB/file, 64 MiB/chat, 100 resources; 20-second requests. Canvas previews remain bounded.
 - See `docs/PRIVACY.md` for reset behavior and storage details.
 
@@ -134,4 +135,4 @@
 - Install browsers once: `npx playwright install chromium webkit`.
 - Checksums: `shasum -a 256 -c SHA256SUMS-v2.3.3` from repository root after a local build.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
-- Distribution: tracked `dist/AI-Chat-Markdown-Manager.user.js`; local builds also generate an ignored root release ZIP.
+- Distribution: `npm run build` generates the ignored `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

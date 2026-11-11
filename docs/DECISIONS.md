@@ -168,3 +168,23 @@ Context: Generated release archives and per-version checksums accumulated in com
 Decision: Remove every `AI-Chat-Markdown-Manager-v*.zip` and `SHA256SUMS-v*` path from Git history and ignore both basename patterns at every directory depth. Keep producing these files locally with `npm run build`; retain the tracked installable userscript and unversioned `SHA256SUMS`.
 Consequences: Commit IDs change and existing clones must reconcile with rewritten main. Keep an external pre-rewrite Git bundle for recovery. README installation uses the tracked script; local ZIP generation replaces repository ZIP links.
 Related files: .gitignore, README.md, README.ru.md, scripts/release.mjs, docs/PROJECT_CONTEXT.md, docs/ARCHITECTURE_INDEX.md
+
+# ADR-0018: Offline documents with separate asset files
+
+Date: 2026-11-11
+Status: Accepted
+
+Context: Blob images expire, loaded SVG diagrams were incorrectly unavailable, and users need portable HTML/Markdown plus original reference files.
+Decision: Add mediaFiles ZIP mode, bounded PNG capture of decoded SVG, token-aware local links and exact binary ZIP entries. Share packaging across current, preview, batch and required backups. Use a keyboard-accessible CSS selector, editable names and stage progress.
+Consequences: Unpack the entire ZIP; external citations need internet. Missing original files still fail offline capture. No private APIs or native attachment clicks.
+Related files: src/operations/package.ts, src/operations/document.ts, src/markdown/attachments.ts, src/components/FormatSelect.tsx, tests/integration/asset-bundle.spec.ts.
+
+# ADR-0019: Generate the userscript outside Git
+
+Date: 2026-11-11
+Status: Accepted (supersedes ADR-0017 distribution choice)
+
+Context: User requests removing dist/AI-Chat-Markdown-Manager.user.js everywhere in Git, including history.
+Decision: Purge that exact path from all reachable commits and ignore it. Keep local build output; installation starts with npm ci and npm run build.
+Consequences: Commit IDs change again; keep an external Git bundle. Versioned ZIP/checksum exclusions remain. Source and lockfile reproduce the distributable.
+Related files: .gitignore, scripts/release.mjs, README.md, docs/INSTALL-SAFARI.md.

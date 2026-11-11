@@ -1,4 +1,4 @@
-# Verification — v2.3.3
+# Verification — v2.4.0
 
 Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are locked in `package-lock.json`.
 
@@ -8,12 +8,12 @@ Date: 2026-11-11. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are
 | --- | --- |
 | `npm run lint` | Pass; source, tests and Vite/Playwright config |
 | `npm run typecheck` | Pass; strict TypeScript, typed legacy JS boundary |
-| `npm test` | 112 pass in 8 files: core, Gemini, ChatGPT, navigation, timedtext, attachments, offline export, message boundaries |
-| `npm run build` | Pass; self-contained userscript, v2.3.3 ZIP and versioned checksums |
-| `npm run test:integration` | 132 pass: 44 cases each in Chromium, desktop WebKit and mobile WebKit |
+| `npm test` | 120 pass in 9 files, including binary asset packaging and loaded SVG capture |
+| `npm run build` | Pass; self-contained userscript, v2.4.0 ZIP and versioned checksums |
+| `npm run test:integration` | 165 pass: 55 cases each in Chromium, desktop WebKit and mobile WebKit |
 | Metadata / release integrity | Original 48 @match entries plus 3 targeted YouTube entries; no global wildcard, remote runtime imports or source maps; ZIP script equals dist |
 
-The production bundle is approximately 418.2 kB before compression. After a local build, verify artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.3.3`. Versioned release ZIPs and checksum files are ignored local outputs and have been removed from Git history. The unversioned `SHA256SUMS` is outside this cleanup.
+The production bundle is 425,632 bytes before compression. After a local build, verify artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.4.0`. The generated dist userscript, versioned release ZIPs and checksum files are ignored local outputs and have been removed from Git history. The unversioned `SHA256SUMS` is outside this cleanup.
 
 ## Unit coverage
 
@@ -23,7 +23,7 @@ The production bundle is approximately 418.2 kB before compression. After a loca
 - Navigation/timedtext: welcome-page exclusion, generic fallback, empty-route restoration, stale messages, full-reload prevention, role-aware outlines, JSON3/XML/VTT, Unicode/timing/entities, empty/negative rejection, player JSON extraction, endpoint/video validation and fresh signed-parameter capture.
 - Attachments: nested Gemini carousel cards, uploaded/generated image controls, named file cards/buttons, exposed HTTP(S) links, bounded raster data/decoded blob sources, tainted canvas, size limits, unavailable-link notes, independent image/link options, unsafe URLs, hidden controls, unchanged host DOM, and image-only navigation with stale-content rejection.
 
-- Offline resources: exact image/audio/video/input bytes, deduplication, no-fetch link mode in both formats, optional HTML capture, missing URLs, HTTP failure, login pages, size bounds, cancellation, hidden resources and format migration. Static HTML strips active markup, preserves code/tables/metadata and exposes data-only media/file downloads when embedded; linked HTML validates HTTP(S) images under a matching CSP.
+- Offline resources: exact image/audio/video/input bytes, anonymous image retry after credentialed CORS failure, no anonymous input-file retry, deduplication, no-fetch link mode in both formats, optional HTML capture, missing URLs, HTTP failure, login pages, size bounds, cancellation, hidden resources and format migration. Static HTML strips active markup, preserves code/tables/metadata and exposes data-only media/file downloads when embedded; linked HTML validates HTTP(S) images under a matching CSP.
 
 - Message boundaries: current ChatGPT search keys and role-heading containers, mixed legacy/current layouts, three main regions, hidden ancestors, deduplication, image-only replies without search keys, Grok/Claude test IDs and neutral DeepSeek role fallback.
 
@@ -50,6 +50,8 @@ Tests inject `dist/AI-Chat-Markdown-Manager.user.js` into intercepted or local s
 
 Desktop/mobile screenshots in `docs/screenshots/` show local fixtures. Mobile WebKit uses device emulation and pointer input; it does not establish physical touch behavior. No real account was mutated.
 
+- Five-provider HTML/Markdown separate-file ZIPs cover blob images, rasterized SVG and reference CSV bytes, renamed current downloads, custom-selector keyboard behavior, visible progress and exact binary content. ChatGPT/Gemini additionally cover batch and renamed preview ZIPs. Unpacked HTML renders all images via file:// without network. Reference paths resolve to exact local bytes; Chromium also exercises a local-file download (WebKit opens such links instead).
+
 ## Live evidence and remaining boundaries
 
 - Earlier read-only inspection on 2026-11-07: ChatGPT was signed out; Safari Gemini showed the conversation action-menu label. Archive/delete confirmations and outcomes were not tested on authenticated real chats. Conditional production support is based on runtime checks, not a claim of live compatibility.
@@ -62,3 +64,5 @@ Desktop/mobile screenshots in `docs/screenshots/` show local fixtures. Mobile We
 - Safari Userscripts installation and current downloads were exercised above. Tampermonkey, other browser/extension combinations and all inherited hosts remain unverified; synthetic WebKit injection is a distinct test.
 
 For additional live validation use explicitly authorized disposable accounts. Verify localized controls, exact IDs and title-bearing Delete confirmation, native outcomes and cancellation/timeouts. Keep ambiguous controls unavailable and report only redacted reproductions.
+
+- Final v2.4.0 Safari check of the supplied ChatGPT conversation exposed a loaded data-SVG diagram and blocked external image fetches. Added bounded SVG-to-PNG capture and anonymous retry for cross-origin images; a dedicated anonymous-only CDN regression passes in all three browser projects, including tainted display canvas. The final installed build still reports an inaccessible image in that real chat. Full offline export of that conversation remains unverified/blocked; no cleanup was attempted. A diagnostic command was accidentally submitted to the chat while focusing Web Inspector; no private chat content was copied into repository files.

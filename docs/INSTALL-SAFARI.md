@@ -6,7 +6,7 @@ The output is a standalone userscript. Automated WebKit tests pass; installation
 2. Open Safari → Settings → Extensions and enable Userscripts. On iOS/iPadOS, use the Safari Extensions section in system Settings; the exact location depends on OS version.
 3. Grant Userscripts access to the intended chat websites. Prefer individual sites over unrelated website access.
 4. Open the Userscripts app and locate its configured scripts directory. Use its directory-selection/open controls; do not assume a fixed filesystem path. Grant folder access when requested.
-5. Extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.2.0.zip) or obtain [the distributable](../dist/AI-Chat-Markdown-Manager.user.js). Copy the complete `.user.js` into that directory, preserving the extension.
+5. Run `npm ci` and `npm run build` in the repository to generate `dist/AI-Chat-Markdown-Manager.user.js` and the local release ZIP. Copy the complete `.user.js` into that directory, preserving the extension.
 6. In the extension's script list/editor, ensure **AI Chat Markdown Manager** is enabled.
 7. Disable **Save Page as Markdown (Safari)** v1.2.0 and other copies in every userscript manager. Reload the target conversation.
 8. Look for a small floating file icon. Alt+Shift+E restores a hidden overlay; Alt+Shift+M saves Markdown.

@@ -103,3 +103,11 @@
 - Tampermonkey, other browsers/extensions, all inherited hosts and physical touch devices remain manual follow-up.
 - Automatic SPA loading covers ChatGPT/Gemini/Claude, but missing/virtualized native links and partial loaded history can still cause per-item failures. Other adapters require loaded content/snapshots.
 - YouTube downloads are fixture-tested; live caption availability, restrictions and browser permissions vary.
+
+## 2026-11-11 — v2.4.0 offline asset packages
+- Fixed a loaded data-SVG diagram falsely reported as unavailable in the supplied ChatGPT conversation; rasterize loaded pixels within existing PNG bounds.
+- Added HTML/Markdown separate-file ZIPs with blob images and accessible input/reference files, relative links, editable names, styled keyboard selector and progress.
+- New five-provider ZIP fixtures cover current export, ChatGPT/Gemini batch and preview, exact bytes and offline HTML. Existing cleanup failure gates remain intact.
+- User requested purging the generated userscript from history too; ignore local output and document source builds. The new source-only distribution decision supersedes the tracked-script part of ADR-0017.
+- Verification: 120 unit tests, 165 browser cases, lint/types/build and release integrity passed. Anonymous-only image CDN retry is covered in Chromium and desktop/mobile WebKit; authenticated files never retry anonymously. Final Safari export of the supplied chat still fails on an inaccessible external image; complete offline capture is not claimed. A Web Inspector diagnostic was accidentally submitted to that chat; no cleanup was performed.
+- Purged the exact dist userscript path from all reachable Git history (including local checkpoint refs), preserved the local build and unrelated working changes, and pushed rewritten main with an explicit remote lease.

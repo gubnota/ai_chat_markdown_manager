@@ -849,3 +849,79 @@ kbd {
   color: inherit;
   background: transparent;
 }
+
+.format-select {
+  position: relative;
+  margin: 7px 0 14px;
+}
+.format-select > button,
+.format-options > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border-radius: 10px;
+}
+.format-select > button > span,
+.format-options > button > span {
+  flex: 1;
+}
+.format-select > button[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+.format-options {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgb(var(--bg));
+  box-shadow: 0 10px 32px #0003;
+}
+.format-options > button {
+  border: 0;
+  background: transparent;
+}
+.format-options > button.active,
+.format-options > button[aria-selected="true"] {
+  background: var(--soft);
+}
+.export-progress {
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.export-progress-track {
+  height: 5px;
+  border-radius: 9px;
+  background: var(--soft);
+  overflow: hidden;
+  margin-top: 9px;
+}
+.export-progress-track i {
+  display: block;
+  height: 100%;
+  width: 35%;
+  background: var(--accent);
+  border-radius: inherit;
+  animation: export-travel 1.3s ease-in-out infinite alternate;
+}
+@keyframes export-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(185%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .export-progress-track i {
+    animation: none;
+    width: 100%;
+  }
+}

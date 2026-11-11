@@ -4,6 +4,7 @@
 | --- | --- |
 | `src/main.tsx` | Top-frame mount, duplicate guard, injected styles and React root |
 | `src/app/App.tsx` | Screens, lifecycle, shortcuts, FAB, dialogs, operation orchestration, successful-export review |
+| `src/components/FormatSelect.tsx` | Styled keyboard format selector and export progress |
 | `src/components/primitives.tsx` | Reusable buttons, toggles and focus-managed dialog |
 | `src/components/Conversations.tsx` | Filtering, stable selection, scroll loading and row actions |
 | `src/components/YouTubeCaptions.tsx` | Automatic video-language discovery, direct TXT/VTT downloads, optional import |
@@ -21,6 +22,7 @@
 | `src/markdown/messages.ts` | Shared visible provider message boundaries and roles for conversion/media/navigation |
 | `src/markdown/attachments.ts` | Nested message attachments, safe file URLs, bounded decoded-image embedding and unavailable labels |
 | `src/markdown/media.ts` | Bounded asynchronous capture of referenced media/input bytes; strict offline failure |
+| `src/operations/package.ts` | Token-aware local asset extraction, binary ZIP files, renamed documents |
 | `src/operations/document.ts` | Markdown wrapper and allowlisted HTML, inline/linked image CSP and MIME |
 | `src/markdown/legacy-converter.js` | Minimally changed inherited MIT converter |
 | `src/markdown/legacy-converter.d.ts` | Explicit typed boundary for inherited JS |
@@ -41,7 +43,7 @@
 | `tests/integration/userscript.spec.ts` | Inject production dist and verify actual browser behavior |
 | `tests/integration/native-actions.spec.ts` | Native archive/delete, frozen targets, backups, review and cancellation |
 | `tests/integration/loading-captions.spec.ts` | Three-platform batch loading, cancellation and automatic multilingual caption downloads |
-| `dist/AI-Chat-Markdown-Manager.user.js` | Standalone installable release |
+| `dist/AI-Chat-Markdown-Manager.user.js` | Locally generated, ignored installable release |
 | `AI-Chat-Markdown-Manager-v*.zip`, `SHA256SUMS-v*` | Locally generated release archives and root-relative integrity hashes; ignored by Git |
 | `docs/screenshots/` | Verified local-fixture UI screenshots |
 | `Save-Page-as-Markdown-Safari.user.js`, `README.txt` | Unchanged v1.2 provenance baseline |
@@ -53,3 +55,5 @@ Read `docs/ARCHITECTURE.md` for lifecycle details, `docs/PLATFORMS.md` for capab
 Attachment regressions: `tests/unit/attachments.test.ts` and `tests/integration/attachments.spec.ts` (current download, batch ZIP and image-only navigation).
 
 Offline regressions: `tests/unit/offline-export.test.ts`, `tests/integration/offline-export.spec.ts`; provider backup/cleanup gates in `tests/integration/native-actions.spec.ts`.
+
+Separate-file ZIP regressions: `tests/unit/package.test.ts`, `tests/integration/asset-bundle.spec.ts` (five providers, two formats, offline file://).

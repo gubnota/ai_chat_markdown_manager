@@ -9,3 +9,6 @@ coverage/
 !.env.example
 AI-Chat-Markdown-Manager-v*.zip
 SHA256SUMS-v*
+
+# Generated installable bundle (build locally)
+/dist/AI-Chat-Markdown-Manager.user.js

@@ -29,6 +29,7 @@ export function offlineHtml(
   source: string,
   title: string,
   embedMedia = true,
+  assets: ReadonlyMap<string, string> = new Map(),
 ): string {
   const template = document.createElement("template");
   template.innerHTML = markdown.parse(source, { async: false }) as string;
@@ -44,7 +45,11 @@ export function offlineHtml(
     const el = document.createElement(tag);
     if (tag === "img") {
       const src = node.getAttribute("src") || "";
-      if (!raster.test(src) && (embedMedia || !/^https?:\/\//i.test(src)))
+      if (
+        !raster.test(src) &&
+        !assets.get(src)?.startsWith("image/") &&
+        (embedMedia || !/^https?:\/\//i.test(src))
+      )
         throw new Error(
           "Offline HTML still contains an unavailable image. Keep the original chat.",
         );
@@ -52,16 +57,24 @@ export function offlineHtml(
       el.setAttribute("alt", node.getAttribute("alt") || "");
     } else if (tag === "a") {
       const href = node.getAttribute("href") || "";
-      if (playable.test(href)) {
+      const assetMime = assets.get(href);
+      if (playable.test(href) || /^(audio|video)\//.test(assetMime || "")) {
         const player = document.createElement(
-          href.startsWith("data:audio/") ? "audio" : "video",
+          href.startsWith("data:audio/") || assetMime?.startsWith("audio/")
+            ? "audio"
+            : "video",
         );
         player.controls = true;
         player.preload = "metadata";
         player.src = href;
         parent.appendChild(player);
       }
-      if (file.test(href) || playable.test(href) || raster.test(href)) {
+      if (
+        assetMime ||
+        file.test(href) ||
+        playable.test(href) ||
+        raster.test(href)
+      ) {
         el.setAttribute("href", href);
         el.setAttribute(
           "download",
@@ -86,7 +99,7 @@ export function offlineHtml(
   for (const child of template.content.childNodes) append(child, output);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:${embedMedia ? "" : " https: http:"}; media-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:${assets.size ? " file: 'self'" : ""}${embedMedia ? "" : " https: http:"}; media-src data:${assets.size ? " file: 'self'" : ""}; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>${escape(title)}</title><style>
 :root{color-scheme:light dark;font:17px/1.65 system-ui,sans-serif}body{max-width:900px;margin:auto;padding:32px 22px;overflow-wrap:anywhere}h1,h2,h3{line-height:1.25}h2{margin-top:2em;border-top:1px solid #8886;padding-top:1em}pre{padding:16px;background:#8882;overflow:auto;white-space:pre-wrap}code{font-family:ui-monospace,monospace}blockquote{margin-left:0;padding-left:18px;border-left:3px solid #8888}img,video{max-width:100%;height:auto}audio{display:block;max-width:100%}table{border-collapse:collapse;display:block;overflow:auto}td,th{border:1px solid #8886;padding:6px 12px}a{color:#4c8bdc}header{font-size:.85em;color:gray} @media print{body{max-width:none;padding:0}pre{white-space:pre-wrap}}
 </style></head><body><header>${embedMedia ? "Offline conversation archive · external source links require internet" : "Linked conversation export · media and file links require internet and may expire"}</header>${output.innerHTML}</body></html>`;
@@ -95,6 +108,7 @@ export function exportDocument(
   body: string,
   c: Conversation,
   options: ExportOptions,
+  assets: ReadonlyMap<string, string> = new Map(),
 ): string {
   let source = conversationDocument(body, c, options);
   if (options.format !== "html") return source;
@@ -103,5 +117,10 @@ export function exportDocument(
     /^---\n([\s\S]*?)\n---\n/,
     (_, metadata: string) => `\`\`\`yaml\n${metadata}\n\`\`\`\n`,
   );
-  return offlineHtml(source, c.title, options.embedMedia);
+  return offlineHtml(
+    source,
+    c.title,
+    options.embedMedia || options.mediaFiles,
+    assets,
+  );
 }

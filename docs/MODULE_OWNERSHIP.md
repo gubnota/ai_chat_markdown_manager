@@ -7,7 +7,7 @@
 | `src/adapters` | Host DOM, identity, discovery, snapshot lifetime, SPA loading/restoration, native capability | Types, Markdown |
 | `src/youtube` | Public caption discovery/requests, identity validation, bounded TXT/VTT conversion | Browser APIs only |
 | `src/storage` | Preference defaults/migration, local persistence, privacy summaries | Types |
-| `src/operations` | Sequential batches, abort, static HTML rendering, file/ZIP/clipboard handling | Types, Markdown metadata, bundled fflate/Marked |
+| `src/operations` | Sequential batches, abort, static HTML rendering, token-aware asset packaging, binary file/ZIP/clipboard handling | Types, Markdown metadata, bundled fflate/Marked |
 | `src/utils` | Pure geometry and conversation query/selection | Types |
 | `src/components` | Reusable controls and screen-level presentation | React, Lucide, types, storage settings types, pure utilities, YouTube service and download helper |
 | `src/app` | User intent, adapter orchestration, state, confirmations, geometry effects, transient post-download review | All browser modules above |
@@ -19,7 +19,7 @@ Dependency direction is mount → app → components/adapters/operations/storage
 
 No backend ownership exists. Chat integration uses native DOM/SPA links only; no private account APIs, authentication bypasses or simulated conversation bodies. The YouTube module may fetch the current public watch page and validated YouTube/video.google.com timedtext URLs. Signed URL parameters remain in memory; no external uploads. Native permission/verification belongs to adapters, explicit intent, confirmation and successful-export review to app, cancellation/results to operations. All three gates are required for native mutations.
 
-Attachment recognition belongs to Markdown conversion, not UI or native mutation adapters. It reads loaded message DOM and may copy decoded blob-image pixels into bounded inline PNGs without clicking controls or inventing URLs. Default link mode does not fetch attachments; explicit embedding follows the capture contract below. Keep inherited conversion isolated and attributed. No Node/build dependencies may leak into runtime. No source map or remote runtime import in dist. Unit tests own redacted fixtures; integration tests own a local fake host and actual downloaded artifacts. Production factories use runtime native-control checks; fixture success must not be described as authenticated live verification. Tests must never mutate real account history.
+Attachment recognition belongs to Markdown conversion, not UI or native mutation adapters. It reads loaded message DOM and may copy decoded blob/SVG-image pixels into bounded inline PNGs without clicking controls or inventing URLs. Default link mode does not fetch attachments; explicit embedding follows the capture contract below. Keep inherited conversion isolated and attributed. No Node/build dependencies may leak into runtime. No source map or remote runtime import in dist. Unit tests own redacted fixtures; integration tests own a local fake host and actual downloaded artifacts. Production factories use runtime native-control checks; fixture success must not be described as authenticated live verification. Tests must never mutate real account history.
 
 Update contracts and ADRs for changes spanning boundaries. See `API_CONTRACTS.md`, `DECISIONS.md` and `VERIFICATION.md`.
 

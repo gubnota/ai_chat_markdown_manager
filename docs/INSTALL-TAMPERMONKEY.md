@@ -3,7 +3,7 @@
 See the [official website](https://www.tampermonkey.net/) and [FAQ](https://www.tampermonkey.net/faq.php) for browser-specific installation and permissions. The Chromium bundle is tested by injection into a fixture; the full extension installation flow has not been manually verified here.
 
 1. Install the official Tampermonkey extension for your browser and enable it.
-2. Download/extract [the release ZIP](../AI-Chat-Markdown-Manager-v2.2.0.zip).
+2. Run `npm ci` and `npm run build` in the repository; use the generated `dist/AI-Chat-Markdown-Manager.user.js` or extract the local release ZIP.
 3. Open Tampermonkey Dashboard → create a new script. Replace the entire template with `AI-Chat-Markdown-Manager.user.js`, including its metadata header.
 4. Save and enable it. Alternatively, use the dashboard's file import utility to import the `.user.js`; check the imported name/version before enabling.
 5. Grant the extension permission for the intended chat sites and any userscript-execution permission required by the current browser. Follow Tampermonkey's prompt if the browser requires an additional setting.

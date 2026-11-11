@@ -14,7 +14,7 @@ const mdUrl = (url: string) =>
     .replace(/\)/g, "%29")
     .replace(/\s/g, "%20");
 export const needsEmbeddedMedia = (options: ExportOptions) =>
-  options.embedMedia;
+  options.embedMedia || options.mediaFiles;
 
 function visible(element: Element): boolean {
   for (let node: Element | null = element; node; node = node.parentElement) {
@@ -160,10 +160,26 @@ export async function embedMarkdownMedia(
         20_000,
       );
       try {
-        const response = await fetch(url, {
-          credentials: "include",
-          signal: controller.signal,
-        });
+        let response: Response;
+        try {
+          response = await fetch(url, {
+            credentials: "include",
+            signal: controller.signal,
+          });
+        } catch (error) {
+          // Public image CDNs commonly allow anonymous CORS but reject credentials.
+          // Keep authenticated attachment requests and cancellation unchanged.
+          if (
+            !image ||
+            parsed.origin === location.origin ||
+            controller.signal.aborted
+          )
+            throw error;
+          response = await fetch(url, {
+            credentials: "omit",
+            signal: controller.signal,
+          });
+        }
         if (!response.ok || response.type === "opaque")
           throw new Error(`HTTP ${response.status}`);
         const mime =
