@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import { useEffect, useId, useRef, useState } from "react";
-import { Check, ChevronDown, FileCode2, FileText } from "lucide-react";
+import { Check, ChevronDown, FileCode2, FileText, type LucideIcon } from "lucide-react";
 import type { ExportOptions } from "../types";
-const choices = [
+const formats = [
   { value: "markdown", label: "Markdown (.md)", Icon: FileText },
   { value: "html", label: "HTML (.html)", Icon: FileCode2 },
 ] as const;
@@ -15,19 +15,46 @@ export function FormatSelect({
   disabled?: boolean;
   onChange: (value: ExportOptions["format"]) => void;
 }) {
+  return (
+    <Dropdown
+      label="File format"
+      choices={formats}
+      value={value}
+      disabled={disabled}
+      onChange={onChange}
+    />
+  );
+}
+
+export function Dropdown<Value extends string | number>({
+  label,
+  choices,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  choices: readonly { value: Value; label: string; Icon?: LucideIcon }[];
+  value: Value;
+  disabled?: boolean;
+  onChange: (value: Value) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
-  const selected = choices.find((choice) => choice.value === value)!;
+  const selectedIndex = Math.max(0, choices.findIndex((choice) => choice.value === value));
+  const selected = choices[selectedIndex];
+  const activeIndex = Math.min(active, choices.length - 1);
   useEffect(() => {
+    if (!open) return;
     const outside = (event: PointerEvent) => {
       if (root.current && !event.composedPath().includes(root.current))
         setOpen(false);
     };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
-  }, []);
+  }, [open]);
   function choose(index: number) {
     onChange(choices[index].value);
     setOpen(false);
@@ -38,14 +65,14 @@ export function FormatSelect({
       <button
         type="button"
         role="combobox"
-        aria-label="File format"
+        aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls={id}
-        aria-activedescendant={open ? `${id}-${active}` : undefined}
+        aria-controls={open ? id : undefined}
+        aria-activedescendant={open ? `${id}-${activeIndex}` : undefined}
         disabled={disabled}
         onClick={() => {
-          setActive(choices.findIndex((choice) => choice.value === value));
+          setActive(selectedIndex);
           setOpen(!open);
         }}
         onKeyDown={(event) => {
@@ -55,15 +82,15 @@ export function FormatSelect({
               event.key === "Home"
                 ? 0
                 : event.key === "End"
-                  ? 1
+                  ? choices.length - 1
                   : !open
-                    ? choices.findIndex((choice) => choice.value === value)
-                    : (active + 1) % choices.length,
+                    ? selectedIndex
+                    : (activeIndex + (event.key === "ArrowDown" ? 1 : -1) + choices.length) % choices.length,
             );
             setOpen(true);
           } else if (open && (event.key === "Enter" || event.key === " ")) {
             event.preventDefault();
-            choose(active);
+            choose(activeIndex);
           } else if (open && event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
@@ -71,7 +98,7 @@ export function FormatSelect({
           } else if (event.key === "Tab") setOpen(false);
         }}
       >
-        <selected.Icon size={18} />
+        {selected.Icon && <selected.Icon size={18} />}
         <span>{selected.label}</span>
         <ChevronDown size={16} />
       </button>
@@ -79,7 +106,7 @@ export function FormatSelect({
         <div
           id={id}
           role="listbox"
-          aria-label="File format"
+          aria-label={label}
           className="format-options"
         >
           {choices.map(({ value: choice, label, Icon }, index) => (
@@ -90,12 +117,12 @@ export function FormatSelect({
               role="option"
               aria-selected={choice === value}
               tabIndex={-1}
-              className={active === index ? "active" : ""}
+              className={activeIndex === index ? "active" : ""}
               onPointerMove={() => setActive(index)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(index)}
             >
-              <Icon size={18} />
+              {Icon && <Icon size={18} />}
               <span>{label}</span>
               {choice === value && <Check size={16} />}
             </button>

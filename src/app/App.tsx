@@ -16,6 +16,8 @@ import {
   ListChecks,
   Settings2,
   ChevronDown,
+  Maximize2,
+  Minimize2,
   ArrowLeft,
   FileDown,
   ShieldCheck,
@@ -71,7 +73,6 @@ import { YouTubeCaptions } from "../components/YouTubeCaptions";
 type Screen =
   | "home"
   | "conversations"
-  | "export"
   | "archive"
   | "settings"
   | "activity"
@@ -81,6 +82,13 @@ interface Confirmation {
   items: Conversation[];
   all: boolean;
 }
+type ExportChoice = {
+  options: ExportOptions;
+  error?: string;
+} & (
+  | { kind: "current"; selection: boolean }
+  | { kind: "batch"; targets: Conversation[]; all: boolean }
+);
 function initialPosition(): Point {
   let old: Point | undefined;
   try {
@@ -114,7 +122,9 @@ export function App({
 }) {
   const [settings, setSettings] = useState(loadSettings);
   const [position, setPosition] = useState(initialPosition);
-  const [open, setOpen] = useState(false);
+  const [panelMode, setPanelMode] = useState<"closed" | "compact" | "expanded">("closed");
+  const open = panelMode !== "closed";
+  const expanded = panelMode === "expanded";
   const [hidden, setHidden] = useState(false);
   const [screen, setScreen] = useState<Screen>("home");
   const [items, setItems] = useState<Conversation[]>([]);
@@ -133,11 +143,7 @@ export function App({
     bundle?: PreparedDocument;
     error?: string;
   }>();
-  const [exportChoice, setExportChoice] = useState<{
-    selection: boolean;
-    options: ExportOptions;
-    error?: string;
-  }>();
+  const [exportChoice, setExportChoice] = useState<ExportChoice>();
   const [confirm, setConfirm] = useState<Confirmation>();
   const [phrase, setPhrase] = useState("");
   const [systemDark, setSystemDark] = useState(
@@ -158,8 +164,15 @@ export function App({
   const scanning = useRef(false);
   const operationLock = useRef(false);
   const operationAbort = useRef<AbortController | undefined>(undefined);
+  const lastExportOptions = useRef<ExportOptions | undefined>(undefined);
   const ru = settings.language === "ru";
   const t = (en: string, r: string) => (ru ? r : en);
+  const dismissPanel = useCallback(() => {
+    setPanelMode("closed");
+    fab.current?.focus();
+  }, []);
+  const togglePanel = () =>
+    setPanelMode((mode) => (mode === "closed" ? "compact" : "closed"));
   const notify = useCallback((text: string) => {
     setToast(text);
     clearTimeout(toastTimer.current);
@@ -262,7 +275,7 @@ export function App({
     };
   }, [settings.fabSize]);
   useLayoutEffect(() => {
-    if (!panel.current) return;
+    if (!panel.current || expanded) return;
     const observer = new ResizeObserver(([entry]) => {
       setPanelSize({
         width: entry.target.getBoundingClientRect().width,
@@ -271,7 +284,7 @@ export function App({
     });
     observer.observe(panel.current);
     return () => observer.disconnect();
-  }, [open, screen]);
+  }, [open, expanded, screen]);
   useEffect(() => {
     const outside = (e: PointerEvent) => {
       if (
@@ -282,7 +295,7 @@ export function App({
         !runner.running &&
         !e.composedPath().includes(host)
       )
-        setOpen(false);
+        setPanelMode("closed");
     };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
@@ -395,10 +408,8 @@ export function App({
   );
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !confirm && !preview && !exportChoice) {
-        setOpen(false);
-        fab.current?.focus();
-      }
+      if (e.key === "Escape" && open && !confirm && !preview && !exportChoice)
+        dismissPanel();
       if (
         !settings.shortcuts ||
         !e.altKey ||
@@ -410,7 +421,7 @@ export function App({
       if (e.code === "KeyE") {
         e.preventDefault();
         setHidden(false);
-        setOpen((v) => !v);
+        setPanelMode((mode) => (mode === "closed" ? "compact" : "closed"));
       } else if (e.code === "KeyM" && !confirm && !preview && !exportChoice) {
         e.preventDefault();
         void quick("save");
@@ -418,8 +429,12 @@ export function App({
     };
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
-  }, [settings.shortcuts, quick, confirm, preview, exportChoice]);
-  const execute = async (kind: OperationKind, targets: Conversation[]) => {
+  }, [settings.shortcuts, quick, confirm, preview, exportChoice, open, dismissPanel]);
+  const execute = async (
+    kind: OperationKind,
+    targets: Conversation[],
+    options = settings.export,
+  ) => {
     if (runner.running || busy || operationLock.current || !targets.length)
       return;
     if (kind !== "export" && adapter.capabilities[kind] !== "supported") {
@@ -429,15 +444,29 @@ export function App({
       return;
     }
     operationLock.current = true;
+    if (kind === "export") lastExportOptions.current = options;
     setBackedUp([]);
     setBackupChecked(false);
     const controller = new AbortController();
     operationAbort.current = controller;
     setBusy(true);
-    setOpen(true);
+    setPanelMode((mode) => (mode === "closed" ? "compact" : mode));
     setScreen("activity");
     const files: ExportFiles = new Map();
     const used = new Set<string>();
+    const addDocument = async (
+      c: Conversation,
+      exportOptions: ExportOptions,
+      signal: AbortSignal,
+    ) => {
+      const body = await adapter.exportConversation(c, exportOptions, signal);
+      const name = uniqueFilename(
+        filename(c, exportOptions.filename, exportOptions.format),
+        used,
+      );
+      const prepared = prepareDocument(body, c, exportOptions, name);
+      for (const [path, data] of prepared.files) files.set(path, data);
+    };
     const restore = adapter.beginExportSession?.();
     let needsRestore = kind === "export";
     try {
@@ -455,19 +484,7 @@ export function App({
             delayMs: settings.delayMs,
             batchSize: settings.batchSize,
           },
-          async (c, signal) => {
-            const body = await adapter.exportConversation(
-              c,
-              settings.export,
-              signal,
-            );
-            const name = uniqueFilename(
-              filename(c, settings.export.filename, settings.export.format),
-              used,
-            );
-            const prepared = prepareDocument(body, c, settings.export, name);
-            for (const [path, data] of prepared.files) files.set(path, data);
-          },
+          (c, signal) => addDocument(c, settings.export, signal),
           setProgress,
         );
         if (backup.state !== "completed")
@@ -502,19 +519,8 @@ export function App({
         },
         async (c, signal) => {
           controller.signal.throwIfAborted();
-          if (kind === "export") {
-            const body = await adapter.exportConversation(
-              c,
-              settings.export,
-              signal,
-            );
-            const name = uniqueFilename(
-              filename(c, settings.export.filename, settings.export.format),
-              used,
-            );
-            const prepared = prepareDocument(body, c, settings.export, name);
-            for (const [path, data] of prepared.files) files.set(path, data);
-          } else if (kind === "archive")
+          if (kind === "export") await addDocument(c, options, signal);
+          else if (kind === "archive")
             await adapter.archiveConversation(c, signal);
           else await adapter.deleteConversation(c, signal);
         },
@@ -524,12 +530,12 @@ export function App({
         download(
           makeZip(
             files,
-            settings.export.manifest
+            options.manifest
               ? {
                   version: "2.4.0",
-                  format: settings.export.format,
-                  embeddedMedia: settings.export.embedMedia,
-                  mediaFiles: settings.export.mediaFiles,
+                  format: options.format,
+                  embeddedMedia: !options.mediaFiles && options.embedMedia,
+                  mediaFiles: options.mediaFiles,
                   scope: "discovered DOM only; partial",
                   createdAt: new Date().toISOString(),
                   state: result.state,
@@ -541,7 +547,7 @@ export function App({
                 }
               : undefined,
           ),
-          `chat-${settings.export.format}-${Date.now()}.zip`,
+          `chat-${options.format}-${Date.now()}.zip`,
           "application/zip",
         );
         const successful = new Set(
@@ -593,11 +599,16 @@ export function App({
     targets: Conversation[],
     all = false,
   ) => {
+    if (busy || operationLock.current || !targets.length) return;
     if (kind === "export") {
-      void execute(kind, targets);
+      setExportChoice({
+        kind: "batch",
+        targets: targets.map((c) => ({ ...c })),
+        all,
+        options: { ...settings.export, embedMedia: true },
+      });
       return;
     }
-    if (busy || operationLock.current || !targets.length) return;
     setPhrase("");
     setConfirm({ kind, items: targets.map((c) => ({ ...c })), all });
   };
@@ -657,8 +668,9 @@ export function App({
       await scan();
     }
   };
-  function currentOptions(format = settings.export.format): ExportOptions {
+  function currentOptions(): ExportOptions {
     const current = items.find((item) => item.current);
+    const { format } = settings.export;
     return {
       ...settings.export,
       format,
@@ -682,7 +694,6 @@ export function App({
   const titles: Record<Screen, string> = {
     home: "Markdown Manager",
     conversations: t("Conversations", "Беседы"),
-    export: t("Export conversations", "Экспорт бесед"),
     archive: t("Archive conversations", "Архив бесед"),
     settings: t("Settings", "Настройки"),
     activity: t("Activity", "Операции"),
@@ -764,13 +775,13 @@ export function App({
             const d = drag.current;
             if (!d || d.pointer !== e.pointerId) return;
             drag.current = undefined;
-            if (!d.moved) setOpen((v) => !v);
+            if (!d.moved) togglePanel();
           }}
           onPointerCancel={() => {
             drag.current = undefined;
           }}
           onClick={(e) => {
-            if (e.detail === 0) setOpen((v) => !v);
+            if (e.detail === 0) togglePanel();
           }}
         >
           <FileDown size={21} />
@@ -781,8 +792,8 @@ export function App({
           ref={panel}
           role="region"
           aria-label="Markdown Manager panel"
-          className={`panel panel-${screen}`}
-          style={{ left: place.x, top: place.y }}
+          className={`panel panel-${screen}${expanded ? " panel-expanded" : ""}`}
+          style={expanded ? undefined : { left: place.x, top: place.y }}
         >
           <header className="panel-header">
             {screen === "home" ? (
@@ -807,10 +818,16 @@ export function App({
               </small>
             </div>
             <IconButton
-              label={t("Minimize", "Свернуть")}
-              onClick={() => setOpen(false)}
+              label={expanded ? t("Restore window", "Восстановить окно") : t("Expand window", "На весь экран")}
+              onClick={() => setPanelMode(expanded ? "compact" : "expanded")}
             >
-              <ChevronDown size={17} />
+              {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            </IconButton>
+            <IconButton
+              label={expanded ? t("Close window", "Закрыть окно") : t("Minimize", "Свернуть")}
+              onClick={dismissPanel}
+            >
+              {expanded ? <X size={17} /> : <ChevronDown size={17} />}
             </IconButton>
           </header>
           {screen === "home" && (
@@ -828,43 +845,18 @@ export function App({
                 <h3>{t("This chat", "Текущая беседа")}</h3>
                 <ActionRow
                   icon={Download}
-                  title={t(
-                    "Save current chat as Markdown",
-                    "Сохранить беседу в Markdown",
-                  )}
+                  title={t("Save Current Chat", "Сохранить текущую беседу")}
                   description={t(
-                    "Download the loaded conversation",
-                    "Скачать загруженную беседу",
+                    "Choose the format and how to include files",
+                    "Выберите формат и способ сохранения файлов",
                   )}
-                  shortcut={
-                    settings.export.format === "markdown" ? "⌥⇧ M" : undefined
-                  }
+                  shortcut="⌥⇧ M"
                   disabled={busy}
                   onClick={(e) =>
                     setExportChoice({
+                      kind: "current",
                       selection: e.shiftKey,
-                      options: currentOptions("markdown"),
-                    })
-                  }
-                />
-                <ActionRow
-                  icon={FileDown}
-                  title={t(
-                    "Save current chat as HTML",
-                    "Сохранить беседу в HTML",
-                  )}
-                  description={t(
-                    "Choose whether to embed media and input files",
-                    "Выберите, встраивать ли медиа и входные файлы",
-                  )}
-                  shortcut={
-                    settings.export.format === "html" ? "⌥⇧ M" : undefined
-                  }
-                  disabled={busy}
-                  onClick={(e) =>
-                    setExportChoice({
-                      selection: e.shiftKey,
-                      options: currentOptions("html"),
+                      options: currentOptions(),
                     })
                   }
                 />
@@ -894,6 +886,7 @@ export function App({
                   disabled={busy}
                   onClick={() =>
                     setExportChoice({
+                      kind: "current",
                       selection: true,
                       options: currentOptions(),
                     })
@@ -902,12 +895,13 @@ export function App({
                 <h3>{t("Library", "Библиотека")}</h3>
                 <ActionRow
                   icon={Files}
-                  title={t("Export all conversations", "Экспорт бесед")}
+                  title={t("Export All", "Экспорт всех")}
                   description={t(
                     "ZIP backup of discovered, loaded content",
                     "ZIP-копия доступного содержимого",
                   )}
-                  onClick={() => setScreen("export")}
+                  disabled={busy || !items.length}
+                  onClick={() => requestAction("export", items, true)}
                 />
                 <ActionRow
                   icon={Archive}
@@ -956,7 +950,7 @@ export function App({
                   <button
                     onClick={() => {
                       setHidden(true);
-                      setOpen(false);
+                      setPanelMode("closed");
                       notify(
                         t(
                           "Hidden. Restore with Alt + Shift + E or reload the page.",
@@ -1010,80 +1004,16 @@ export function App({
               onReset={reset}
             />
           )}
-          {(screen === "export" || screen === "archive") && (
+          {screen === "archive" && (
             <div className="detail-body scroll-area">
               <span className="hero-icon">
-                {screen === "export" ? (
-                  <Files size={28} />
-                ) : (
-                  <Archive size={28} />
-                )}
+                <Archive size={28} />
               </span>
-              <h2>
-                {screen === "export"
-                  ? t(
-                      `Your conversations, in ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
-                      `Ваши беседы в ${settings.export.format === "html" ? "HTML" : "Markdown"}`,
-                    )
-                  : t("Back up or archive", "Копия или архив")}
-              </h2>
+              <h2>{t("Back up or archive", "Копия или архив")}</h2>
               <p>
                 {t(
                   "ChatGPT, Gemini and Claude exports open selected chats sequentially, wait for messages, and return to the starting chat. Keep this tab open until finished. Loading may mark chats read. Discovery and loaded message history can be partial; unavailable chats are listed in the report.",
                   "Экспорт ChatGPT, Gemini и Claude по очереди открывает выбранные беседы, ждёт сообщения и возвращается к исходной. Держите вкладку открытой до завершения. Беседы могут помечаться прочитанными. История может быть частичной; недоступные беседы указаны в отчёте.",
-                )}
-              </p>
-              <label>
-                {t("File format", "Формат файла")}
-                <FormatSelect
-                  disabled={busy}
-                  value={settings.export.format}
-                  onChange={(format) =>
-                    setSettings((s) => ({
-                      ...s,
-                      export: {
-                        ...s.export,
-                        format: format,
-                        embedMedia: format === "html" || s.export.embedMedia,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <Toggle
-                label={t(
-                  "Save ZIP with separate media and input files",
-                  "Сохранить ZIP с медиа и входными файлами",
-                )}
-                checked={settings.export.mediaFiles}
-                disabled={busy}
-                onChange={(mediaFiles) =>
-                  setSettings((s) => ({
-                    ...s,
-                    export: { ...s.export, mediaFiles },
-                  }))
-                }
-              />
-              <Toggle
-                label={t(
-                  "Embed media and input files",
-                  "Встраивать медиа и входные файлы",
-                )}
-                checked={
-                  !settings.export.mediaFiles && settings.export.embedMedia
-                }
-                disabled={busy || settings.export.mediaFiles}
-                onChange={(embedMedia) =>
-                  setSettings((s) => ({
-                    ...s,
-                    export: { ...s.export, embedMedia },
-                  }))
-                }
-              />
-              <p className="hint">
-                {t(
-                  "Enable embedding for offline media and input files. With embedding off, external links require internet and may expire. Inaccessible included files fail an embedded backup and exclude it from cleanup.",
-                  "Включите встраивание для офлайн-медиа и входных файлов. Без него внешним ссылкам нужен интернет, и они могут истечь. Недоступный файл прерывает встроенную копию и исключает беседу из очистки.",
                 )}
               </p>
               <div className="summary-grid">
@@ -1108,14 +1038,14 @@ export function App({
                 onClick={() => requestAction("export", items, true)}
               >
                 <Download size={16} />
-                {t("Download discovered as ZIP", "Скачать обнаруженные в ZIP")}
+                {t("Export All", "Экспорт всех")}
               </button>
               <button
                 className="wide"
                 disabled={busy || !exportPicked.length}
                 onClick={() => requestAction("export", exportPicked)}
               >
-                {t("Export selected as ZIP", "Выбранные в ZIP")}
+                {t("Export selected", "Экспорт выбранных")}
               </button>
               <button
                 className="wide"
@@ -1123,33 +1053,31 @@ export function App({
               >
                 {t("Choose conversations", "Выбрать беседы")}
               </button>
-              {screen === "archive" && (
-                <div className="notice">
-                  <strong>
-                    {t("Native archive", "Архив платформы")}:{" "}
-                    {adapter.capabilities.archive}
-                  </strong>
-                  <p>
-                    {t(
-                      "ChatGPT archive moves discovered chats out of the sidebar. You can restore them from ChatGPT Settings → Data controls → Archived chats. Gemini has no native archive control: download its offline ZIP here, verify it, then delete successfully backed-up chats from the review screen.",
-                      "Архивация ChatGPT убирает беседы из боковой панели. Восстановить их можно в настройках ChatGPT → Управление данными → Архивированные чаты. В Gemini нет нативного архива: скачайте ZIP, проверьте его и удалите успешно скопированные беседы через список проверки.",
-                    )}
-                  </p>
-                  <button
-                    disabled={
-                      busy ||
-                      adapter.capabilities.archive !== "supported" ||
-                      !exportPicked.length
-                    }
-                    onClick={() => requestAction("archive", exportPicked)}
-                  >
-                    {t(
-                      "Archive selected on platform",
-                      "Архивировать выбранные",
-                    )}
-                  </button>
-                </div>
-              )}
+              <div className="notice">
+                <strong>
+                  {t("Native archive", "Архив платформы")}:{" "}
+                  {adapter.capabilities.archive}
+                </strong>
+                <p>
+                  {t(
+                    "ChatGPT archive moves discovered chats out of the sidebar. You can restore them from ChatGPT Settings → Data controls → Archived chats. Gemini has no native archive control: download its offline ZIP here, verify it, then delete successfully backed-up chats from the review screen.",
+                    "Архивация ChatGPT убирает беседы из боковой панели. Восстановить их можно в настройках ChatGPT → Управление данными → Архивированные чаты. В Gemini нет нативного архива: скачайте ZIP, проверьте его и удалите успешно скопированные беседы через список проверки.",
+                  )}
+                </p>
+                <button
+                  disabled={
+                    busy ||
+                    adapter.capabilities.archive !== "supported" ||
+                    !exportPicked.length
+                  }
+                  onClick={() => requestAction("archive", exportPicked)}
+                >
+                  {t(
+                    "Archive selected on platform",
+                    "Архивировать выбранные",
+                  )}
+                </button>
+              </div>
               <div className="capabilities">
                 <h3>{t("Platform capabilities", "Возможности платформы")}</h3>
                 {Object.entries(adapter.capabilities).map(([key, value]) => (
@@ -1222,6 +1150,7 @@ export function App({
                     void execute(
                       "export",
                       items.filter((c) => failed.has(conversationKey(c))),
+                      lastExportOptions.current,
                     );
                   }}
                 >
@@ -1369,12 +1298,39 @@ export function App({
       )}
       {exportChoice && (
         <Dialog
-          title={t("Export options", "Настройки экспорта")}
+          title={
+            exportChoice.kind === "current"
+              ? t("Export options", "Настройки экспорта")
+              : exportChoice.all
+                ? t("Export All", "Экспорт всех")
+                : t("Export selected", "Экспорт выбранных")
+          }
           onClose={() => {
             operationAbort.current?.abort();
             setExportChoice(undefined);
           }}
         >
+          {exportChoice.kind === "batch" && (
+            <p>
+              {exportChoice.all
+                ? t(
+                    `${exportChoice.targets.length} discovered chats. Discovery and loaded history may be partial.`,
+                    `Обнаружено бесед: ${exportChoice.targets.length}. Список и загруженная история могут быть неполными.`,
+                  )
+                : t(
+                    `Selected chats: ${exportChoice.targets.length}.`,
+                    `Выбрано бесед: ${exportChoice.targets.length}.`,
+                  )}
+            </p>
+          )}
+          {exportChoice.kind === "batch" && (
+            <p className="hint">
+              {t(
+                "Keep this tab open. Loading chats for export may mark them read.",
+                "Держите вкладку открытой. Загруженные для экспорта беседы могут помечаться прочитанными.",
+              )}
+            </p>
+          )}
           <label>
             {t("File format", "Формат файла")}
             <FormatSelect
@@ -1398,7 +1354,9 @@ export function App({
             [
               [
                 "mediaFiles",
-                "Save ZIP with separate media and input files",
+                exportChoice.kind === "batch"
+                  ? "Include media and input files separately in ZIP"
+                  : "Save ZIP with separate media and input files",
                 "Сохранить ZIP с медиа и входными файлами",
               ],
               [
@@ -1438,8 +1396,8 @@ export function App({
           <p className="hint">
             {exportChoice.options.mediaFiles
               ? t(
-                  "ZIP includes the document and separate assets. Extract the whole ZIP before opening; source links still need internet.",
-                  "ZIP содержит документ и отдельные файлы. Распакуйте весь архив перед открытием; внешним ссылкам нужен интернет.",
+                  "Extract the whole ZIP before opening a document so it can load its assets. Source links still need internet.",
+                  "Распакуйте весь ZIP перед открытием документа, чтобы он мог загрузить файлы. Для внешних ссылок нужен интернет.",
                 )
               : exportChoice.options.embedMedia
                 ? t(
@@ -1452,36 +1410,43 @@ export function App({
                   )}
           </p>
           {busy && <ExportProgress label={exportStage} />}
-          <label>
-            {t("Filename", "Имя файла")}
-            <input
-              aria-label="Filename"
-              disabled={busy}
-              value={exportChoice.options.filename}
-              onChange={(e) =>
-                setExportChoice({
-                  ...exportChoice,
-                  options: {
-                    ...exportChoice.options,
-                    filename: e.target.value.replace(/\.(html|md|zip)$/i, ""),
-                  },
-                })
-              }
-            />
-            <small>
-              .
-              {exportChoice.options.mediaFiles
-                ? "zip"
-                : exportChoice.options.format === "html"
-                  ? "html"
-                  : "md"}
-            </small>
-          </label>
+          {exportChoice.kind === "current" && (
+            <label>
+              {t("Filename", "Имя файла")}
+              <input
+                aria-label="Filename"
+                disabled={busy}
+                value={exportChoice.options.filename}
+                onChange={(e) =>
+                  setExportChoice({
+                    ...exportChoice,
+                    options: {
+                      ...exportChoice.options,
+                      filename: e.target.value.replace(/\.(html|md|zip)$/i, ""),
+                    },
+                  })
+                }
+              />
+              <small>
+                .
+                {exportChoice.options.mediaFiles
+                  ? "zip"
+                  : exportChoice.options.format === "html"
+                    ? "html"
+                    : "md"}
+              </small>
+            </label>
+          )}
           {exportChoice.error && <p role="alert">{exportChoice.error}</p>}
           <button
             className="primary"
             disabled={busy}
             onClick={async () => {
+              if (exportChoice.kind === "batch") {
+                setExportChoice(undefined);
+                void execute("export", exportChoice.targets, exportChoice.options);
+                return;
+              }
               const result = await quick(
                 exportChoice.selection ? "selection" : "save",
                 exportChoice.options,
@@ -1493,10 +1458,11 @@ export function App({
                 );
             }}
           >
-            {t(
-              `Download ${exportChoice.options.mediaFiles ? "ZIP" : exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
-              `Скачать ${exportChoice.options.mediaFiles ? "ZIP" : exportChoice.options.format === "html" ? "HTML" : "Markdown"}`,
-            )}
+            {exportChoice.kind === "batch" || exportChoice.options.mediaFiles
+              ? t("Download ZIP", "Скачать ZIP")
+              : exportChoice.options.format === "html"
+                ? t("Download HTML", "Скачать HTML")
+                : t("Download Markdown", "Скачать Markdown")}
           </button>
         </Dialog>
       )}

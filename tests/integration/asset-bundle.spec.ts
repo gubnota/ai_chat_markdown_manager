@@ -73,7 +73,7 @@ for (const platform of [
         .click();
       await page
         .getByRole("button", {
-          name: "Save current chat as Markdown",
+          name: "Save Current Chat",
           exact: false,
         })
         .click();
@@ -127,6 +127,10 @@ for (const platform of [
         const batchDownload = page.waitForEvent("download");
         await page
           .getByRole("button", { name: "Export selected", exact: true })
+          .click();
+        await page
+          .getByRole("dialog", { name: "Export selected" })
+          .getByRole("button", { name: "Download ZIP", exact: true })
           .click();
         const batch = unzipSync(
           readFileSync((await (await batchDownload).path())!),
@@ -262,11 +266,13 @@ test("public image CDN with anonymous-only CORS exports exact pixels", async ({
     .getByRole("button", { name: "Open Markdown Manager", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Save current chat as HTML", exact: false })
+    .getByRole("button", { name: "Save Current Chat", exact: false })
     .click();
+  const choice = page.getByRole("dialog", { name: "Export options" });
+  await choice.getByRole("combobox", { name: "File format" }).click();
+  await choice.getByRole("option", { name: "HTML (.html)", exact: true }).click();
   const downloaded = page.waitForEvent("download");
-  await page
-    .getByRole("dialog", { name: "Export options" })
+  await choice
     .getByRole("button", { name: "Download HTML", exact: true })
     .click();
   const source = readFileSync((await (await downloaded).path())!, "utf8");

@@ -21,6 +21,7 @@ import {
   type Filters,
 } from "../utils/selection";
 import { IconButton } from "./primitives";
+import { Dropdown } from "./FormatSelect";
 export function Conversations({
   items,
   selected,
@@ -70,8 +71,8 @@ export function Conversations({
   }, [limit, filtered.length]);
   const picked = items.filter((c) => selected.has(conversationKey(c)));
   const t = (en: string, r: string) => (ru ? r : en);
-  const field = (key: keyof Filters, value: string | number) => {
-    setFilters({ ...filters, [key]: value });
+  const field = <Key extends keyof Filters>(key: Key, value: Filters[Key]) => {
+    setFilters((current) => ({ ...current, [key]: value }));
     setLimit(24);
   };
   return (
@@ -90,44 +91,49 @@ export function Conversations({
           </IconButton>
         </div>
         <div className="filters">
-          <select
-            aria-label="Platform filter"
+          <Dropdown
+            label={t("Platform filter", "Фильтр платформ")}
             value={filters.platform}
-            onChange={(e) => field("platform", e.target.value)}
-          >
-            <option value="all">{t("All platforms", "Все платформы")}</option>
-            {[...new Set(items.map((c) => c.platform))].map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-          <select
-            aria-label="Status filter"
+            choices={[
+              { value: "all", label: t("All platforms", "Все платформы") },
+              ...[...new Set(items.map((c) => c.platform))].map((platform) => ({
+                value: platform,
+                label: platform,
+              })),
+            ]}
+            onChange={(platform) => field("platform", platform)}
+          />
+          <Dropdown
+            label={t("Status filter", "Фильтр статусов")}
             value={filters.status}
-            onChange={(e) => field("status", e.target.value)}
-          >
-            <option value="all">{t("All statuses", "Все статусы")}</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="unknown">Unknown</option>
-          </select>
-          <select
-            aria-label="Date filter"
+            choices={[
+              { value: "all", label: t("All statuses", "Все статусы") },
+              { value: "active", label: t("Active", "Активные") },
+              { value: "archived", label: t("Archived", "Архивные") },
+              { value: "unknown", label: t("Unknown", "Неизвестно") },
+            ]}
+            onChange={(status) => field("status", status)}
+          />
+          <Dropdown
+            label={t("Date filter", "Фильтр по дате")}
             value={filters.days}
-            onChange={(e) => field("days", +e.target.value)}
-          >
-            <option value="0">{t("Any date", "Любая дата")}</option>
-            <option value="7">7 days</option>
-            <option value="30">30 days</option>
-          </select>
-          <select
-            aria-label="Sort conversations"
+            choices={[
+              { value: 0, label: t("Any date", "Любая дата") },
+              { value: 7, label: t("7 days", "7 дней") },
+              { value: 30, label: t("30 days", "30 дней") },
+            ]}
+            onChange={(days) => field("days", days)}
+          />
+          <Dropdown
+            label={t("Sort conversations", "Сортировка бесед")}
             value={filters.sort}
-            onChange={(e) => field("sort", e.target.value)}
-          >
-            <option value="newest">{t("Newest", "Новые")}</option>
-            <option value="oldest">{t("Oldest", "Старые")}</option>
-            <option value="title">{t("Title A–Z", "По названию")}</option>
-          </select>
+            choices={[
+              { value: "newest", label: t("Newest", "Новые") },
+              { value: "oldest", label: t("Oldest", "Старые") },
+              { value: "title", label: t("Title A–Z", "По названию") },
+            ]}
+            onChange={(sort) => field("sort", sort)}
+          />
         </div>
         <div className="selection-tools">
           <button
@@ -327,7 +333,7 @@ export function Conversations({
             disabled={!items.length || busy}
             onClick={() => onAction("export", items, true)}
           >
-            {t("ZIP all discovered", "ZIP обнаруженных")}
+            {t("Export All", "Экспорт всех")}
           </button>
           <button
             disabled={

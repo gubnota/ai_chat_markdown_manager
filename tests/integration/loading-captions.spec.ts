@@ -77,6 +77,10 @@ test("Gemini start page is excluded from ZIP and stale selections; batch restore
   await page
     .getByRole("button", { name: "Export selected", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
   const file = await downloaded;
   const archive = unzipSync(readFileSync((await file.path())!));
   const report = JSON.parse(strFromU8(archive["manifest.json"]));
@@ -108,6 +112,10 @@ test("post-backup review includes only successful exports and clears before a fa
   const downloaded = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Export selected", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
     .click();
   const file = await downloaded;
   const archive = unzipSync(readFileSync((await file.path())!));
@@ -146,6 +154,10 @@ for (const platform of ["gemini", "chatgpt", "claude"]) {
     await page
       .getByRole("button", { name: "Export selected", exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Export selected" })
+      .getByRole("button", { name: "Download ZIP", exact: true })
+      .click();
     const file = await downloaded;
     const archive = unzipSync(readFileSync((await file.path())!));
     const docs = Object.entries(archive)
@@ -181,6 +193,10 @@ test("cancel during loading skips remaining chats and restores original without 
   page.on("download", (file) => downloads.push(file.suggestedFilename()));
   await page
     .getByRole("button", { name: "Export selected", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
     .click();
   await expect(page).toHaveURL(/\/c\/two$/);
   await page

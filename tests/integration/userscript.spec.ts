@@ -50,7 +50,27 @@ test("FAB drag, expand, collapse, dismiss, restore and persisted anchor", async 
   await open(page);
   await page.getByRole("button", { name: "Settings", exact: false }).click();
   await page.getByRole("button", { name: "Back", exact: true }).click();
-  await page.getByRole("button", { name: "Minimize", exact: true }).click();
+  const panel = page.getByRole("region", { name: "Markdown Manager panel" });
+  const fab = page.getByRole("button", { name: "Open Markdown Manager" });
+  const viewport = page.viewportSize()!;
+  await page.getByRole("button", { name: "Expand window" }).click();
+  await expect.poll(() => panel.boundingBox()).toEqual({
+    x: 0,
+    y: 0,
+    ...viewport,
+  });
+  await page.getByRole("button", { name: "Restore window" }).click();
+  await expect(page.getByRole("button", { name: "Expand window" })).toBeVisible();
+  await expect.poll(async () => (await panel.boundingBox())!.width).toBeLessThan(viewport.width);
+  await page.getByRole("button", { name: "Expand window" }).click();
+  await page.getByRole("button", { name: "Close window" }).click();
+  await expect(panel).toBeHidden();
+  await expect(fab).toBeFocused();
+  await open(page);
+  await page.getByRole("button", { name: "Expand window" }).click();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(fab).toBeFocused();
   expect(await anchor(page)).toEqual(moved);
   await open(page);
   await page.getByRole("button", { name: "Hide overlay" }).click();
@@ -117,14 +137,24 @@ test("real discovery, persistent multi-selection, search, filters and sort", asy
   await expect(root(page).locator(".conversation")).toHaveCount(1);
   await expect(root(page).locator(".counts")).toContainText("2 selected");
   await page.getByRole("textbox", { name: "Search conversations" }).fill("");
-  await page.getByLabel("Sort conversations").selectOption("title");
+  const sort = page.getByRole("combobox", { name: "Sort conversations" });
+  await sort.press("End");
+  await sort.press("Enter");
   const titles = await root(page)
     .locator(".conversation-copy strong")
     .allTextContents();
   expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b)));
-  await page.getByLabel("Status filter").selectOption("archived");
+  const status = page.getByRole("combobox", { name: "Status filter" });
+  await status.click();
+  await page.getByRole("option", { name: "Archived", exact: true }).click();
   await expect(root(page).locator(".empty")).toBeVisible();
-  await page.getByLabel("Status filter").selectOption("all");
+  await status.press("ArrowUp");
+  await expect(status).toHaveAttribute("aria-expanded", "true");
+  await status.press("Escape");
+  await expect(status).toHaveAttribute("aria-expanded", "false");
+  await expect(status).toBeFocused();
+  await status.press("Home");
+  await status.press("Enter");
   await page.reload();
   await page.addScriptTag({ path: bundle });
   await manager(page);
@@ -174,7 +204,7 @@ test("downloaded Markdown and bulk ZIP contain genuine loaded content and failur
   await open(page);
   const singleEvent = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Save current chat as Markdown" })
+    .getByRole("button", { name: "Save Current Chat" })
     .click();
   await page
     .getByRole("dialog", { name: "Export options" })
@@ -187,7 +217,11 @@ test("downloaded Markdown and bulk ZIP contain genuine loaded content and failur
   expect(text).not.toContain("Manage conversations");
   await page.getByRole("button", { name: "Manage conversations" }).click();
   const zipEvent = page.waitForEvent("download");
-  await page.getByRole("button", { name: "ZIP all discovered" }).click();
+  await page.getByRole("button", { name: "Export All", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Export All" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
   const archive = await zipEvent;
   const entries = unzipSync(readFileSync((await archive.path())!));
   const names = Object.keys(entries).filter((n) => n.endsWith(".md"));
@@ -239,7 +273,7 @@ test("ZIP retains genuine exported conversations across SPA navigation", async (
   await open(page);
   const first = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Save current chat as Markdown" })
+    .getByRole("button", { name: "Save Current Chat" })
     .click();
   await page
     .getByRole("dialog", { name: "Export options" })
@@ -254,7 +288,7 @@ test("ZIP retains genuine exported conversations across SPA navigation", async (
   });
   const second = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Save current chat as Markdown" })
+    .getByRole("button", { name: "Save Current Chat" })
     .click();
   await page
     .getByRole("dialog", { name: "Export options" })
@@ -263,7 +297,15 @@ test("ZIP retains genuine exported conversations across SPA navigation", async (
   await second;
   await page.getByRole("button", { name: "Manage conversations" }).click();
   const zipEvent = page.waitForEvent("download");
-  await page.getByRole("button", { name: "ZIP all discovered" }).click();
+  await page.getByRole("button", { name: "Export All", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Export All" })
+    .getByRole("switch", { name: "Embed media and input files" })
+    .uncheck();
+  await page
+    .getByRole("dialog", { name: "Export All" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
   const archive = await zipEvent;
   const entries = unzipSync(readFileSync((await archive.path())!));
   const markdown = Object.keys(entries)

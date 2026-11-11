@@ -4,7 +4,7 @@
 | --- | --- |
 | `src/main.tsx` | Top-frame mount, duplicate guard, injected styles and React root |
 | `src/app/App.tsx` | Screens, lifecycle, shortcuts, FAB, dialogs, operation orchestration, successful-export review |
-| `src/components/FormatSelect.tsx` | Styled keyboard format selector and export progress |
+| `src/components/FormatSelect.tsx` | Styled keyboard dropdown for file format and conversation filters, plus export progress |
 | `src/components/primitives.tsx` | Reusable buttons, toggles and focus-managed dialog |
 | `src/components/Conversations.tsx` | Filtering, stable selection, scroll loading and row actions |
 | `src/components/YouTubeCaptions.tsx` | Automatic video-language discovery, direct TXT/VTT downloads, optional import |

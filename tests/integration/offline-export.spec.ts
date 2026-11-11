@@ -45,7 +45,7 @@ for (const platform of ["chatgpt", "gemini"] as const) {
           contentType: "text/html",
           body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline fixture</title>
         <main><form>Unrelated pane</form></main><main><button>Other controls</button></main><aside><a href="${prefix}one">Chat one</a><a href="${prefix}two">Chat two</a></aside><main></main><script>
-        localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{format:'${format}',embedMedia:true}}));
+        localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{format:'${format}',embedMedia:false}}));
         function render(id) {
           const body = '<p>UNIQUE-'+id+'</p><img alt="Map '+id+'" src="/assets/'+id+'.png"><audio controls src="/assets/'+id+'.wav"></audio><div class="attachment-card" data-file-name="'+id+'.csv"><a href="/assets/'+id+'.csv">'+id+'.csv</a></div><pre><code class="language-js">const value = 42;</code></pre><table><tr><th>A</th></tr><tr><td>42</td></tr></table><a href="https://example.com/help">Source help</a>';
           document.querySelectorAll('main')[2].innerHTML = ${platform === "gemini" ? "'<user-query>Prompt '+id+'</user-query><model-response>'+body+'</model-response>'" : '\'<div aria-label="Conversation"><div data-talvt-turn-state="complete"><div><h4 data-conversation-role="user">You said:</h4><div data-content-search-unit-key="fallback-turn-0:0:user">Prompt \'+id+\'</div></div><div data-content-search-unit-key="fallback-turn-0:2:assistant"><h4 data-conversation-role="assistant">ChatGPT said:</h4>\'+body+\'</div></div></div>\''};
@@ -63,13 +63,13 @@ for (const platform of ["chatgpt", "gemini"] as const) {
         .click();
       const currentDownload = page.waitForEvent("download");
       await page
-        .getByRole("button", {
-          name: `Save current chat as ${format === "html" ? "HTML" : "Markdown"}`,
-          exact: false,
-        })
+        .getByRole("button", { name: "Save Current Chat" })
         .click();
-      await page
-        .getByRole("dialog", { name: "Export options" })
+      const currentChoice = page.getByRole("dialog", { name: "Export options" });
+      await currentChoice
+        .getByRole("switch", { name: "Embed media and input files" })
+        .check();
+      await currentChoice
         .getByRole("button", {
           name: format === "html" ? "Download HTML" : "Download Markdown",
           exact: true,
@@ -94,6 +94,10 @@ for (const platform of ["chatgpt", "gemini"] as const) {
       await page
         .getByRole("button", { name: "Export selected", exact: true })
         .click();
+      await page
+        .getByRole("dialog", { name: "Export selected" })
+        .getByRole("button", { name: "Download ZIP", exact: true })
+        .click();
       const archive = unzipSync(
         readFileSync((await (await zipDownload).path())!),
       );
@@ -108,12 +112,60 @@ for (const platform of ["chatgpt", "gemini"] as const) {
         .filter(([name]) => name.endsWith(format === "html" ? ".html" : ".md"))
         .map(([, bytes]) => strFromU8(bytes));
       expect(docs).toHaveLength(2);
-      const second = docs.find((text) => text.includes("UNIQUE-two"))!;
-      expect(second).toContain(
-        `data:application/octet-stream;base64,${Buffer.from("exact input bytes /assets/two.csv").toString("base64")}`,
-      );
-      expect(second).not.toContain("UNIQUE-one");
+      for (const id of ["one", "two"]) {
+        const document = docs.find((text) => text.includes(`UNIQUE-${id}`))!;
+        expect(document).toContain(`data:image/png;base64,${png}`);
+        expect(document).toContain(`data:audio/wav;base64,${wav.toString("base64")}`);
+        expect(document).toContain(
+          `data:application/octet-stream;base64,${Buffer.from(`exact input bytes /assets/${id}.csv`).toString("base64")}`,
+        );
+        expect(document).not.toContain(`https://${host}/assets/`);
+      }
       await expect(page).toHaveURL(`https://${host}${prefix}one`);
+
+      await page.getByRole("button", { name: "Back", exact: true }).click();
+      await page.getByRole("button", { name: "Export All" }).click();
+      const allChoice = page.getByRole("dialog", { name: "Export All" });
+      const separate = allChoice.getByRole("switch", {
+        name: "Include media and input files separately in ZIP",
+      });
+      const embed = allChoice.getByRole("switch", {
+        name: "Embed media and input files",
+      });
+      await expect(embed).toBeChecked();
+      expect((await separate.boundingBox())!.y).toBeLessThan((await embed.boundingBox())!.y);
+      await separate.check();
+      await expect(embed).toBeDisabled();
+      const allDownload = page.waitForEvent("download");
+      await allChoice.getByRole("button", { name: "Download ZIP" }).click();
+      const allArchive = unzipSync(readFileSync((await (await allDownload).path())!));
+      expect(JSON.parse(strFromU8(allArchive["manifest.json"]))).toMatchObject({
+        total: 2,
+        completed: 2,
+        failed: 0,
+        format,
+        embeddedMedia: false,
+        mediaFiles: true,
+      });
+      for (const id of ["one", "two"]) {
+        const suffix = format === "html" ? ".html" : ".md";
+        const [name, bytes] = Object.entries(allArchive).find(
+          ([entry, data]) => entry.endsWith(suffix) && strFromU8(data).includes(`UNIQUE-${id}`),
+        )!;
+        const path = `assets/${name.slice(0, -suffix.length)}/`;
+        const body = strFromU8(bytes);
+        for (const [extension, expected] of [
+          [".png", Buffer.from(png, "base64")],
+          [".wav", wav],
+          [".csv", Buffer.from(`exact input bytes /assets/${id}.csv`)],
+        ] as const) {
+          const asset = Object.keys(allArchive).find((entry) =>
+            entry.startsWith(path) && entry.endsWith(extension),
+          )!;
+          expect(body).toContain(asset.split("/").map(encodeURIComponent).join("/"));
+          expect(Buffer.from(allArchive[asset])).toEqual(expected);
+        }
+      }
       if (format === "html") {
         const offline = await context.newPage();
         await context.setOffline(true);
@@ -122,7 +174,7 @@ for (const platform of ["chatgpt", "gemini"] as const) {
           if (/^https?:/.test(request.url())) requests.push(request.url());
         });
         const offlinePath = testInfo.outputPath("offline-conversation.html");
-        writeFileSync(offlinePath, second);
+        writeFileSync(offlinePath, docs.find((text) => text.includes("UNIQUE-two"))!);
         await offline.goto(pathToFileURL(offlinePath).href);
         await expect(
           offline.getByRole("heading", { name: "Assistant", exact: true }),
@@ -210,6 +262,11 @@ for (const platform of [
       .getByRole("button", { name: "Open Markdown Manager", exact: true })
       .click();
     const choice = page.getByRole("dialog", { name: "Export options" });
+    const formatChoice = choice.getByRole("combobox", { name: "File format" });
+    const chooseHtml = async () => {
+      await formatChoice.click();
+      await choice.getByRole("option", { name: "HTML (.html)", exact: true }).click();
+    };
     const choiceEmbed = choice.getByRole("switch", {
       name: "Embed media and input files",
     });
@@ -219,8 +276,9 @@ for (const platform of [
     );
     // No export capture or download occurs until the user confirms the choices.
     await page
-      .getByRole("button", { name: "Save current chat as HTML", exact: false })
+      .getByRole("button", { name: "Save Current Chat", exact: false })
       .click();
+    await chooseHtml();
     await expect(choiceEmbed).toBeChecked();
     await expect(choiceEmbed).toBeEnabled();
     const beforeCancel = captureRequests;
@@ -232,14 +290,12 @@ for (const platform of [
         const label = format === "html" ? "HTML" : "Markdown";
         const before = captureRequests;
         await page
-          .getByRole("button", {
-            name: `Save current chat as ${label}`,
-            exact: false,
-          })
+          .getByRole("button", { name: "Save Current Chat" })
           .click();
-        await expect(
-          choice.getByRole("combobox", { name: "File format" }),
-        ).toContainText(format === "html" ? "HTML (.html)" : "Markdown (.md)");
+        if (format === "html") await chooseHtml();
+        await expect(formatChoice).toContainText(
+          format === "html" ? "HTML (.html)" : "Markdown (.md)",
+        );
         await expect(choiceEmbed).toBeEnabled();
         await choiceEmbed.setChecked(embedded);
         expect(captureRequests).toBe(before);
@@ -284,8 +340,9 @@ for (const platform of [
       p.textContent = "Changed direct export content";
     });
     await page
-      .getByRole("button", { name: "Save current chat as HTML", exact: false })
+      .getByRole("button", { name: "Save Current Chat", exact: false })
       .click();
+    await chooseHtml();
     await choice
       .getByRole("button", { name: "Download HTML", exact: true })
       .click();

@@ -111,3 +111,10 @@
 - User requested purging the generated userscript from history too; ignore local output and document source builds. The new source-only distribution decision supersedes the tracked-script part of ADR-0017.
 - Verification: 120 unit tests, 165 browser cases, lint/types/build and release integrity passed. Anonymous-only image CDN retry is covered in Chromium and desktop/mobile WebKit; authenticated files never retry anonymously. Final Safari export of the supplied chat still fails on an inaccessible external image; complete offline capture is not claimed. A Web Inspector diagnostic was accidentally submitted to that chat; no cleanup was performed.
 - Purged the exact dist userscript path from all reachable Git history (including local checkpoint refs), preserved the local build and unrelated working changes, and pushed rewritten main with an explicit remote lease.
+
+## 2026-11-12 — Bulk export options and expanded manager
+
+- Save Current Chat, Export selected and Export All share format and media options. Bulk exports embed supported resources by default and can also put media and input files into separate ZIP entries. Each document has its own asset directory even when long filenames collide.
+- Reused the keyboard-accessible dropdown for conversation filters and added full-window expansion, restore, X and Escape.
+- Verification passed for 121 unit tests and 165 browser cases across Chromium and desktop and mobile WebKit, plus lint, typecheck and build. Browser fixtures verify embedded image, audio and input-file bytes and separate ZIP asset paths for each chat.
+- Follow-up work covers interactive maps, raw SVGs and other HTML widgets.

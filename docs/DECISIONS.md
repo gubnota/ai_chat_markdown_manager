@@ -188,3 +188,13 @@ Context: User requests removing dist/AI-Chat-Markdown-Manager.user.js everywhere
 Decision: Purge that exact path from all reachable commits and ignore it. Keep local build output; installation starts with npm ci and npm run build.
 Consequences: Commit IDs change again; keep an external Git bundle. Versioned ZIP/checksum exclusions remain. Source and lockfile reproduce the distributable.
 Related files: .gitignore, scripts/release.mjs, README.md, docs/INSTALL-SAFARI.md.
+
+# ADR-0020: Confirm media handling before batch exports
+
+Date: 2026-11-12
+Status: Accepted
+
+Context: Bulk exports need the same media choices as Save Current Chat and should preserve images by default.
+Decision: Export selected and Export All freeze their targets and open the shared export dialog. Start with embedding on and honor a saved separate-file preference. Keep the two switches on separate rows and retry with the confirmed options.
+Consequences: Each successful document can carry its own media inline or use its own asset directory. Inaccessible enabled resources fail that chat’s offline export and remain visible in its results. Raw SVG, interactive maps and other HTML widgets are deferred.
+Related files: src/app/App.tsx, src/components/Conversations.tsx, src/operations/export.ts, tests/integration/offline-export.spec.ts.

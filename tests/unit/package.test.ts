@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { unzipSync, strFromU8 } from "fflate";
 import { prepareDocument, renamedDocument } from "../../src/operations/package";
-import { makeZip } from "../../src/operations/export";
+import { filename, makeZip, uniqueFilename } from "../../src/operations/export";
 import { offlineHtml } from "../../src/operations/document";
 import { defaults } from "../../src/storage";
 import type { Conversation } from "../../src/types";
@@ -16,6 +16,25 @@ const chat: Conversation = {
 };
 const image = "data:image/png;base64,AAEC/w==";
 const input = "data:application/octet-stream;base64,aW5wdXQ=";
+it("keeps assets separate for chats with the same long filename", () => {
+  const options = { ...defaults.export, mediaFiles: true };
+  const used = new Set<string>();
+  const files = new Map<string, string | Uint8Array>();
+  for (const data of [image, "data:image/png;base64,AA=="]) {
+    const name = uniqueFilename(filename(chat, "a".repeat(150)), used);
+    const result = prepareDocument(`![Photo](${data})`, chat, options, name);
+    for (const [path, bytes] of result.files) files.set(path, bytes);
+    expect(result.text).toContain(`assets/${name.slice(0, -3)}/1-Photo.png`);
+  }
+  const zipped = unzipSync(makeZip(files, undefined));
+  expect(zipped[`assets/${"a".repeat(110)}/1-Photo.png`]).toEqual(
+    new Uint8Array([0, 1, 2, 255]),
+  );
+  expect(zipped[`assets/${"a".repeat(108)}-2/1-Photo.png`]).toEqual(
+    new Uint8Array([0]),
+  );
+  expect(Object.keys(zipped)).toHaveLength(4);
+});
 it.each(["markdown", "html"] as const)(
   "packs exact binary assets and references into %s ZIP with portable links",
   (format) => {

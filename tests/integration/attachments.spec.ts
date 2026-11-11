@@ -38,7 +38,7 @@ test("Gemini current and batch downloads preserve uploaded files and generated i
   const singleDownload = page.waitForEvent("download");
   await page
     .getByRole("button", {
-      name: "Save current chat as Markdown",
+      name: "Save Current Chat",
       exact: false,
     })
     .click();
@@ -65,6 +65,14 @@ test("Gemini current and batch downloads preserve uploaded files and generated i
   const zipDownload = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Export selected", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("switch", { name: "Embed media and input files" })
+    .uncheck();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
     .click();
   const archive = unzipSync(readFileSync((await (await zipDownload).path())!));
   expect(JSON.parse(strFromU8(archive["manifest.json"]))).toMatchObject({
@@ -128,7 +136,7 @@ test("Gemini temporary images survive current and batch exports after blob revoc
   const singleDownload = page.waitForEvent("download");
   await page
     .getByRole("button", {
-      name: "Save current chat as Markdown",
+      name: "Save Current Chat",
       exact: false,
     })
     .click();
@@ -154,6 +162,10 @@ test("Gemini temporary images survive current and batch exports after blob revoc
   const zipDownload = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Export selected", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
     .click();
   const archive = unzipSync(readFileSync((await (await zipDownload).path())!));
   expect(JSON.parse(strFromU8(archive["manifest.json"]))).toMatchObject({

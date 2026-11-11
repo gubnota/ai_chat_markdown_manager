@@ -186,6 +186,10 @@ test("successful-backup shortcuts exclude failed exports and require ZIP acknowl
   await page
     .getByRole("button", { name: "Export selected", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Export selected" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
   await downloaded;
   await expect(
     page.getByRole("button", { name: "Export report", exact: true }),
@@ -308,6 +312,10 @@ for (const platform of ["chatgpt", "gemini"]) {
     const downloaded = page.waitForEvent("download");
     await page
       .getByRole("button", { name: "Export selected", exact: true })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Export selected" })
+      .getByRole("button", { name: "Download ZIP", exact: true })
       .click();
     const entries = unzipSync(readFileSync((await (await downloaded).path())!));
     expect(JSON.parse(strFromU8(entries["manifest.json"]))).toMatchObject({

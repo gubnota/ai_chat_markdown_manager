@@ -56,7 +56,7 @@ Enable **Save media as separate files (ZIP)** for a document plus an `assets/` d
 2. Click the floating file icon. Drag it to a convenient position.
 3. Build first with `npm ci` and `npm run build`; generated installation files are kept locally.
 
-Choose **Save current chat as Markdown** or **Copy Markdown**.
+Choose **Save Current Chat** to download or **Copy Markdown** to copy to the clipboard. Use the expand button to fill the browser viewport. The X or Escape closes the manager.
 4. Open **Manage conversations**. Scroll the website's own history to discover more entries.
 5. Select chats and choose an export action. Read Activity for individual failures.
 
@@ -66,13 +66,13 @@ The inherited converter handles headings, lists, tables, fenced code with langua
 
 Use **Export selected content** after highlighting webpage text, or Shift-click Save. Empty selections and empty content produce errors. Exports always warn when completeness is partial. Unknown timestamps are omitted, and filenames use `undated`; no dates or account history are invented.
 
-Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. In default Markdown link mode, attachments without reusable URLs keep their names with a “direct link unavailable” note. This applies to current-chat and batch ZIP exports, including image-only replies.
+Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. In linked Markdown, attachments without reusable URLs keep their names with a “direct link unavailable” note. These options cover current-chat and batch exports, including image-only replies.
 
-Choose **Save current chat as Markdown** or **Save current chat as HTML** in the home menu to open **Export options**. Set **Embed media and input files** on or off, then press **Download Markdown** or **Download HTML**. Opening or cancelling this dialog does not capture media. For a plane/offline copy, choose HTML and leave embedding enabled (the HTML default). With embedding off, either format retains external resource links that require internet and may expire. For batch ZIPs choose **File format → HTML (.html)** and enable embedding on the export/archive screen or in Settings. Embedded HTML bundles its styles, enabled images, audio/video sources and input-file bytes into one `.html` per chat. Open it in a browser without the original login or network; embedded input files have download links. Source/help links remain external. Keep **Image references** and **Keep links** enabled to include all supported media. The export/archive screen also offers the format switch.
+Choose **Save Current Chat** to set the format, filename and media options before capture. **Embed media and input files** puts enabled images, audio/video and input files inside the document. HTML enables embedding by default and includes its own styles. **Save ZIP with separate media and input files** stores the document and its assets together in an archive. Extract the whole ZIP before opening the document. With both switches off, resource links may require internet and can expire. Keep **Include images** and **Include links and input files** enabled to capture all supported resources.
 
 In **Manage conversations → ⋯ beside a chat → Preview / export**, choose **File format** (Markdown or HTML), **Embed media and input files**, **Include images**, and **Include links and input files**. Each change refreshes the preview; use **Download Markdown** or **Download HTML** when ready. Failed refreshes disable download until corrected or retried. Preview choices apply to that preview only.
 
-For `.md`, enable **Embed media and input files** in the preview or Settings. It stores binary resources as base64 data URLs; your Markdown viewer must support data images/download links. The default Markdown mode retains external references for compatibility. Loaded blob image previews are copied through canvas without native attachment clicks; this can preserve only the exposed preview resolution.
+Embedded Markdown stores binary resources as base64 data URLs. Use a Markdown viewer that supports data images and download links. Loaded blob image previews are copied through canvas without native attachment clicks; this can preserve only the exposed preview resolution.
 
 Capture while online. Requests use the browser session and only URLs exposed by the loaded conversation; no private account API is used. CORS/CSP, expired links, missing file URLs, streaming-only media and unsupported image formats can block capture. An unavailable included resource **fails that chat’s offline export**; it is excluded from successful-backup cleanup. Required backups must succeed for every target before native actions start. Limits: **20 MiB/file, 64 MiB/chat, 100 unique resources**; canvas previews retain their 16-megapixel / 12-MiB URL bounds. Loaded history may still be partial—review the files before deleting.
 
@@ -84,13 +84,15 @@ Selection persists on this website. Unknown dates/statuses remain unknown and do
 
 ## 10. Bulk export
 
-Select chats and use **Export selected**, **ZIP all discovered**, or the Archive screen's ZIP backup. On **ChatGPT, Gemini and Claude**, the manager opens each selected chat through its native sidebar link, waits for newly loaded messages and exports automatically. You do not need to open every chat first. The starting conversation is restored after completion or cancellation. Loading chats may mark them read.
+Use **Export selected** for the checked chats or **Export All** for all discovered chats. Choose the format and media options before clicking **Download ZIP**. Bulk exports start with embedding on unless your settings already select separate files. Turn on **Include media and input files separately in ZIP** to write an asset folder per chat. Turn both media switches off for linked exports.
+
+On **ChatGPT, Gemini and Claude**, the manager opens each selected chat through its native sidebar link, waits for newly loaded messages and exports automatically. You do not need to open every chat first. The starting conversation is restored after completion or cancellation. Loading chats may mark them read.
 
 Native SPA links must remain available. A missing/virtualized link, full-page reload or load timeout produces an individual failure; stale messages are never substituted. Scroll the platform sidebar and rescan if necessary. Other platforms still require current content or a matching temporary snapshot. Discovery and loaded history remain partial.
 
 The ZIP contains successful `.md` or `.html` files and an optional `manifest.json` with per-item results. A fully failed batch produces a report, not an empty successful backup. Preview/export caches up to 20 chats / approximately 8 MiB in memory; reload clears it. Image/link/outline options must match cached content; the three automatic adapters reload when necessary.
 
-Cancel stops queued work; completed results remain valid. **Retry failed exports** retries failed items only. Filenames are sanitized and collisions receive numeric suffixes.
+Cancel stops queued work; completed results remain valid. **Retry failed exports** uses the same format and media options for the failed items. Filenames are sanitized and collisions receive numeric suffixes.
 
 ## YouTube captions
 

@@ -12,7 +12,7 @@
 ## Current milestone
 - v2.4.0 adds separate-file offline ZIPs, loaded SVG-to-PNG capture, custom format selector, editable names and progress.
 - v2.3.3 fixes current ChatGPT extraction (search keys and role-heading containers), including image-only replies; shared visible boundaries cover Grok/Claude/DeepSeek too.
-- HTML/Markdown embedding remains editable in direct, preview, settings and batch flows.
+- Save Current Chat, Export selected and Export All share the format and media choices before download. Bulk exports default to offline embedding or honor the saved separate-file preference.
 - v2.3.1 exposed preview format/embed/image/file controls with fresh capture and error-safe downloads.
 - v2.3.0 added standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
 - Offline media failures exclude that chat from successful-backup cleanup; Gemini uses a local ZIP archive then native delete.
@@ -57,13 +57,13 @@
 
 ## Core workflows
 - Open the FAB or restore it with Alt+Shift+E.
-- Save current loaded content with Alt+Shift+M or the home action.
+- Save current loaded content with Alt+Shift+M or the Save Current Chat action.
 - Shift-click the FAB to save highlighted content.
 - Discover loaded sidebar links; open/scroll the sidebar and rescan.
 - Search/filter/sort and select stable platform/id keys.
 - Preview or export current content to capture a temporary snapshot.
 - ChatGPT/Gemini/Claude export automatically follows native SPA links and restores the starting chat.
-- Export selected/observed entries to ZIP with per-item results; loading may mark chats read.
+- Export selected or all discovered chats to ZIP with per-item results and inline or separate assets. Loading may mark chats read.
 - Review failures; only exports offer failed-item retry.
 - After ZIP download, review successful chats, acknowledge checking files, then archive/delete with normal confirmations.
 - Required pre-action backup must succeed for every target; restore the starting route before mutation.
@@ -72,7 +72,7 @@
 - Open YouTube timedtext on a video: detect languages automatically, then download TXT/VTT directly.
 - Saved timedtext import is an optional fallback, never a prerequisite.
 - Adjust appearance, FAB, Markdown and batch preferences locally.
-- Minimize with Escape; hide and restore through explicit controls/shortcut.
+- Expand the manager to the browser viewport, restore its compact position, or dismiss it with X or Escape.
 
 ## Platform behavior
 - ChatGPT: sidebar discovery, native SPA auto-loading and role-aware conversion.

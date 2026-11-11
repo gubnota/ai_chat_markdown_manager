@@ -1,5 +1,7 @@
 import { strToU8, zipSync } from "fflate";
 import type { Conversation, ExportOptions } from "../types";
+const maxStemLength = 110;
+
 // Filenames must remove Windows-invalid control characters too.
 export function safeFilename(value: string): string {
   const clean =
@@ -9,9 +11,10 @@ export function safeFilename(value: string): string {
       .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "_")
       .replace(/\s+/g, " ")
       .replace(/^[. ]+|[. ]+$/g, "")
-      .slice(0, 110) || "conversation";
+      .slice(0, maxStemLength)
+      .replace(/[. ]+$/, "") || "conversation";
   return /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\.|$)/i.test(clean)
-    ? `_${clean}`
+    ? `_${clean.slice(0, maxStemLength - 1).replace(/[. ]+$/, "")}`
     : clean;
 }
 export function filename(
@@ -34,8 +37,10 @@ export function uniqueFilename(name: string, used: Set<string>): string {
   const stem = name.slice(0, name.length - extension.length);
   let candidate = name,
     index = 2;
-  while (used.has(candidate.toLowerCase()))
-    candidate = `${stem}-${index++}${extension}`;
+  while (used.has(candidate.toLowerCase())) {
+    const suffix = `-${index++}`;
+    candidate = `${stem.slice(0, maxStemLength - suffix.length)}${suffix}${extension}`;
+  }
   used.add(candidate.toLowerCase());
   return candidate;
 }
