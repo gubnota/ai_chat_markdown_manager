@@ -552,12 +552,18 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
             status.role = 'status';
             status.textContent = 'Loading older messages...';
             turns.prepend(status);
+            document.addEventListener('fixture:older-page-prepended', () => {
+              first = 5;
+              turns.style.height = (${count} - first) * row + 'px';
+              scroller.scrollTop = 5 * row;
+              render();
+            }, { once: true });
             document.addEventListener('fixture:older-messages-ready', () => {
               first = 0;
               loaded = true;
               status.remove();
               turns.style.height = ${count} * row + 'px';
-              scroller.scrollTop = 10 * row;
+              scroller.scrollTop = 5 * row;
               render();
             }, { once: true });
           }
@@ -597,6 +603,14 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
     await expect(
       activity.getByRole("progressbar", { name: "Chats processed" }),
     ).toHaveAttribute("value", "0");
+    await page.evaluate(() =>
+      document.dispatchEvent(new Event("fixture:older-page-prepended")),
+    );
+    // The next page is only available after we pass the preserved scroll anchor.
+    await expect(page.locator('[data-message-id="5"]')).toBeVisible();
+    await expect
+      .poll(() => page.locator("main").evaluate((node) => node.scrollTop))
+      .toBeLessThanOrEqual(2);
     await page.evaluate(() =>
       document.dispatchEvent(new Event("fixture:older-messages-ready")),
     );
@@ -641,6 +655,91 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
     rmSync(profile, { recursive: true, force: true });
   }
 });
+
+for (const scope of ["current", "bulk"] as const) {
+  test(`ChatGPT ${scope} ZIP preserves available history and media when older loading stalls`, async ({
+    page,
+  }) => {
+    const url = "https://chatgpt.com/c/stalled";
+    await page.clock.install();
+    await page.route("https://chatgpt.com/newer.png", (route) =>
+      route.fulfill({
+        contentType: "image/png",
+        body: Buffer.from(png, "base64"),
+      }),
+    );
+    await page.route(url, (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>Stalled chat</title><aside><a href="/c/stalled">Stalled chat</a></aside>
+          <main style="height:50vh;overflow-y:auto">
+            <p role="status">Loading older messages...</p>
+            <article data-message-author-role="user" data-message-id="one" style="height:75vh"><p>Earliest loaded turn</p></article>
+            <article data-message-author-role="assistant" data-message-id="two"><p>Latest turn</p><img alt="Newest image" src="/newer.png"></article>
+          </main>
+          <script>localStorage.setItem('__ai_chat_md_v2__:settings', JSON.stringify({
+            autoMinimize:false,delayMs:0,export:{mediaFiles:true,format:'html'}
+          }));</script>`,
+      }),
+    );
+    await page.goto(url);
+    await page.addScriptTag({
+      path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+    });
+    await page
+      .getByRole("button", { name: "Open Markdown Manager", exact: true })
+      .click();
+    await page
+      .getByRole("button", {
+        name: scope === "bulk" ? /^Export All/ : "Save Current Chat",
+      })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: scope === "bulk" ? "Export All" : "Export options",
+    });
+    const download = page.waitForEvent("download");
+    await dialog
+      .getByRole("button", { name: "Download ZIP", exact: true })
+      .click();
+    await expect(
+      page.getByText(/Waiting for older ChatGPT messages \([1-9]\d* s\)/),
+    ).toBeVisible();
+    await page.clock.setSystemTime(Date.now() + 35_000);
+    const zip = unzipSync(readFileSync((await (await download).path())!));
+    const html = strFromU8(
+      Object.entries(zip).find(([name]) => name.endsWith(".html"))![1],
+    );
+    expect(html).toContain("Incomplete offline export");
+    expect(html).toContain("Some older ChatGPT messages did not finish loading.");
+    expect(html).toMatch(/Earliest loaded turn[\s\S]*Latest turn/);
+    const image = Object.entries(zip).find(([name]) =>
+      name.endsWith("/1-Newest image.png"),
+    );
+    expect(image?.[1]).toEqual(Uint8Array.from(Buffer.from(png, "base64")));
+    expect(html).toContain("1-Newest%20image.png");
+    const manifest = JSON.parse(strFromU8(zip["manifest.json"]));
+    if (scope === "bulk") {
+      expect(manifest).toMatchObject({
+        completed: 0,
+        failed: 1,
+        results: [{ key: "chatgpt:stalled", status: "failed" }],
+      });
+      await expect(
+        page.getByRole("button", { name: "Retry failed exports" }),
+      ).toBeEnabled();
+      await expect(page.locator("details.backup-review")).toHaveCount(0);
+    } else {
+      expect(manifest.warning).toContain("older ChatGPT messages");
+      await expect(
+        page.getByText(/Saved an incomplete copy in the ZIP/),
+      ).toBeVisible();
+    }
+    await expect
+      .poll(() => page.locator("main").evaluate((node) => node.scrollTop))
+      .toBe(0);
+  });
+}
 
 test("ZIP fallback asks to save each part and preserves paths across parts", async ({
   page,

@@ -95,6 +95,28 @@ type CaptureProgress = {
 };
 type ExportStage = CaptureProgress | "capture" | "zip" | "download" | "copy";
 
+function incompleteCopy(reason: string) {
+  return `Saved an incomplete copy in the ZIP. ${reason} Keep the original chat.`;
+}
+
+function zipDownloadMessage(
+  { single, warning }: { single: boolean; warning?: string },
+  translate: (en: string, ru: string) => string,
+) {
+  const status = warning ? incompleteCopy(warning) : "";
+  if (single)
+    return status || translate("ZIP download started.", "Началась загрузка ZIP.");
+  return [
+    status,
+    translate(
+      "Save every ZIP part and extract them into the same folder.",
+      "Сохраните все части ZIP и распакуйте их в одну папку.",
+    ),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 async function captureDocument(
   adapter: PlatformAdapter,
   conversation: Conversation,
@@ -103,9 +125,11 @@ async function captureDocument(
   signal: AbortSignal,
   reportProgress: (stage: ExportStage) => void,
   archive?: SeparateArchive,
-  missingImages?: Map<string, string>,
+  allowIncomplete = false,
   selection = false,
 ) {
+  const missingImages = allowIncomplete ? new Map<string, string>() : undefined;
+  let historyWarning: string | undefined;
   let progress: CaptureProgress = { files: 0, bytes: 0 };
   reportProgress(archive ? progress : "capture");
   const media =
@@ -129,6 +153,7 @@ async function captureDocument(
         [document.querySelector("main") || document.body],
         options,
         signal,
+        missingImages,
       )
     : await adapter.exportConversation(
         conversation,
@@ -136,20 +161,31 @@ async function captureDocument(
         signal,
         missingImages,
         media?.capture,
-        (messages, waitSeconds) => {
-          progress = { ...progress, messages, waitSeconds };
-          reportProgress(progress);
+        {
+          progress: (messages, waitSeconds) => {
+            progress = { ...progress, messages, waitSeconds };
+            reportProgress(progress);
+          },
+          incomplete: allowIncomplete
+            ? (reason) => {
+                historyWarning = reason;
+              }
+            : undefined,
         },
       );
   signal.throwIfAborted();
-  return prepareDocument(
-    body,
-    conversation,
-    options,
-    name,
-    missingImages,
-    media?.assets,
-  );
+  return {
+    ...prepareDocument(
+      body,
+      conversation,
+      options,
+      name,
+      missingImages,
+      media?.assets,
+      historyWarning,
+    ),
+    warning: historyWarning ?? missingImages?.values().next().value,
+  };
 }
 
 async function downloadSeparate(
@@ -161,7 +197,7 @@ async function downloadSeparate(
   savePart: SaveZipPart,
   reportProgress: (stage: ExportStage) => void,
   selection = false,
-): Promise<boolean> {
+) {
   const archive = await SeparateArchive.open(
     name.replace(/\.(md|html)$/i, ".zip"),
     signal,
@@ -176,16 +212,18 @@ async function downloadSeparate(
       signal,
       reportProgress,
       archive,
-      undefined,
+      true,
       selection,
     );
     reportProgress("zip");
     await archive.add(name, prepared.text);
-    return await archive.finish(
+    const { warning } = prepared;
+    const single = await archive.finish(
       options.manifest
-        ? { format: options.format, mediaFiles: true }
+        ? { format: options.format, mediaFiles: true, warning }
         : undefined,
     );
+    return { single, warning };
   } finally {
     await archive.dispose();
   }
@@ -481,7 +519,7 @@ export function App({
         const name = filename(current, options.filename, format);
         const signal = controller.signal;
         if (mode !== "copy" && options.mediaFiles) {
-          const single = await downloadSeparate(
+          const result = await downloadSeparate(
             adapter,
             current,
             options,
@@ -491,14 +529,7 @@ export function App({
             setExportStage,
             selection,
           );
-          notify(
-            single
-              ? t("ZIP download started.", "Началась загрузка ZIP.")
-              : t(
-                  "Save every ZIP part and extract them into the same folder.",
-                  "Сохраните все части ZIP и распакуйте их в одну папку.",
-                ),
-          );
+          notify(zipDownloadMessage(result, t));
         } else {
           const prepared = await captureDocument(
             adapter,
@@ -514,7 +545,7 @@ export function App({
             signal,
             setExportStage,
             undefined,
-            undefined,
+            false,
             selection,
           );
           setExportStage(mode === "copy" ? "copy" : "download");
@@ -604,7 +635,7 @@ export function App({
       c: Conversation,
       exportOptions: ExportOptions,
       signal: AbortSignal,
-      missingImages?: Map<string, string>,
+      allowIncomplete = false,
     ) => {
       const name = uniqueFilename(
         filename(c, exportOptions.filename, exportOptions.format),
@@ -619,11 +650,12 @@ export function App({
           signal,
           setExportStage,
           archive,
-          missingImages,
+          allowIncomplete,
         );
         if (archive) await archive.add(name, prepared.text);
         else files.set(name, prepared.text);
         documents++;
+        if (prepared.warning) throw new Error(incompleteCopy(prepared.warning));
       } finally {
         setExportStage(undefined);
       }
@@ -699,16 +731,7 @@ export function App({
         async (c, signal) => {
           controller.signal.throwIfAborted();
           if (kind === "export") {
-            const missingImages = options.mediaFiles
-              ? new Map<string, string>()
-              : undefined;
-            await addDocument(c, options, signal, missingImages);
-            if (missingImages?.size) {
-              const first = missingImages.values().next().value;
-              throw new Error(
-                `Saved an incomplete copy in the ZIP. ${first} Keep the original chat.`,
-              );
-            }
+            await addDocument(c, options, signal, options.mediaFiles);
           } else if (kind === "archive")
             await adapter.archiveConversation(c, signal);
           else await adapter.deleteConversation(c, signal);
@@ -884,7 +907,7 @@ export function App({
     setExportStage("capture");
     const restore = adapter.beginExportSession?.();
     try {
-      const single = await downloadSeparate(
+      const result = await downloadSeparate(
         adapter,
         pending.conversation,
         pending.options,
@@ -893,14 +916,7 @@ export function App({
         saveZipPart,
         setExportStage,
       );
-      notify(
-        single
-          ? t("ZIP download started.", "Началась загрузка ZIP.")
-          : t(
-              "Save every ZIP part and extract them into the same folder.",
-              "Сохраните все части ZIP и распакуйте их в одну папку.",
-            ),
-      );
+      notify(zipDownloadMessage(result, t));
     } catch (error) {
       if (!controller.signal.aborted)
         setPreview({

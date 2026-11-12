@@ -14,6 +14,7 @@ async function fixture(
     format?: "html" | "markdown";
     embedMedia?: boolean;
     failedMedia?: boolean;
+    stalledHistory?: boolean;
   } = {},
 ) {
   const platform = options.platform || "chatgpt";
@@ -26,11 +27,12 @@ async function fixture(
   <aside>${["one", "two", "three"].map((id) => `<div data-conversation-id="${id}"><a href="${prefix}${id}">Chat ${id}</a><button aria-label="More options">⋮</button></div>`).join("")}</aside><main></main><script>
   const opts=${JSON.stringify(options)}, prefix=${JSON.stringify(prefix)}, platform=${JSON.stringify(platform)};
   window.nativeActions=[]; window.visits=[];
-  localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({backupArchive:!!opts.backup,backupDelete:!!opts.backup,delayMs:0,autoMinimize:false,export:{format:opts.format||"markdown",embedMedia:opts.embedMedia ?? opts.format === "html"}}));
+  localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({backupArchive:!!opts.backup,backupDelete:!!opts.backup,delayMs:0,autoMinimize:false,export:{format:opts.format||"markdown",embedMedia:opts.embedMedia ?? opts.format === "html",mediaFiles:!!opts.stalledHistory}}));
   function render(id) { document.querySelector('main').innerHTML=platform==='gemini'
     ? '<user-query>Question '+id+'</user-query><model-response>Answer UNIQUE-'+id+(opts.failedMedia&&id==='two'?'<div class="attachment-card" data-file-name="private.csv"><a href="/unavailable.csv">private.csv</a></div>':'')+'</model-response>'
     : '<article data-message-author-role="user">Question '+id+'</article><article data-message-author-role="assistant">Answer UNIQUE-'+id+(opts.failedMedia&&id==='two'?'<div class="attachment-card" data-file-name="private.csv"><a href="/unavailable.csv">private.csv</a></div>':'')+'</article>';  }
   render('one');
+  if (opts.stalledHistory) document.querySelector('main').insertAdjacentHTML('afterbegin','<p role="status">Loading older messages...</p>');
   document.querySelectorAll('aside a').forEach(link=>link.onclick=e=>{e.preventDefault();const id=link.pathname.split('/').pop();window.visits.push(id);history.pushState(null,'',link.href);const main=document.querySelector('main');main.setAttribute('aria-busy','true');setTimeout(()=>{render(id);main.removeAttribute('aria-busy');},opts.slow?2500:350);});
   document.querySelectorAll('aside button').forEach(button=>button.onclick=()=>{
     const row=button.parentElement, id=row.dataset.conversationId;
@@ -167,6 +169,25 @@ test("failed backup prevents every native action", async ({ page }) => {
     .evaluate((el) => el.remove());
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   await confirm(page, 2, "DELETE");
+  await expect(
+    page.getByText("Backup did not finish. No native action was started.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(await actions(page)).toEqual([]);
+});
+test("stalled ChatGPT history blocks a required backup and every native action", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await fixture(page, { backup: true, stalledHistory: true });
+  await select(page, "one");
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await confirm(page, 1);
+  await expect(
+    page.getByText(/Waiting for older ChatGPT messages \([1-9]\d* s\)/),
+  ).toBeVisible();
+  await page.clock.setSystemTime(Date.now() + 35_000);
   await expect(
     page.getByText("Backup did not finish. No native action was started.", {
       exact: true,

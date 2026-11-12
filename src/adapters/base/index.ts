@@ -8,7 +8,7 @@ import {
   type Conversation,
   type ConversationIdentifier,
   type ExportOptions,
-  type HistoryProgress,
+  type HistoryCapture,
   type PlatformAdapter,
   type PlatformCapabilities,
 } from "../../types";
@@ -129,7 +129,7 @@ export class DOMAdapter implements PlatformAdapter {
     signal?: AbortSignal,
     missingImages?: Map<string, string>,
     captureMedia?: CaptureMedia,
-    onHistoryProgress?: HistoryProgress,
+    historyCapture?: HistoryCapture,
   ): Promise<string> {
     const c = await this.getConversation(id, signal);
     signal?.throwIfAborted();
@@ -172,7 +172,7 @@ export class DOMAdapter implements PlatformAdapter {
         checkConversation,
         signal,
         missingImages,
-        onHistoryProgress,
+        historyCapture,
       );
       if (history !== undefined) return history;
     }

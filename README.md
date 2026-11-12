@@ -76,7 +76,7 @@ Embedded Markdown stores binary resources as base64 data URLs. Use a Markdown vi
 
 Capture while online. Requests use the browser session and URLs exposed by the loaded conversation. CORS/CSP, expired links, missing file URLs, streaming-only media and unsupported image formats can block capture. A bulk ZIP with separate files keeps the transcript and readable assets when an image fails. The export report flags that chat for retry and excludes it from cleanup. Required backups must succeed for every target before native actions start.
 
-The **64 MiB/chat and 100-resource limits** apply to inline embedding. With **Save ZIP with separate media and input files**, the archive can exceed both limits. On ChatGPT, the exporter scrolls through the conversation and captures images as their turns load. If the browser cannot open a writable temporary file, save each prompted ZIP part and extract all parts into the same folder. The **20 MiB/file** limit and canvas preview bounds still apply. Review the files before deleting.
+The **64 MiB/chat and 100-resource limits** apply to inline embedding. With **Save ZIP with separate media and input files**, the archive can exceed both limits. On ChatGPT, the exporter scrolls through the conversation and captures images as their turns load. If older messages stop loading, the ZIP preserves the messages and media it could reach and marks the document incomplete. Keep the original chat and retry from Activity for bulk exports. If the browser cannot open a writable temporary file, save each prompted ZIP part and extract all parts into the same folder. The **20 MiB/file** limit and canvas preview bounds still apply. Review the files before deleting.
 
 ## 9. Selecting conversations
 

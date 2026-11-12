@@ -153,3 +153,10 @@
 - Show captured ChatGPT messages, files and bytes written for the current chat, elapsed seconds while waiting for older history, and ZIP finalization in the export dialogs and bulk Activity.
 - Passed 122 unit tests, 180 browser cases across Chromium and desktop and mobile WebKit, lint, strict type checking, build and release integrity checks. The 113-image fixture verifies live counts, the wait timer and successful resumption after older messages load.
 - The authenticated Safari chat still needs a v2.4.5 retry. The 30-second older-history timeout remains in effect.
+
+## 2026-11-12 — v2.4.6 ChatGPT history recovery
+
+- Resume scanning when ChatGPT prepends older messages and preserves the scroll anchor, even while the loading banner stays visible.
+- If older history stalls, ordinary separate-file exports continue through newer turns and download the available messages and media. The document and export report flag incomplete history. Failed bulk entries stay retryable and out of cleanup review. Required backups reject stalled history.
+- Passed 122 unit tests and 189 browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release integrity checks. Fixtures verify a single ZIP with all 113 images after an older page arrives without clearing the banner, and current/bulk recovery with exact image bytes when loading stalls.
+- The reported authenticated Safari conversation was not retested with this build.

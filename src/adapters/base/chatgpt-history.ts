@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-import type { CaptureMedia, ExportOptions, HistoryProgress } from "../../types";
+import type { CaptureMedia, ExportOptions, HistoryCapture } from "../../types";
 import { visibleMessageElement } from "../../markdown/messages";
 import {
   messageMarkdown,
@@ -105,7 +105,7 @@ export async function captureChatGPTHistory(
   checkConversation: () => void,
   signal?: AbortSignal,
   missingImages?: Map<string, string>,
-  onProgress?: HistoryProgress,
+  history?: HistoryCapture,
 ): Promise<string | undefined> {
   const initial = messageNodes("chatgpt");
   if (!initial.length) return;
@@ -146,12 +146,14 @@ export async function captureChatGPTHistory(
         "The conversation viewport changed during export. Retry the export.",
       );
   };
+  const isScrollable = () => container.scrollHeight > container.clientHeight + 2;
+  const activeNodes = () => {
+    const scrollable = isScrollable();
+    return messageNodes("chatgpt").filter(
+      (node) => !scrollable || nearViewport(node, container),
+    );
+  };
   const captureWindow = async (direction: -1 | 1) => {
-    const scrollable = container.scrollHeight > container.clientHeight + 2;
-    const activeNodes = () =>
-      messageNodes("chatgpt").filter(
-        (node) => !scrollable || nearViewport(node, container),
-      );
     if (options.images) {
       const deadline = Date.now() + 2500;
       while (
@@ -159,7 +161,7 @@ export async function captureChatGPTHistory(
           [...node.querySelectorAll("img")].some(
             (image) =>
               visibleMessageElement(image) &&
-              (!scrollable || nearViewport(image, container)) &&
+              (!isScrollable() || nearViewport(image, container)) &&
               (!image.complete || !image.currentSrc),
           ),
         ) &&
@@ -208,19 +210,74 @@ export async function captureChatGPTHistory(
       );
       if (!previous || missing.size <= previous.missing.size) {
         turns.set(key, { text, missing, direction, fingerprint });
-        if (!previous) onProgress?.(turns.size);
+        if (!previous) history?.progress(turns.size);
+      }
+    }
+  };
+
+  const waitAtTop = async () => {
+    let idleSince = Date.now();
+    let clearSince: number | undefined;
+    let lastSecond: number | undefined;
+    const previousFirst = activeNodes()[0];
+    let previousKey = previousFirst && keyOf(previousFirst);
+    while (true) {
+      await pause(150, signal);
+      check();
+      if (container.scrollTop > 2) {
+        // ChatGPT may preserve its scroll anchor when it prepends messages.
+        await captureWindow(-1);
+        history?.progress(turns.size);
+        return false;
+      }
+      const first = activeNodes()[0];
+      const key = first && keyOf(first);
+      if (key !== undefined && key !== previousKey) {
+        const oldest = order[0];
+        await captureWindow(-1);
+        if (order[0] !== oldest) {
+          idleSince = Date.now();
+          lastSecond = undefined;
+        }
+        previousKey = key;
+      }
+      const now = Date.now();
+      if (!loadingHistory(container)) {
+        clearSince ??= now;
+        if (lastSecond !== undefined) {
+          history?.progress(turns.size);
+          lastSecond = undefined;
+        }
+        if (now - clearSince >= 950) {
+          await captureWindow(-1);
+          return container.scrollTop <= 2 && !loadingHistory(container);
+        }
+        continue;
+      }
+      if (clearSince !== undefined) idleSince = now;
+      clearSince = undefined;
+      const elapsed = now - idleSince;
+      if (elapsed >= 30_000) {
+        const reason = "Some older ChatGPT messages did not finish loading.";
+        if (!history?.incomplete)
+          throw new Error(`${reason} Retry the export.`);
+        history.incomplete(reason);
+        history.progress(turns.size);
+        return true;
+      }
+      const seconds = Math.floor(elapsed / 1000);
+      if (seconds !== lastSecond) {
+        lastSecond = seconds;
+        history?.progress(turns.size, seconds);
       }
     }
   };
 
   try {
     check();
-    onProgress?.(0);
+    history?.progress(0);
     await captureWindow(-1);
-    if (
-      container.scrollHeight > container.clientHeight + 2 ||
-      loadingHistory(container)
-    ) {
+    if (isScrollable() || loadingHistory(container)) {
       for (const direction of [-1, 1] as const) {
         let steps = 0;
         while (true) {
@@ -228,35 +285,21 @@ export async function captureChatGPTHistory(
           const edge =
             direction < 0 ? 0 : container.scrollHeight - container.clientHeight;
           if (Math.abs(container.scrollTop - edge) <= 2) {
-            const start = Date.now();
-            const before = container.scrollHeight;
-            let lastReportedSecond: number | undefined;
-            while (true) {
+            if (direction < 0) {
+              if (await waitAtTop()) break;
+            } else {
               await pause(150, signal);
               check();
-              const elapsed = Date.now() - start;
-              if (elapsed >= 30_000)
-                throw new Error(
-                  "Older ChatGPT messages did not finish loading. Retry the export.",
-                );
-              if (direction > 0 || !loadingHistory(container)) break;
-              const seconds = Math.floor(elapsed / 1000);
-              if (seconds !== lastReportedSecond) {
-                lastReportedSecond = seconds;
-                onProgress?.(turns.size, seconds);
-              }
+              await captureWindow(direction);
+              if (
+                container.scrollHeight -
+                  container.clientHeight -
+                  container.scrollTop <=
+                2
+              )
+                break;
             }
-            if (lastReportedSecond !== undefined) onProgress?.(turns.size);
-            // Give ChatGPT time to prepend older turns or adjust its scroll anchor.
-            if (direction < 0) await pause(950, signal);
-            check();
-            await captureWindow(direction);
-            if (
-              before === container.scrollHeight &&
-              Math.abs(container.scrollTop - edge) <= 2 &&
-              (direction > 0 || !loadingHistory(container))
-            )
-              break;
+            continue;
           }
           if (++steps > 12_000)
             throw new Error(

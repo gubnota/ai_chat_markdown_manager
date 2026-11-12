@@ -159,9 +159,14 @@ export function prepareDocument(
   name: string,
   missingImages?: ReadonlyMap<string, string>,
   assets?: ReadonlyMap<string, string>,
+  historyWarning?: string,
 ): { text: string; name: string } {
-  const warning = missingImages?.size
-    ? "> Incomplete offline export: one or more images could not be saved. Keep the original chat.\n\n"
+  const issues = [
+    historyWarning,
+    missingImages?.size ? "One or more images could not be saved." : undefined,
+  ].filter(Boolean);
+  const warning = issues.length
+    ? `> Incomplete offline export: ${issues.join(" ")} Keep the original chat.\n\n`
     : "";
   return {
     name,
