@@ -3,13 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.4.10, 2026-11-12.
+- Release: 2.4.11, 2026-11-13.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
+- v2.4.11 adds syntax highlighting and Copy to offline HTML, separate illustration and attachment indexes, styled filename captions and map snapshots for individual and bulk exports.
 - v2.4.10 restyles exported HTML and adds offline search with snippets, a wider contents sidebar and a click-to-expand image viewer.
 - v2.4.9 makes media filenames searchable in Markdown and HTML, and adds a sticky contents panel and reading progress bar to offline HTML.
 - v2.4.4 scrolls through ChatGPT's loaded history for separate-file ZIP exports and streams binary assets to browser storage. Without writable storage, ordinary exports can save numbered ZIP parts.
@@ -44,6 +45,7 @@
 - Shadow DOM isolates injected styles.
 - Vite builds one ES2022 IIFE userscript.
 - fflate creates genuine local ZIP downloads; bundled Marked plus allowlist reconstruction renders HTML.
+- Highlight.js runs during export and emits static code styling into HTML.
 - Vitest/jsdom covers conversion, identity, batch and storage behavior.
 - Playwright covers the production bundle in Chromium and WebKit.
 - npm lockfile fixes dependency versions.

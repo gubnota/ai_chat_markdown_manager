@@ -187,3 +187,10 @@
 - One CSP nonce authorizes the bundled reader. The transcript and contents work without scripting, and the reader uses no network services.
 - Passed 122 unit tests and 90 export browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release checksums.
 - Restyled the recovered chat ZIP. All 317 non-HTML entries and 323 local image references were preserved; the 54 existing unavailable image markers remain.
+
+## 2026-11-13 — v2.4.11 code, media indexes and map previews
+
+- HTML archives list illustrations and attachments separately below the contents. Image captions show saved filenames. Code blocks have offline syntax highlighting and a Copy button.
+- Current and bulk exports save readable map widgets as PNG snapshots. They retain an original map link when available and enabled. Separate-file ZIPs retain available content and report unreadable snapshots as incomplete.
+- Passed 122 unit tests and 93 export browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release integrity checks.
+- Updated the existing styled HTML in Downloads and verified the navigation and image dialog offline. Installed the v2.4.11 userscript in Safari. Map capture was verified on browser fixtures.

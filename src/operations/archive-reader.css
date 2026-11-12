@@ -9,6 +9,10 @@
   --soft: #f0f1ed;
   --link: #294f40;
   --accent: #54725f;
+  --code-keyword: #7d3168;
+  --code-string: #235a3a;
+  --code-number: #8b3e0d;
+  --code-name: #27578c;
   --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
   --toolbar: 4rem;
   font:
@@ -27,6 +31,10 @@
     --soft: #292e2a;
     --link: #b1dec2;
     --accent: #9dc9ad;
+    --code-keyword: #e9a2cf;
+    --code-string: #a3d6a9;
+    --code-number: #f3bb8f;
+    --code-name: #a2c7f6;
   }
 }
 * {
@@ -94,7 +102,8 @@ a {
 .archive-more,
 .archive-clear,
 .archive-viewer-bar button,
-.archive-zoom-link {
+.archive-zoom-link,
+.archive-code-copy {
   border: 1px solid var(--line);
   border-radius: 99px;
   padding: 0.35rem 0.8rem;
@@ -223,6 +232,49 @@ pre {
 code {
   font-family: var(--mono);
 }
+.archive-code-block {
+  margin-block: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--soft);
+}
+.archive-code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font: 600 0.75rem/1.4 var(--mono);
+}
+.archive-code-copy {
+  flex-shrink: 0;
+  min-width: 4rem;
+}
+.archive-code-copy:hover {
+  border-color: var(--accent);
+}
+.archive-code-block pre {
+  margin: 0;
+  background: transparent;
+  overflow-wrap: normal;
+  white-space: pre;
+  tab-size: 4;
+}
+.archive-clipboard {
+  position: fixed;
+  inset: 0 auto auto 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.hljs-keyword, .hljs-selector-tag, .hljs-meta { color: var(--code-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition { color: var(--code-string); }
+.hljs-number, .hljs-literal, .hljs-symbol, .hljs-deletion { color: var(--code-number); }
+.hljs-title, .hljs-attr, .hljs-attribute, .hljs-name, .hljs-built_in,
+.hljs-type, .hljs-variable, .hljs-selector-class { color: var(--code-name); }
+.hljs-comment, .hljs-quote { color: var(--muted); font-style: italic; }
 img,
 video {
   max-width: 100%;
@@ -249,6 +301,8 @@ th {
   min-width: 0;
   padding: 0.75rem;
   font-size: 0.9rem;
+  max-height: calc(100vh - var(--toolbar) - 2rem);
+  overflow: auto;
 }
 .archive-toc summary {
   padding: 0.15rem 0.4rem;
@@ -262,9 +316,21 @@ th {
   list-style: none;
   padding: 0.1rem;
   margin: 0.55rem 0 0;
-  max-height: calc(100vh - var(--toolbar) - 5rem);
+  max-height: min(32vh, 21rem);
   overflow: auto;
   overscroll-behavior: contain;
+}
+.archive-media-list {
+  border-top: 1px solid var(--line);
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+}
+.archive-toc .archive-media-list ol {
+  max-height: min(13vh, 8rem);
+}
+.archive-media-empty {
+  margin: 0.35rem 0.4rem;
+  color: var(--muted);
 }
 .archive-toc a {
   display: block;
@@ -378,6 +444,22 @@ th {
   border-radius: 0.15em;
   padding: 0 0.1em;
 }
+.archive-illustration {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.archive-image-caption {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-inline-start: 2px solid var(--accent);
+  border-radius: 0.25rem;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
 .archive-image-trigger {
   display: inline-grid;
   place-items: center;
@@ -440,15 +522,16 @@ th {
     top: var(--toolbar);
     z-index: 2;
     margin-bottom: 0.8rem;
+    max-height: min(45vh, 19rem);
   }
   .archive-toc ol {
-    max-height: min(20vh, 11rem);
+    max-height: min(16vh, 8rem);
+  }
+  .archive-toc .archive-media-list ol {
+    max-height: min(9vh, 5rem);
   }
   .archive-content [id] {
-    scroll-margin-top: calc(var(--toolbar) + 4rem);
-  }
-  .archive-layout:has(.archive-toc details[open]) .archive-content [id] {
-    scroll-margin-top: calc(var(--toolbar) + min(20vh, 11rem) + 4.5rem);
+    scroll-margin-top: calc(var(--toolbar) + var(--archive-mobile-nav, min(45vh, 19rem)) + 1rem);
   }
 }
 @media print {
@@ -459,7 +542,8 @@ th {
   .archive-toc,
   .archive-results,
   .archive-image-viewer,
-  .archive-zoom-link {
+  .archive-zoom-link,
+  .archive-code-copy {
     display: none !important;
   }
   .archive-card {

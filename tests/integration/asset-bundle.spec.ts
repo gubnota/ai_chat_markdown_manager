@@ -6,6 +6,72 @@ import { unzipSync, strFromU8 } from "fflate";
 
 const png =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII=";
+const codeSample = 'const answer = "<script>literal</script>";\n';
+
+test("map previews survive current and bulk ZIP exports", async ({ page }) => {
+  const url = "https://chatgpt.com/c/maps";
+  const mapUrl = "https://www.openstreetmap.org/#map=12/25.2/55.3";
+  const framedMap = "https://www.google.com/maps/embed?pb=fixture";
+  await page.route(framedMap, (route) => route.fulfill({ body: "Map frame" }));
+  await page.route(url, (route) => route.fulfill({
+    contentType: "text/html",
+    body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maps</title>
+      <aside><a href="/c/maps">Maps</a></aside><main>
+      <article data-message-author-role="user">Where is the meeting?</article>
+      <article data-message-author-role="assistant"><p>Meeting location</p>
+        <div data-map-widget data-map-url="${mapUrl}" aria-label="Meeting map">
+          <canvas width="240" height="120"></canvas>
+        </div>
+        <div class="leaflet-container" aria-label="Trail map" style="width:160px;height:80px">
+          <img data-map-tile width="160" height="80" src="data:image/png;base64,${png}">
+        </div>
+        <iframe title="Route map" src="${framedMap}"></iframe>
+      </article></main><script>
+        localStorage.setItem('__ai_chat_md_v2__:settings', JSON.stringify({autoMinimize:false, delayMs:0, export:{mediaFiles:true, format:'html'}}));
+        const canvas = document.querySelector('canvas');
+        const context = canvas.getContext('2d');
+        context.fillStyle = '#72a6d8';
+        context.fillRect(0,0,240,120);
+        context.fillStyle = '#f33038';
+        context.fillRect(100,50,30,30);
+      </script>`,
+  }));
+  await page.goto(url);
+  await page.addScriptTag({ path: resolve("dist/AI-Chat-Markdown-Manager.user.js") });
+  await page.getByRole("button", { name: "Open Markdown Manager", exact: true }).click();
+  await page.getByRole("button", { name: "Save Current Chat" }).click();
+  await checkArchive("Export options");
+  await page.getByRole("button", { name: "Manage conversations" }).click();
+  await page.getByRole("button", { name: "Select all matching" }).click();
+  await page.getByRole("button", { name: "Export selected", exact: true }).click();
+  await checkArchive("Export selected");
+
+  async function checkArchive(dialogName: string) {
+    const downloaded = page.waitForEvent("download");
+    await page.getByRole("dialog", { name: dialogName })
+      .getByRole("button", { name: "Download ZIP", exact: true }).click();
+    const zip = unzipSync(readFileSync((await (await downloaded).path())!));
+    if (dialogName === "Export selected")
+      expect(JSON.parse(strFromU8(zip["manifest.json"]))).toMatchObject({
+        completed: 0,
+        failed: 1,
+      });
+    const html = strFromU8(zip[Object.keys(zip).find((name) => name.endsWith(".html"))!]);
+    expect(html).toContain(`href="${mapUrl}"`);
+    expect(html).toContain(`href="${framedMap}"`);
+    expect(html).toContain("Map preview unavailable in this export.");
+    expect(html).not.toMatch(/<iframe|<canvas/);
+    const images = Object.entries(zip).filter(([name]) => name.endsWith(".png"));
+    expect(images).toHaveLength(2);
+    for (const [label, width, height] of [["Meeting map", 240, 120], ["Trail map", 160, 80]] as const) {
+      const [name, bytes] = images.find(([name]) => name.includes(label))!;
+      expect(html).toContain(name.split("/").at(-1));
+      const data = Buffer.from(bytes);
+      expect([data.readUInt32BE(16), data.readUInt32BE(20)]).toEqual([width, height]);
+    }
+  }
+});
+
 for (const platform of [
   "chatgpt",
   "gemini",
@@ -39,7 +105,8 @@ for (const platform of [
         );
       const navigation = platform === "chatgpt" && format === "html";
       const padding = "<p>Long conversation fixture</p>".repeat(28);
-      const content = `<p>Portable fixture</p><img id="blob-image" alt="Generated"><img alt="Diagram" src="${svg}"><div class="attachment-card" data-file-name="reference.csv"><a href="/reference.csv">reference.csv</a></div>${navigation ? `${padding}<h2>Archive destination</h2>${padding}` : ""}`;
+      const code = codeSample.replaceAll("<", "&lt;");
+      const content = `<p>Portable fixture</p><img id="blob-image" alt="Generated"><img alt="Diagram" src="${svg}"><div class="attachment-card" data-file-name="reference.csv"><a href="/reference.csv">reference.csv</a></div>${navigation ? `${padding}<h2>Archive destination</h2><pre><code class="language-js">${code}</code></pre>${padding}` : ""}`;
       const messages =
         platform === "gemini"
           ? `<user-query>Prompt</user-query><model-response>${content}</model-response>`
@@ -192,6 +259,13 @@ for (const platform of [
         }
         await context.setOffline(true);
         const offline = await context.newPage();
+        if (navigation) await offline.addInitScript(() => {
+          Object.defineProperty(navigator, "clipboard", {
+            value: { writeText: async (text: string) => {
+              document.body.dataset.copiedCode = text;
+            } },
+          });
+        });
         const requests: string[] = [];
         offline.on("request", (request) => {
           if (/^https?:/.test(request.url())) requests.push(request.url());
@@ -232,8 +306,23 @@ for (const platform of [
           expect(new URL(offline.url()).hash).toBe(hash);
           await expect(offline.locator(hash!)).toBeInViewport();
           expect((await toc.boundingBox())!.y).toBeLessThan(100);
-          await toc.locator("summary").click();
+          await toc.locator(".archive-headings-list summary").click();
           await expect(link).toBeHidden();
+          const illustrations = toc.locator(".archive-media-list").filter({ hasText: "Illustrations" });
+          const attachments = toc.locator(".archive-media-list").filter({ hasText: "Attachments" });
+          await expect(illustrations.getByRole("link")).toHaveCount(2);
+          await expect(attachments.getByRole("link")).toHaveCount(1);
+          const diagram = illustrations.getByRole("link", { name: /Diagram/ });
+          await diagram.click();
+          await expect(offline.locator(":target .archive-image-caption")).toHaveText(/Diagram/);
+          await attachments.getByRole("link", { name: /reference.csv/ }).click();
+          await expect(offline.locator(":target")).toHaveAttribute("download", /reference.csv$/);
+          await expect(offline.locator(".archive-code-block .hljs-keyword")).toHaveText("const");
+          const copy = offline.locator(".archive-code-copy");
+          await expect(copy).toHaveText("Copy");
+          await copy.click();
+          await expect(offline.locator("body")).toHaveAttribute("data-copied-code", codeSample);
+          await expect(copy).toHaveText("Copied");
           const progress = () =>
             offline.locator(".archive-progress span").evaluate(
               (bar) => new DOMMatrixReadOnly(getComputedStyle(bar).transform).a,

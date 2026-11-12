@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-/* global document, window, NodeFilter, requestAnimationFrame, getComputedStyle, clearTimeout, setTimeout, CSS, ResizeObserver */
+/* global document, window, navigator, NodeFilter, requestAnimationFrame, getComputedStyle, clearTimeout, setTimeout, CSS, ResizeObserver */
 (() => {
   const thread = document.querySelector("#archive-thread");
   const search = document.querySelector(".archive-search");
@@ -23,7 +23,7 @@
     let entry;
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const parent = node.parentElement;
-      if (parent.closest(".archive-turn-number,.archive-metadata")) continue;
+      if (parent.closest(".archive-turn-number,.archive-metadata,.archive-code-toolbar")) continue;
       const block = parent.closest(blocks) || thread;
       if (block !== entry?.block) {
         const role = block
@@ -191,16 +191,63 @@
   });
   search.hidden = false;
 
+  async function copyCode(code, button) {
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      return true;
+    } catch {
+      // Some browsers restrict the Clipboard API on local files.
+      const field = document.createElement("textarea");
+      field.className = "archive-clipboard";
+      field.value = code.textContent;
+      document.body.append(field);
+      field.focus({ preventScroll: true });
+      field.select();
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } catch {
+        // Selecting the code still permits manual copying.
+      } finally {
+        field.remove();
+        button.focus({ preventScroll: true });
+      }
+      if (!copied) window.getSelection()?.selectAllChildren(code);
+      return copied;
+    }
+  }
+
+  for (const button of thread.querySelectorAll(".archive-code-copy")) {
+    const code = button.closest(".archive-code-block").querySelector("pre > code");
+    let reset;
+    button.hidden = false;
+    button.addEventListener("click", async () => {
+      const copied = await copyCode(code, button);
+      clearTimeout(reset);
+      button.textContent = copied ? "Copied" : "Copy manually";
+      reset = setTimeout(() => { button.textContent = "Copy"; }, 2400);
+    });
+  }
+
+  const sidebar = document.querySelector(".archive-toc");
+  if (sidebar && typeof ResizeObserver === "function") {
+    new ResizeObserver(() => {
+      document.documentElement.style.setProperty(
+        "--archive-mobile-nav",
+        sidebar.offsetHeight + "px",
+      );
+    }).observe(sidebar);
+  }
+
   const dialog = document.querySelector(".archive-image-viewer");
   if (typeof dialog.showModal === "function") {
     const stage = dialog.querySelector(".archive-image-stage");
     const caption = dialog.querySelector("p");
     for (const image of thread.querySelectorAll("img[src]")) {
       const link = image.closest("a");
-      const filename = [image.nextElementSibling, link?.nextElementSibling].find(
-        (element) => element?.matches("code"),
-      );
-      const name = filename?.textContent || image.alt || "Image";
+      const filename = image.closest(".archive-illustration")
+        ?.querySelector(".archive-image-caption")?.textContent;
+      const name = filename || image.alt || "Image";
       const button = document.createElement("button");
       button.type = "button";
       button.setAttribute("aria-label", "Expand image: " + name);

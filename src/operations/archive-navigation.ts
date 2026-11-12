@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import readerStyles from "./archive-reader.css?raw";
 import readerScript from "./archive-reader.js?raw";
+import { styleArchiveCodeBlocks } from "./archive-code";
+import { archiveMediaLists } from "./archive-media";
 
 export { readerStyles, readerScript };
 
@@ -12,6 +14,7 @@ export function archiveNavigation(
   title: string,
   showTitle: boolean,
   showMetadata: boolean,
+  assets: ReadonlyMap<string, string>,
 ): HTMLElement {
   const doc = content.ownerDocument;
   const create = <K extends keyof HTMLElementTagNameMap>(
@@ -30,7 +33,7 @@ export function archiveNavigation(
 
   const nav = create("nav", "archive-toc");
   nav.setAttribute("aria-label", "Table of contents");
-  const details = create("details");
+  const details = create("details", "archive-headings-list");
   details.open = true;
   const list = create("ol");
   const intro = create("section", "archive-card archive-intro");
@@ -71,6 +74,8 @@ export function archiveNavigation(
     } else section.append(child);
   }
 
+  styleArchiveCodeBlocks(content);
+  const mediaLists = archiveMediaLists(content, assets);
   const headings = [...content.querySelectorAll(headingTags)].filter(
     (heading) => heading.textContent?.trim(),
   );
@@ -92,15 +97,12 @@ export function archiveNavigation(
     item.append(link);
     list.append(item);
   }
-  if (headings.length) {
-    const summary = create("summary");
-    summary.append(create("span", undefined, "Table of contents"));
-    if (turn) summary.append(create("small", undefined, `${turn} turns`));
-    details.append(summary, list);
-    nav.append(details);
-    layout.append(nav);
-  }
-  layout.append(content);
+  const summary = create("summary");
+  summary.append(create("span", undefined, "Table of contents"));
+  if (turn) summary.append(create("small", undefined, `${turn} turns`));
+  details.append(summary, list);
+  nav.append(details, ...mediaLists);
+  layout.append(nav, content);
   return layout;
 }
 

@@ -75,6 +75,16 @@ export function rasterizeImage(image: HTMLImageElement): string {
     const context = canvas.getContext("2d");
     if (!context) return "";
     context.drawImage(image, 0, 0);
+    return canvasImageSource(canvas);
+  } catch {
+    return "";
+  }
+}
+
+export function canvasImageSource(canvas: HTMLCanvasElement): string {
+  if (!canvas.width || !canvas.height || canvas.width * canvas.height > maxImagePixels)
+    return "";
+  try {
     const result = canvas.toDataURL("image/png");
     return result.length <= maxImageUrlLength && rasterData.test(result)
       ? result

@@ -218,3 +218,13 @@ Context: Long exported chats need searchable context, a navigable contents sideb
 Decision: Keep rebuilding chat HTML from an allowlist. Include one fixed local reader script authorized by a fresh per-document CSP nonce. Build search results as text nodes, and reuse authorized image URLs in the dialog. Do not add network dependencies.
 Consequences: Search and image zoom work offline. The transcript and contents links work with scripting disabled. This refines ADR-0013's strict CSP while preserving its separation of content and executable code.
 Related files: src/operations/document.ts, src/operations/archive-navigation.ts, src/operations/archive-reader.css, src/operations/archive-reader.js.
+
+# ADR-0023: Preserve map widgets as portable snapshots
+
+Date: 2026-11-13
+Status: Accepted
+
+Context: Conversation maps may use canvas, rendered image tiles or third-party frames. The offline reader accepts sanitized content and has no widget runtime.
+Decision: Capture readable map pixels as bounded PNG and keep an exposed original URL. Use the existing image and link switches and resource packaging.
+Consequences: The offline copy shows the saved view and can enlarge it in the image viewer. Live map interaction requires the original URL. An unreadable map gets an explicit note.
+Related files: src/markdown/maps.ts, src/markdown/attachments.ts, tests/integration/asset-bundle.spec.ts.

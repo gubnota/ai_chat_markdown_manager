@@ -1,6 +1,6 @@
 {
   "name": "ai-chat-markdown-manager",
-  "version": "2.4.10",
+  "version": "2.4.11",
   "private": true,
   "description": "Local AI conversation manager userscript",
   "license": "MIT OR Apache-2.0",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "fflate": "^0.8.2",
+    "highlight.js": "11.11.1",
     "lucide-react": "^0.468.0",
     "marked": "^17.0.6",
     "react": "^19.2.0",

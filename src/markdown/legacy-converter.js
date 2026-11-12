@@ -113,6 +113,7 @@
 
 // Inherited converter kept as JavaScript to minimize changes; typed boundary in legacy.ts.
 import { attachmentMarkdown, embeddedImageSource, imageUrls, inMessage } from "./attachments";
+import { mapWidgetMarkdown } from "./maps";
 import { linkedFilename } from "./filenames";
 import { messageNodes, messageRole, visibleMessageElement } from "./messages";
 
@@ -259,6 +260,8 @@ export function createConverter(options = {}) {
     const tag = el.tagName;
     if (isHidden(el)) return '';
     if (el.matches('[data-md-export-ignore], [role="navigation"], [role="complementary"], [role="toolbar"], [role="menu"], [role="menubar"], [role="tooltip"], [role="status"], [data-testid="toast"]')) return '';
+    const map = mapWidgetMarkdown(el, config);
+    if (map !== undefined) return map;
     const attachment = attachmentMarkdown(el, config, imageMarkdown);
     if (attachment !== undefined) return attachment;
     if (ignored.has(tag)) return '';

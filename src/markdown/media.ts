@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import type { ExportOptions, MediaSink, MissingMedia } from "../types";
 import { embeddedImageSource, imageUrls, rasterizeImage } from "./attachments";
+import { unavailableMapPreview } from "./maps";
 import { linkedFilename } from "./filenames";
 
 const maxFile = 20 * 1024 * 1024;
@@ -169,15 +170,19 @@ export async function embedMarkdownMedia(
   signal?.throwIfAborted();
   const missing = body.match(/Attachment: [^\n]*— direct link unavailable\./);
   const missingImage = body.match(/Image: [^\n]*— direct link unavailable\./);
-  const required = missing ?? missingImage;
+  const missingMap = options.images && body.includes(`*${unavailableMapPreview}*`);
+  const required = missing?.[0] ?? missingImage?.[0] ??
+    (missingMap ? unavailableMapPreview : "");
   if (required && !missingMedia)
     throw new Error(
-      `Offline export incomplete: ${required[0]} Keep this chat until its original file is available.`,
+      `Offline export incomplete: ${required} Keep this chat until its original file is available.`,
     );
   if (missing)
     missingMedia?.set("attachment:", { kind: "file", reason: missing[0] });
   if (missingImage)
     missingMedia?.set("", { kind: "image", reason: missingImage[0] });
+  if (missingMap)
+    missingMedia?.set("map:", { kind: "image", reason: unavailableMapPreview });
   const nodes = roots
     .flatMap((root) => [
       root,

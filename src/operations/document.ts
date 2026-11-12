@@ -103,6 +103,11 @@ export function offlineHtml(
       el.setAttribute("type", "checkbox");
       el.setAttribute("disabled", "");
       if (node.hasAttribute("checked")) el.setAttribute("checked", "");
+    } else if (tag === "code" && parent.nodeName === "PRE") {
+      const language = [...node.classList].find((name) =>
+        /^language-[a-z0-9_+.#-]{1,32}$/i.test(name),
+      );
+      if (language) el.className = language;
     } else if (tag === "ol" && /^\d+$/.test(node.getAttribute("start") || ""))
       el.setAttribute("start", node.getAttribute("start")!);
     for (const child of node.childNodes) append(child, el);
@@ -119,7 +124,7 @@ export function offlineHtml(
 <title>${escape(title)}</title><style>${readerStyles}</style></head><body id="archive-top">
 ${readerToolbar}
 <p class="archive-mode">${embedMedia ? "Offline conversation archive · external source links require internet" : "Linked conversation export · media and file links require internet and may expire"}</p>
-${archiveNavigation(output, title, showTitle, showMetadata).outerHTML}
+${archiveNavigation(output, title, showTitle, showMetadata, assets).outerHTML}
 <script nonce="${nonce}">${readerScript}</script></body></html>`;
 }
 export function exportDocument(
