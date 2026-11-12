@@ -5,7 +5,9 @@ import { pathFilename } from "../markdown/filenames";
 import type { Conversation, ExportOptions } from "../types";
 import {
   archiveNavigation,
-  archiveNavigationStyles,
+  readerScript,
+  readerStyles,
+  readerToolbar,
 } from "./archive-navigation";
 import { assetFilename, captionResources } from "./resources";
 
@@ -36,6 +38,8 @@ export function offlineHtml(
   title: string,
   embedMedia = true,
   assets: ReadonlyMap<string, string> = new Map(),
+  showTitle = true,
+  showMetadata = false,
 ): string {
   const template = document.createElement("template");
   template.innerHTML = markdown.parse(source, { async: false }) as string;
@@ -105,13 +109,18 @@ export function offlineHtml(
     parent.appendChild(el);
   }
   for (const child of template.content.childNodes) append(child, output);
+  // Authorize only the bundled reader, never markup or code from the transcript.
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:${assets.size ? " file: 'self'" : ""}${embedMedia ? "" : " https: http:"}; media-src data:${assets.size ? " file: 'self'" : ""}; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-<title>${escape(title)}</title><style>
-:root{color-scheme:light dark;font:17px/1.65 system-ui,sans-serif}body{max-width:72rem;margin:auto;padding:32px 22px;overflow-wrap:anywhere}h1,h2,h3{line-height:1.25}h2{margin-top:2em;border-top:1px solid #8886;padding-top:1em}pre{padding:16px;background:#8882;overflow:auto;white-space:pre-wrap}code{font-family:ui-monospace,monospace}blockquote{margin-left:0;padding-left:18px;border-left:3px solid #8888}img,video{max-width:100%;height:auto}audio{display:block;max-width:100%}table{border-collapse:collapse;display:block;overflow:auto}td,th{border:1px solid #8886;padding:6px 12px}a{color:#4c8bdc}header{font-size:.85em;color:gray} @media print{body{max-width:none;padding:0}pre{white-space:pre-wrap}}
-${archiveNavigationStyles}
-</style></head><body><header>${embedMedia ? "Offline conversation archive · external source links require internet" : "Linked conversation export · media and file links require internet and may expire"}</header>${archiveNavigation(output).outerHTML}</body></html>`;
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; img-src data:${assets.size ? " file: 'self'" : ""}${embedMedia ? "" : " https: http:"}; media-src data:${assets.size ? " file: 'self'" : ""}; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>${escape(title)}</title><style>${readerStyles}</style></head><body id="archive-top">
+${readerToolbar}
+<p class="archive-mode">${embedMedia ? "Offline conversation archive · external source links require internet" : "Linked conversation export · media and file links require internet and may expire"}</p>
+${archiveNavigation(output, title, showTitle, showMetadata).outerHTML}
+<script nonce="${nonce}">${readerScript}</script></body></html>`;
 }
 export function exportDocument(
   body: string,
@@ -119,8 +128,10 @@ export function exportDocument(
   options: ExportOptions,
   assets: ReadonlyMap<string, string> = new Map(),
 ): string {
-  let source = conversationDocument(captionResources(body, assets), c, options);
-  if (options.format !== "html") return source;
+  const captioned = captionResources(body, assets);
+  if (options.format !== "html")
+    return conversationDocument(captioned, c, options);
+  let source = conversationDocument(captioned, c, { ...options, title: false });
   // Render YAML as readable metadata rather than interpreting it as headings.
   source = source.replace(
     /^---\n([\s\S]*?)\n---\n/,
@@ -131,5 +142,7 @@ export function exportDocument(
     c.title,
     options.embedMedia || options.mediaFiles,
     assets,
+    options.title,
+    options.metadata,
   );
 }

@@ -231,39 +231,53 @@ for (const platform of [
           await link.click();
           expect(new URL(offline.url()).hash).toBe(hash);
           await expect(offline.locator(hash!)).toBeInViewport();
-          expect((await toc.boundingBox())!.y).toBeLessThan(30);
+          expect((await toc.boundingBox())!.y).toBeLessThan(100);
           await toc.locator("summary").click();
           await expect(link).toBeHidden();
-          if (
-            await offline.evaluate(() =>
-              CSS.supports("animation-timeline:scroll(root block)"),
-            )
-          ) {
-            await offline.evaluate(() =>
-              window.scrollTo(0, document.documentElement.scrollHeight),
+          const progress = () =>
+            offline.locator(".archive-progress span").evaluate(
+              (bar) => new DOMMatrixReadOnly(getComputedStyle(bar).transform).a,
             );
-            await expect
-              .poll(() =>
-                offline
-                  .locator(".archive-progress span")
-                  .evaluate(
-                    (bar) =>
-                      new DOMMatrixReadOnly(getComputedStyle(bar).transform).a,
-                  ),
-              )
-              .toBeGreaterThan(0.95);
-            await offline.evaluate(() => window.scrollTo(0, 0));
-            await expect
-              .poll(() =>
-                offline
-                  .locator(".archive-progress span")
-                  .evaluate(
-                    (bar) =>
-                      new DOMMatrixReadOnly(getComputedStyle(bar).transform).a,
-                  ),
-              )
-              .toBeLessThan(0.05);
-          }
+          await offline.evaluate(() =>
+            window.scrollTo(0, document.documentElement.scrollHeight),
+          );
+          await expect.poll(progress).toBeGreaterThan(0.95);
+          await offline.evaluate(() => window.scrollTo(0, 0));
+          await expect.poll(progress).toBeLessThan(0.05);
+          const query = offline.getByRole("searchbox", { name: "Search this thread" });
+          await query.fill("conversation fixture");
+          const results = offline.getByRole("region", { name: "Search results" });
+          const matches = results.getByRole("listitem");
+          await expect(results.getByRole("status")).toContainText("56 matches");
+          await expect(matches).toHaveCount(8);
+          await expect(matches.first().locator("mark")).toHaveText("conversation fixture");
+          await expect(matches.first()).toContainText("Long conversation fixture");
+          await results.getByRole("button", { name: "Expand all results" }).click();
+          await expect(matches).toHaveCount(56);
+          await matches.last().getByRole("link").click();
+          await expect(offline.locator(":target")).toHaveText("Long conversation fixture");
+          await query.fill("reference.csv");
+          await expect(results.locator("mark").first()).toHaveText("reference.csv");
+          await offline.getByRole("button", { name: "Clear", exact: true }).click();
+          await expect(results).toBeHidden();
+          await query.fill("[literal]+");
+          await expect(results.getByRole("status")).toHaveText("No matches found.");
+          await query.press("Escape");
+          await expect(results).toBeHidden();
+
+          const imageTrigger = offline.getByRole("button", { name: /^Expand image: .*Diagram/ });
+          await imageTrigger.evaluate((button) =>
+            button.scrollIntoView({ block: "center" }),
+          );
+          await imageTrigger.click();
+          const viewer = offline.getByRole("dialog", { name: "Expanded image" });
+          await expect(viewer).toBeVisible();
+          await expect(viewer.locator("img")).toHaveAttribute("src", /^assets\//);
+          await offline.keyboard.press("Escape");
+          await expect(viewer).toBeHidden();
+          await imageTrigger.click();
+          await viewer.getByRole("button", { name: "Close image" }).click();
+          await expect(viewer).toBeHidden();
         }
         if (testInfo.project.name === "chromium") {
           const referenceDownload = offline.waitForEvent("download");

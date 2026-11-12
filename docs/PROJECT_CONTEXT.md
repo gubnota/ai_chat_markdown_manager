@@ -3,13 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.4.9, 2026-11-12.
+- Release: 2.4.10, 2026-11-12.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
+- v2.4.10 restyles exported HTML and adds offline search with snippets, a wider contents sidebar and a click-to-expand image viewer.
 - v2.4.9 makes media filenames searchable in Markdown and HTML, and adds a sticky contents panel and reading progress bar to offline HTML.
 - v2.4.4 scrolls through ChatGPT's loaded history for separate-file ZIP exports and streams binary assets to browser storage. Without writable storage, ordinary exports can save numbered ZIP parts.
 - v2.4.5 shows captured messages, saved assets, older-history wait time and ZIP finalization during separate-file exports.
@@ -111,6 +112,7 @@
 - Host scripts/extensions can access same-origin data.
 - Embedding controls resource requests for both formats; default Markdown keeps links, and selecting HTML defaults embedding on with an editable switch.
 - Embedded HTML uses data-only media; ZIP HTML permits only its generated local assets. Ordinary separate-file ZIPs retain the available document and media when enabled assets or older history are missing. Linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
+- HTML permits one fixed bundled reader script under a per-document CSP nonce; exported conversation content cannot execute scripts.
 - Media requests have a 20-second timeout and a 20 MiB/file limit. Inline embedding is capped at 64 MiB/chat and 100 resources. Separate-file ZIPs use browser storage and classic ZIP limits or 32 MiB fallback parts. Canvas previews remain bounded.
 - See `docs/PRIVACY.md` for reset behavior and storage details.
 

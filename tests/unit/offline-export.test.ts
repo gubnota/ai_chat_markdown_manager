@@ -234,8 +234,20 @@ describe("standalone HTML", () => {
     );
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect(
-      doc.querySelector("script,iframe,form,[onclick],a[href^='javascript']"),
+      doc.querySelector(
+        "main script,iframe,form,[onclick],a[href^='javascript']",
+      ),
     ).toBeNull();
+    const [reader] = doc.querySelectorAll("script");
+    expect(doc.scripts).toHaveLength(1);
+    expect(reader.getAttribute("src")).toBeNull();
+    const nonce = reader.getAttribute("nonce");
+    expect(nonce).toMatch(/^[a-f0-9]{32}$/);
+    const csp = doc
+      .querySelector('meta[http-equiv="Content-Security-Policy"]')
+      ?.getAttribute("content");
+    expect(csp).toContain(`script-src 'nonce-${nonce}';`);
+    expect(reader.textContent).not.toContain("evil()");
     expect(doc.querySelector("code")?.textContent).toContain(
       "<script>example</script>",
     );
@@ -265,7 +277,7 @@ describe("standalone HTML", () => {
     expect(
       doc.querySelector('a[href="https://files.test/input.csv"]'),
     ).not.toBeNull();
-    expect(doc.querySelector("header")?.textContent).toContain(
+    expect(doc.querySelector(".archive-mode")?.textContent).toContain(
       "require internet",
     );
     expect(
@@ -273,7 +285,7 @@ describe("standalone HTML", () => {
         .querySelector('meta[http-equiv="Content-Security-Policy"]')
         ?.getAttribute("content"),
     ).toContain("img-src data: https: http:");
-    expect(doc.querySelector("script,iframe,[onerror]")).toBeNull();
+    expect(doc.querySelector("main script,iframe,[onerror]")).toBeNull();
   });
   it("keeps Markdown as default and validates migrated format values", () => {
     expect(exportDocument("body", chat, defaults.export)).not.toContain(

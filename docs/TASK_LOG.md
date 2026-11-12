@@ -180,3 +180,10 @@
 - Current and bulk HTML and Markdown exports show the saved filename beside each image and attachment. Separate media ZIP captions and HTML download names match the archive entries.
 - HTML archives provide a collapsible sticky contents panel with links to chat turns and headings, and show reading progress where browsers support scroll-driven CSS. Navigation runs offline under the existing script-free policy.
 - Passed 122 unit tests and 90 focused browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release checksums.
+
+## 2026-11-12 — v2.4.10 offline HTML reader
+
+- HTML exports use a wider sticky contents sidebar, message cards and a progress bar. Search shows highlighted context, a full list on demand and links back to matching text. Images open in a dialog with a close button and Escape support.
+- One CSP nonce authorizes the bundled reader. The transcript and contents work without scripting, and the reader uses no network services.
+- Passed 122 unit tests and 90 export browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release checksums.
+- Restyled the recovered chat ZIP. All 317 non-HTML entries and 323 local image references were preserved; the 54 existing unavailable image markers remain.

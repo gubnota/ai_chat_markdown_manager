@@ -27,7 +27,8 @@
 | `src/operations/resources.ts` | Markdown resource token rewriting, asset names and visible filename captions |
 | `src/operations/archive.ts` | File-backed streaming ZIPs and bounded fallback parts |
 | `src/operations/document.ts` | Markdown wrapper and allowlisted HTML, inline/linked image CSP and MIME |
-| `src/operations/archive-navigation.ts` | Generated HTML table of contents, heading anchors and CSS reading progress |
+| `src/operations/archive-navigation.ts` | Offline HTML reader layout, message cards and table of contents |
+| `src/operations/archive-reader.{css,js}` | Bundled HTML styles, local search snippets, image viewer and reading progress |
 | `src/markdown/legacy-converter.js` | Minimally changed inherited MIT converter |
 | `src/markdown/legacy-converter.d.ts` | Explicit typed boundary for inherited JS |
 | `src/markdown/legacy.ts` | Typed conversion wrapper and metadata |

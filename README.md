@@ -1,4 +1,4 @@
-# AI Chat Markdown Manager v2.4.9
+# AI Chat Markdown Manager v2.4.10
 
 [Русский](README.ru.md) · [Build and install](#17-build)
 
@@ -70,7 +70,7 @@ Gemini uploaded images and generated image previews inside message buttons are i
 
 Choose **Save Current Chat** to set the format, filename and media options before capture. **Embed media and input files** puts enabled images, audio/video and input files inside the document. HTML enables embedding by default and includes its own styles. **Save ZIP with separate media and input files** stores the document and its assets together in an archive. Extract the whole ZIP before opening the document. With both switches off, resource links may require internet and can expire. Keep **Include images** and **Include links and input files** enabled to capture all supported resources.
 
-Search either format for a filename such as `147-User attachment.png` to find it next to the image or attachment. In HTML, use the sticky **Table of contents** to jump to a message or heading. Browsers with CSS scroll timeline support show reading progress across the top.
+Search either format for a filename such as `147-User attachment.png` to find it next to the image or attachment. In HTML, use **Search this thread** to see matches in context, with the search term highlighted in yellow. Choose **Expand all results** to see the full list, or select a result to jump to the text. The wider, sticky **Table of contents** links to messages and headings, with reading progress across the top. Click an image to enlarge it, then press Escape or choose ✕ to close it. The reader works offline with embedded or ZIP assets.
 
 In **Manage conversations → ⋯ beside a chat → Preview / export**, choose **File format** (Markdown or HTML), **Embed media and input files**, **Include images**, and **Include links and input files**. Each change refreshes the preview; use **Download Markdown** or **Download HTML** when ready. Failed refreshes disable download until corrected or retried. Preview choices apply to that preview only.
 

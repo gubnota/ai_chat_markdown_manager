@@ -208,3 +208,13 @@ Context: Separate-file ZIPs inherited the inline media size and resource caps. C
 Decision: Capture overlapping ChatGPT scroll windows and write media bytes directly into a temporary origin-private ZIP. Use bounded numbered parts when writable browser storage is unavailable.
 Consequences: Separate-file exports can exceed 64 MiB and 100 resources per chat. The 20 MiB resource limit still applies. Classic ZIP bounds and browser storage quota bound a single archive. Numbered parts require individual downloads and do not qualify for cleanup review.
 Related files: src/adapters/base/chatgpt-history.ts, src/operations/archive.ts, src/operations/package.ts, tests/integration/asset-bundle.spec.ts.
+
+# ADR-0022: Bundle a trusted offline archive reader
+
+Date: 2026-11-12
+Status: Accepted
+
+Context: Long exported chats need searchable context, a navigable contents sidebar, and a way to enlarge attachments inside the saved file.
+Decision: Keep rebuilding chat HTML from an allowlist. Include one fixed local reader script authorized by a fresh per-document CSP nonce. Build search results as text nodes, and reuse authorized image URLs in the dialog. Do not add network dependencies.
+Consequences: Search and image zoom work offline. The transcript and contents links work with scripting disabled. This refines ADR-0013's strict CSP while preserving its separation of content and executable code.
+Related files: src/operations/document.ts, src/operations/archive-navigation.ts, src/operations/archive-reader.css, src/operations/archive-reader.js.
