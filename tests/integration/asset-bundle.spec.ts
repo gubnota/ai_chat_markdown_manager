@@ -96,7 +96,10 @@ for (const platform of [
         .fill("Plane trip");
       await expect(
         dialog.getByRole("switch", { name: "Embed media and input files" }),
-      ).toBeDisabled();
+      ).not.toBeChecked();
+      await expect(
+        dialog.getByRole("switch", { name: "Save ZIP with separate media and input files" }),
+      ).toBeChecked();
       const downloaded = page.waitForEvent("download");
       await dialog
         .getByRole("button", { name: "Download ZIP", exact: true })

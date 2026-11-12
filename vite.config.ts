@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { readFileSync } from "node:fs";
+import { version } from "./package.json";
 const original = readFileSync("Save-Page-as-Markdown-Safari.user.js", "utf8");
 const matches = original
   .split("\n")
@@ -17,7 +18,7 @@ const banner = [
   "// ==UserScript==",
   "// @name         AI Chat Markdown Manager",
   "// @namespace    https://github.com/gubnota/ai_chat_markdown_manager",
-  "// @version      2.4.0",
+  `// @version      ${version}`,
   "// @description  Offline HTML/Markdown export and conversation management. Native operations require verified capabilities.",
   "// @author       gubnota (repository owner); inherited converter: Adem Kouki",
   "// @license      MIT OR Apache-2.0",

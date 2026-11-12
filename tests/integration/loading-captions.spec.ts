@@ -113,8 +113,12 @@ test("post-backup review includes only successful exports and clears before a fa
   await page
     .getByRole("button", { name: "Export selected", exact: true })
     .click();
-  await page
-    .getByRole("dialog", { name: "Export selected" })
+  const options = page.getByRole("dialog", { name: "Export selected" });
+  await options.getByRole("switch", {
+    name: "Save ZIP with separate media and input files",
+  }).check();
+  await options.getByRole("switch", { name: "Include images" }).uncheck();
+  await options
     .getByRole("button", { name: "Download ZIP", exact: true })
     .click();
   const file = await downloaded;
@@ -138,6 +142,15 @@ test("post-backup review includes only successful exports and clears before a fa
   await page
     .getByRole("button", { name: "Retry failed exports", exact: true })
     .click();
+  const retry = page.getByRole("dialog", { name: "Retry failed exports" });
+  await expect(retry.getByRole("combobox", { name: "File format" })).toBeVisible();
+  await expect(retry.getByRole("switch", {
+    name: "Save ZIP with separate media and input files",
+  })).toBeChecked();
+  await expect(retry.getByRole("switch", { name: "Embed media and input files" })).not.toBeChecked();
+  await expect(retry.getByRole("switch", { name: "Include images" })).not.toBeChecked();
+  await expect(retry.getByRole("switch", { name: "Include links and input files" })).toBeChecked();
+  await retry.getByRole("button", { name: "Download ZIP", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Export report", exact: true }),
   ).toBeEnabled();

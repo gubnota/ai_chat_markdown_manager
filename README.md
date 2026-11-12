@@ -1,4 +1,4 @@
-# AI Chat Markdown Manager v2.4.0
+# AI Chat Markdown Manager v2.4.1
 
 [Русский](README.ru.md) · [Build and install](#17-build)
 
@@ -84,7 +84,9 @@ Selection persists on this website. Unknown dates/statuses remain unknown and do
 
 ## 10. Bulk export
 
-Use **Export selected** for the checked chats or **Export All** for all discovered chats. Choose the format and media options before clicking **Download ZIP**. Bulk exports start with embedding on unless your settings already select separate files. Turn on **Include media and input files separately in ZIP** to write an asset folder per chat. Turn both media switches off for linked exports.
+Open **Export selected** for the checked chats or **Export All** for all discovered chats. Both dialogs show **File format** (HTML or Markdown), **Save ZIP with separate media and input files**, **Embed media and input files**, **Include images**, and **Include links and input files** above **Download ZIP**.
+
+Bulk exports start with embedding on unless your settings already select separate files. Use the separate-files switch to write an asset folder per chat. Turning on either media switch turns off the other. Turn both off to keep external references.
 
 On **ChatGPT, Gemini and Claude**, the manager opens each selected chat through its native sidebar link, waits for newly loaded messages and exports automatically. You do not need to open every chat first. The starting conversation is restored after completion or cancellation. Loading chats may mark them read.
 
@@ -92,11 +94,11 @@ Native SPA links must remain available. A missing/virtualized link, full-page re
 
 The ZIP contains successful `.md` or `.html` files and an optional `manifest.json` with per-item results. A fully failed batch produces a report, not an empty successful backup. Preview/export caches up to 20 chats / approximately 8 MiB in memory; reload clears it. Image/link/outline options must match cached content; the three automatic adapters reload when necessary.
 
-Cancel stops queued work; completed results remain valid. **Retry failed exports** uses the same format and media options for the failed items. Filenames are sanitized and collisions receive numeric suffixes.
+Cancel stops queued work and preserves completed results. **Retry failed exports** opens the options again with the last confirmed choices. Filenames are sanitized and collisions receive numeric suffixes.
 
 ## YouTube captions
 
-1. Install v2.4.0, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.4.1, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -106,7 +108,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.4.0. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.4.1. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -156,7 +158,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.4.0`. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.4.1`. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 

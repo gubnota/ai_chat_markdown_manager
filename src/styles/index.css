@@ -759,6 +759,16 @@ kbd {
 .dialog .toggle-row input {
   flex-shrink: 0;
 }
+.export-options {
+  display: grid;
+  gap: 10px;
+}
+.export-options .format-select {
+  margin-bottom: 0;
+}
+.dialog .export-options .toggle-row {
+  margin: 0;
+}
 .dialog label input:not([type="checkbox"]),
 .dialog label select {
   display: block;

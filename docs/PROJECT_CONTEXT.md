@@ -3,7 +3,7 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.4.0, 2026-11-11.
+- Release: 2.4.1, 2026-11-12.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
@@ -12,7 +12,7 @@
 ## Current milestone
 - v2.4.0 adds separate-file offline ZIPs, loaded SVG-to-PNG capture, custom format selector, editable names and progress.
 - v2.3.3 fixes current ChatGPT extraction (search keys and role-heading containers), including image-only replies; shared visible boundaries cover Grok/Claude/DeepSeek too.
-- Save Current Chat, Export selected and Export All share the format and media choices before download. Bulk exports default to offline embedding or honor the saved separate-file preference.
+- Save Current Chat, Export selected, Export All and Retry failed exports show format and four media switches before download. Bulk exports default to offline embedding or honor the saved separate-file preference. Retries start with the last confirmed choices.
 - v2.3.1 exposed preview format/embed/image/file controls with fresh capture and error-safe downloads.
 - v2.3.0 added standalone offline HTML and optional embedded Markdown, shared across current/selection/preview/batch/required-backup exports for ChatGPT/Gemini.
 - Offline media failures exclude that chat from successful-backup cleanup; Gemini uses a local ZIP archive then native delete.

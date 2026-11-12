@@ -118,3 +118,10 @@
 - Reused the keyboard-accessible dropdown for conversation filters and added full-window expansion, restore, X and Escape.
 - Verification passed for 121 unit tests and 165 browser cases across Chromium and desktop and mobile WebKit, plus lint, typecheck and build. Browser fixtures verify embedded image, audio and input-file bytes and separate ZIP asset paths for each chat.
 - Follow-up work covers interactive maps, raw SVGs and other HTML widgets.
+
+## 2026-11-12 — v2.4.1 bulk export controls
+
+- Put the HTML/Markdown selector and four file switches first in the Export selected, Export All and Retry failed exports dialogs. Retry opens with the last confirmed choices. Enabling embedding or separate files clears the other switch.
+- Use the package version for the manager heading, userscript metadata, export manifest and release ZIP. The Safari upgrade guide shows how to confirm the loaded version.
+- Browser fixtures check mobile viewport visibility, both format choices, switching between separate and embedded files, retry defaults and per-chat offline asset bytes. Live Safari verification stopped at a Computer Use restriction on the active page.
+- Verification passed for 121 unit tests and 165 browser cases across Chromium and desktop and mobile WebKit, plus lint, type checking, build and release checksums.

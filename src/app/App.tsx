@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import { version } from "../../package.json";
 import type {
   Conversation,
   ExportOptions,
@@ -82,12 +83,13 @@ interface Confirmation {
   items: Conversation[];
   all: boolean;
 }
+type ExportScope = "selected" | "all" | "retry";
 type ExportChoice = {
   options: ExportOptions;
   error?: string;
 } & (
   | { kind: "current"; selection: boolean }
-  | { kind: "batch"; targets: Conversation[]; all: boolean }
+  | { kind: "batch"; targets: Conversation[]; scope: ExportScope }
 );
 function initialPosition(): Point {
   let old: Point | undefined;
@@ -532,7 +534,7 @@ export function App({
             files,
             options.manifest
               ? {
-                  version: "2.4.0",
+                  version,
                   format: options.format,
                   embeddedMedia: !options.mediaFiles && options.embedMedia,
                   mediaFiles: options.mediaFiles,
@@ -594,21 +596,29 @@ export function App({
       await scan();
     }
   };
+  const requestExport = (
+    targets: Conversation[],
+    scope: ExportScope,
+    options = { ...settings.export, embedMedia: true },
+  ) => {
+    if (busy || operationLock.current || !targets.length) return;
+    setExportChoice({
+      kind: "batch",
+      targets: targets.map((c) => ({ ...c })),
+      scope,
+      options: { ...options, embedMedia: !options.mediaFiles && options.embedMedia },
+    });
+  };
   const requestAction = (
     kind: OperationKind,
     targets: Conversation[],
     all = false,
   ) => {
-    if (busy || operationLock.current || !targets.length) return;
     if (kind === "export") {
-      setExportChoice({
-        kind: "batch",
-        targets: targets.map((c) => ({ ...c })),
-        all,
-        options: { ...settings.export, embedMedia: true },
-      });
+      requestExport(targets, all ? "all" : "selected");
       return;
     }
+    if (busy || operationLock.current || !targets.length) return;
     setPhrase("");
     setConfirm({ kind, items: targets.map((c) => ({ ...c })), all });
   };
@@ -674,7 +684,9 @@ export function App({
     return {
       ...settings.export,
       format,
-      embedMedia: format === "html" || settings.export.embedMedia,
+      embedMedia:
+        !settings.export.mediaFiles &&
+        (format === "html" || settings.export.embedMedia),
       filename: current
         ? filename(current, settings.export.filename, format).replace(
             /\.(html|md)$/i,
@@ -815,6 +827,7 @@ export function App({
                   ? `${items.length} ${t("discovered", "обнаружено")} · `
                   : ""}
                 {adapter.name} · {location.hostname}
+                {screen === "home" && ` · v${version}`}
               </small>
             </div>
             <IconButton
@@ -901,7 +914,7 @@ export function App({
                     "ZIP-копия доступного содержимого",
                   )}
                   disabled={busy || !items.length}
-                  onClick={() => requestAction("export", items, true)}
+                  onClick={() => requestExport(items, "all")}
                 />
                 <ActionRow
                   icon={Archive}
@@ -1035,7 +1048,7 @@ export function App({
               <button
                 className="primary wide"
                 disabled={busy || !items.length}
-                onClick={() => requestAction("export", items, true)}
+                onClick={() => requestExport(items, "all")}
               >
                 <Download size={16} />
                 {t("Export All", "Экспорт всех")}
@@ -1043,7 +1056,7 @@ export function App({
               <button
                 className="wide"
                 disabled={busy || !exportPicked.length}
-                onClick={() => requestAction("export", exportPicked)}
+                onClick={() => requestExport(exportPicked, "selected")}
               >
                 {t("Export selected", "Экспорт выбранных")}
               </button>
@@ -1147,9 +1160,9 @@ export function App({
                         .filter((r) => r.status === "failed")
                         .map((r) => r.key),
                     );
-                    void execute(
-                      "export",
+                    requestExport(
                       items.filter((c) => failed.has(conversationKey(c))),
+                      "retry",
                       lastExportOptions.current,
                     );
                   }}
@@ -1301,98 +1314,97 @@ export function App({
           title={
             exportChoice.kind === "current"
               ? t("Export options", "Настройки экспорта")
-              : exportChoice.all
-                ? t("Export All", "Экспорт всех")
-                : t("Export selected", "Экспорт выбранных")
+              : {
+                  all: t("Export All", "Экспорт всех"),
+                  selected: t("Export selected", "Экспорт выбранных"),
+                  retry: t("Retry failed exports", "Повторить ошибки экспорта"),
+                }[exportChoice.scope]
           }
           onClose={() => {
             operationAbort.current?.abort();
             setExportChoice(undefined);
           }}
         >
+          <div className="export-options">
+            <div>
+              {t("File format", "Формат файла")}
+              <FormatSelect
+                label={t("File format", "Формат файла")}
+                value={exportChoice.options.format}
+                disabled={busy}
+                onChange={(format) => {
+                  const { options } = exportChoice;
+                  setExportChoice({
+                    ...exportChoice,
+                    error: undefined,
+                    options: {
+                      ...options,
+                      format,
+                      embedMedia:
+                        options.embedMedia ||
+                        (exportChoice.kind === "current" &&
+                          format === "html" &&
+                          !options.mediaFiles),
+                    },
+                  });
+                }}
+              />
+            </div>
+            {(
+              [
+                [
+                  "mediaFiles",
+                  "Save ZIP with separate media and input files",
+                  "Сохранить ZIP с медиа и входными файлами",
+                ],
+                [
+                  "embedMedia",
+                  "Embed media and input files",
+                  "Встроить медиа и входные файлы",
+                ],
+                ["images", "Include images", "Включить изображения"],
+                [
+                  "links",
+                  "Include links and input files",
+                  "Включить ссылки и входные файлы",
+                ],
+              ] as const
+            ).map(([key, en, rus]) => (
+              <Toggle
+                key={key}
+                label={t(en, rus)}
+                checked={exportChoice.options[key]}
+                disabled={busy}
+                onChange={(value) => {
+                  const options = { ...exportChoice.options, [key]: value };
+                  if (value && key === "mediaFiles") options.embedMedia = false;
+                  if (value && key === "embedMedia") options.mediaFiles = false;
+                  setExportChoice({ ...exportChoice, error: undefined, options });
+                }}
+              />
+            ))}
+          </div>
           {exportChoice.kind === "batch" && (
-            <p>
-              {exportChoice.all
-                ? t(
-                    `${exportChoice.targets.length} discovered chats. Discovery and loaded history may be partial.`,
-                    `Обнаружено бесед: ${exportChoice.targets.length}. Список и загруженная история могут быть неполными.`,
-                  )
-                : t(
-                    `Selected chats: ${exportChoice.targets.length}.`,
-                    `Выбрано бесед: ${exportChoice.targets.length}.`,
-                  )}
-            </p>
+            <>
+              <p>
+                {exportChoice.scope === "all"
+                  ? t(
+                      `${exportChoice.targets.length} discovered chats. Discovery and loaded history may be partial.`,
+                      `Обнаружено бесед: ${exportChoice.targets.length}. Список и загруженная история могут быть неполными.`,
+                    )
+                  : t(
+                      `Chats to export: ${exportChoice.targets.length}.`,
+                      `Бесед для экспорта: ${exportChoice.targets.length}.`,
+                    )}
+              </p>
+              <p className="hint">
+                {t(
+                  "Keep this tab open. Loading chats for export may mark them read.",
+                  "Держите вкладку открытой. Загруженные для экспорта беседы могут помечаться прочитанными.",
+                )}
+              </p>
+            </>
           )}
-          {exportChoice.kind === "batch" && (
-            <p className="hint">
-              {t(
-                "Keep this tab open. Loading chats for export may mark them read.",
-                "Держите вкладку открытой. Загруженные для экспорта беседы могут помечаться прочитанными.",
-              )}
-            </p>
-          )}
-          <label>
-            {t("File format", "Формат файла")}
-            <FormatSelect
-              value={exportChoice.options.format}
-              disabled={busy}
-              onChange={(format) => {
-                setExportChoice({
-                  ...exportChoice,
-                  error: undefined,
-                  options: {
-                    ...exportChoice.options,
-                    format,
-                    embedMedia:
-                      format === "html" || exportChoice.options.embedMedia,
-                  },
-                });
-              }}
-            />
-          </label>
-          {(
-            [
-              [
-                "mediaFiles",
-                exportChoice.kind === "batch"
-                  ? "Include media and input files separately in ZIP"
-                  : "Save ZIP with separate media and input files",
-                "Сохранить ZIP с медиа и входными файлами",
-              ],
-              [
-                "embedMedia",
-                "Embed media and input files",
-                "Встроить медиа и входные файлы",
-              ],
-              ["images", "Include images", "Включить изображения"],
-              [
-                "links",
-                "Include links and input files",
-                "Включить ссылки и входные файлы",
-              ],
-            ] as const
-          ).map(([key, en, rus]) => (
-            <Toggle
-              key={key}
-              label={t(en, rus)}
-              checked={
-                key === "embedMedia" && exportChoice.options.mediaFiles
-                  ? false
-                  : exportChoice.options[key]
-              }
-              disabled={
-                busy ||
-                (key === "embedMedia" && exportChoice.options.mediaFiles)
-              }
-              onChange={(value) =>
-                setExportChoice({
-                  ...exportChoice,
-                  error: undefined,
-                  options: { ...exportChoice.options, [key]: value },
-                })
-              }
-            />
-          ))}
           <p className="hint">
             {exportChoice.options.mediaFiles
               ? t(

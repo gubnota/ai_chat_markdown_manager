@@ -7,17 +7,19 @@ const formats = [
   { value: "html", label: "HTML (.html)", Icon: FileCode2 },
 ] as const;
 export function FormatSelect({
+  label = "File format",
   value,
   disabled,
   onChange,
 }: {
+  label?: string;
   value: ExportOptions["format"];
   disabled?: boolean;
   onChange: (value: ExportOptions["format"]) => void;
 }) {
   return (
     <Dropdown
-      label="File format"
+      label={label}
       choices={formats}
       value={value}
       disabled={disabled}

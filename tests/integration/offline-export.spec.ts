@@ -94,8 +94,17 @@ for (const platform of ["chatgpt", "gemini"] as const) {
       await page
         .getByRole("button", { name: "Export selected", exact: true })
         .click();
-      await page
-        .getByRole("dialog", { name: "Export selected" })
+      const selectedChoice = page.getByRole("dialog", { name: "Export selected" });
+      await expect(selectedChoice.getByRole("combobox", { name: "File format" })).toBeInViewport();
+      for (const name of [
+        "Save ZIP with separate media and input files",
+        "Embed media and input files",
+        "Include images",
+        "Include links and input files",
+      ]) {
+        await expect(selectedChoice.getByRole("switch", { name, exact: true })).toBeInViewport();
+      }
+      await selectedChoice
         .getByRole("button", { name: "Download ZIP", exact: true })
         .click();
       const archive = unzipSync(
@@ -126,8 +135,12 @@ for (const platform of ["chatgpt", "gemini"] as const) {
       await page.getByRole("button", { name: "Back", exact: true }).click();
       await page.getByRole("button", { name: "Export All" }).click();
       const allChoice = page.getByRole("dialog", { name: "Export All" });
+      const formatSelect = allChoice.getByRole("combobox", { name: "File format" });
+      const expectedLabel = format === "html" ? "HTML (.html)" : "Markdown (.md)";
+      const alternateLabel = format === "html" ? "Markdown (.md)" : "HTML (.html)";
+      await expect(formatSelect).toHaveText(expectedLabel);
       const separate = allChoice.getByRole("switch", {
-        name: "Include media and input files separately in ZIP",
+        name: "Save ZIP with separate media and input files",
       });
       const embed = allChoice.getByRole("switch", {
         name: "Embed media and input files",
@@ -135,7 +148,19 @@ for (const platform of ["chatgpt", "gemini"] as const) {
       await expect(embed).toBeChecked();
       expect((await separate.boundingBox())!.y).toBeLessThan((await embed.boundingBox())!.y);
       await separate.check();
-      await expect(embed).toBeDisabled();
+      await expect(embed).not.toBeChecked();
+      await embed.check();
+      await expect(separate).not.toBeChecked();
+      await separate.check();
+      await formatSelect.click();
+      await allChoice.getByRole("option", { name: alternateLabel, exact: true }).click();
+      await expect(formatSelect).toHaveText(alternateLabel);
+      await formatSelect.click();
+      await allChoice.getByRole("option", { name: expectedLabel, exact: true }).click();
+      await expect(separate).toBeChecked();
+      await expect(embed).not.toBeChecked();
+      await expect(allChoice.getByRole("switch", { name: "Include images" })).toBeChecked();
+      await expect(allChoice.getByRole("switch", { name: "Include links and input files" })).toBeChecked();
       const allDownload = page.waitForEvent("download");
       await allChoice.getByRole("button", { name: "Download ZIP" }).click();
       const allArchive = unzipSync(readFileSync((await (await allDownload).path())!));
