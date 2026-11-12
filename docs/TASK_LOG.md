@@ -137,4 +137,4 @@
 - Offline exports prefer same-origin image blobs over stale HTTP hints, preserve available original bytes, and fall back to decoded pixels or alternate sources from the same image element.
 - An Export All regression checks live and revoked blobs, both asset files, relative HTML links and successful manifest entries in Chromium and desktop and mobile WebKit.
 - Passed 122 unit tests, 174 browser cases, lint, strict type checking, production build, checksums and ZIP-to-bundle comparison.
-- Safari saved one image through ChatGPT's Download control. Opening a displayed image's blob URL in a new tab failed. The v2.4.3 bulk export remains unverified on the reported chat.
+- Installed v2.4.3 in Safari Userscripts and retried the reported chat with HTML, separate media, images and input files enabled. Both ZIPs contained two identical PNG assets with relative HTML links. The earlier attempt contained no image assets. Both v2.4.3 ZIPs still had two unavailable image markers and reported the chat as failed with Safari's `Load failed` error. Opening all five previews in ChatGPT's viewer before the second retry did not change the result. The original chat was retained.

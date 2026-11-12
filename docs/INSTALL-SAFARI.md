@@ -1,6 +1,6 @@
 # Safari / Userscripts installation
 
-The output is a standalone userscript. Automated WebKit tests pass; installation through the actual Safari Userscripts extension has not been manually verified in this environment.
+The output is a standalone userscript. Installation through Safari Userscripts and automated WebKit tests have been verified. See [Verification](VERIFICATION.md) for live export results and limitations.
 
 1. Install **Userscripts** from the link maintained by the [official project](https://github.com/quoid/userscripts).
 2. Open Safari → Settings → Extensions and enable Userscripts. On iOS/iPadOS, use the Safari Extensions section in system Settings; the exact location depends on OS version.
@@ -27,7 +27,7 @@ Modern CSS and ES2022 are used. Passing desktop/mobile WebKit automation does no
 
 ## Кратко по-русски
 
-Установите Userscripts по официальной ссылке, включите расширение Safari и разрешите нужный сайт. В приложении Userscripts откройте выбранную папку скриптов, скопируйте туда полный `.user.js`, включите его, отключите старые версии и перезагрузите чат. Для обновления замените файл, не создавая второй активной копии. Если кнопки нет, проверьте папку, разрешения, совпадение адреса и Alt+Shift+E. Проверка расширения Safari вручную ещё требуется.
+Установите Userscripts по официальной ссылке, включите расширение Safari и разрешите нужный сайт. В приложении Userscripts откройте выбранную папку скриптов, скопируйте туда полный `.user.js`, включите его, отключите старые версии и перезагрузите чат. Для обновления замените файл, не создавая второй активной копии. Если кнопки нет, проверьте папку, разрешения, совпадение адреса и Alt+Shift+E. Результаты проверки экспорта в Safari приведены в [отчёте](VERIFICATION.md).
 
 ## YouTube and batch exports in v2.2
 
