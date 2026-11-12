@@ -112,7 +112,7 @@
  */
 
 // Inherited converter kept as JavaScript to minimize changes; typed boundary in legacy.ts.
-import { attachmentMarkdown, embeddedImageSource, inMessage } from "./attachments";
+import { attachmentMarkdown, embeddedImageSource, imageUrls, inMessage } from "./attachments";
 import { messageNodes, messageRole, visibleMessageElement } from "./messages";
 
 export function createConverter(options = {}) {
@@ -163,10 +163,10 @@ export function createConverter(options = {}) {
 
   function imageMarkdown(el) {
     if (!config.images) return '';
-    const candidates = [el.getAttribute('data-src'), el.getAttribute('data-original'),
-      el.currentSrc, el.getAttribute('src')];
-    if (el.getAttribute('srcset')) candidates.push(el.getAttribute('srcset').split(',')[0].trim().split(/\s+/)[0]);
-    const src = candidates.map(absoluteUrl).find(url => /^https?:/.test(url)) || embeddedImageSource(el);
+    const urls = imageUrls(el);
+    const offline = config.embedMedia || config.mediaFiles;
+    const local = offline && urls.find(url => url.startsWith('blob:'));
+    const src = local || urls.find(url => /^https?:/.test(url)) || embeddedImageSource(el);
     const alt = (el.getAttribute('alt') || el.getAttribute('aria-label') || '').replace(/[\[\]\n]/g, ' ').trim();
     if (!src) return inMessage(el) ? `Image: ${escapeText(alt || 'attachment')} — direct link unavailable.` : '';
     return `![${alt}](${mdUrl(src)})`;

@@ -15,7 +15,33 @@ const maxImageUrlLength = 12 * 1024 * 1024;
 const rasterData =
   /^data:image\/(?:png|jpeg|gif|webp|avif|bmp);base64,[a-z0-9+/=\r\n]+$/i;
 
-/** Preserve decoded temporary previews locally; never fetch a private blob URL. */
+export function imageUrls(image: HTMLImageElement): string[] {
+  const candidates = [
+    image.getAttribute("data-src"),
+    image.getAttribute("data-original"),
+    image.currentSrc,
+    image.getAttribute("src"),
+    image.getAttribute("srcset")?.split(",")[0]?.trim().split(/\s+/)[0],
+  ];
+  return [
+    ...new Set(
+      candidates.flatMap((value) => {
+        if (!value?.trim()) return [];
+        try {
+          const url = new URL(value, document.baseURI);
+          return /^https?:$/.test(url.protocol) ||
+            (url.protocol === "blob:" && url.origin === location.origin)
+            ? [url.href]
+            : [];
+        } catch {
+          return [];
+        }
+      }),
+    ),
+  ];
+}
+
+/** Preserve decoded temporary previews locally. */
 export function embeddedImageSource(
   image: HTMLImageElement,
   allowHttp = false,
@@ -24,13 +50,11 @@ export function embeddedImageSource(
   const source = image.currentSrc || image.getAttribute("src") || "";
   if (source.length > maxImageUrlLength) return "";
   if (rasterData.test(source)) return source;
-  if (
-    !(
-      source.startsWith("blob:") ||
-      /^data:image\/svg\+xml(?:[;,])/i.test(source) ||
-      (allowHttp && /^https?:/.test(source))
-    )
-  )
+  if (!(
+    source.startsWith("blob:") ||
+    /^data:image\/svg\+xml(?:[;,])/i.test(source) ||
+    (allowHttp && /^https?:/.test(source))
+  ))
     return "";
   return rasterizeImage(image);
 }

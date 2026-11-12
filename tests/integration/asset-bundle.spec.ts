@@ -284,6 +284,78 @@ test("public image CDN with anonymous-only CORS exports exact pixels", async ({
   expect(imageRequests).toBe(3); // display, rejected credentialed fetch, anonymous fetch
 });
 
+test("ChatGPT bulk ZIP saves live and revoked blob previews with stale HTTP hints", async ({
+  page,
+}) => {
+  const bytes = Buffer.from(png, "base64");
+  let staleRequests = 0;
+  await page.route("https://chatgpt.com/stale.png", (route) => {
+    staleRequests++;
+    return route.fulfill({ status: 404, body: "Expired" });
+  });
+  await page.route("https://chatgpt.com/c/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: `<!doctype html><title>Image export fixture</title>
+        <aside><a href="/c/one">Start</a><a href="/c/two">Generated images</a></aside><main></main>
+        <script>
+          localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{mediaFiles:true,format:'html'}}));
+          function render(id) {
+            const root = document.querySelector('main');
+            root.innerHTML = '<article data-message-author-role="assistant"><p>Chat '+id+'</p></article>';
+            if (id !== 'two') return;
+            for (const [index, alt] of ['Live preview', 'Revoked preview'].entries()) {
+              const img = new Image();
+              const url = URL.createObjectURL(new Blob([Uint8Array.from(atob('${png}'),c=>c.charCodeAt(0))],{type:'image/png'}));
+              img.alt = alt;
+              img.dataset.original = '/stale.png';
+              if (index === 1) img.onload = () => URL.revokeObjectURL(url);
+              img.src = url;
+              root.firstElementChild.append(img);
+            }
+          }
+          render('one');
+          document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState(null,'',a.href);render(a.pathname.split('/').pop());});
+        </script>`,
+    }),
+  );
+  await page.goto("https://chatgpt.com/c/one");
+  await page.addScriptTag({
+    path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+  });
+  await page
+    .getByRole("button", { name: "Open Markdown Manager", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^Export All/ }).click();
+  const downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("dialog", { name: "Export All" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
+  const zip = unzipSync(readFileSync((await (await downloaded).path())!));
+  expect(JSON.parse(strFromU8(zip["manifest.json"]))).toMatchObject({
+    completed: 2,
+    failed: 0,
+  });
+  const assets = Object.entries(zip).filter(([path]) =>
+    path.startsWith("assets/"),
+  );
+  expect(assets).toHaveLength(2);
+  const live = assets.find(([path]) => path.endsWith("Live preview.png"))![1];
+  const revoked = assets.find(([path]) => path.endsWith("Revoked preview.png"))![1];
+  expect(Buffer.from(live)).toEqual(bytes);
+  expect(Buffer.from(revoked.subarray(0, 8))).toEqual(bytes.subarray(0, 8));
+  const doc = Object.entries(zip).find(
+    ([path]) => path.endsWith(".html") && path.includes("Generated images"),
+  )![1];
+  const html = strFromU8(doc);
+  expect(html).toContain("Live%20preview.png");
+  expect(html).toContain("Revoked%20preview.png");
+  expect(html).not.toMatch(/blob:|stale\.png/);
+  expect(staleRequests).toBe(0);
+  await expect(page).toHaveURL("https://chatgpt.com/c/one");
+});
+
 for (const format of ["html", "markdown"] as const) {
   test(`ChatGPT ${format} bulk ZIP recovers display-only images and flags incomplete chats`, async ({
     page,

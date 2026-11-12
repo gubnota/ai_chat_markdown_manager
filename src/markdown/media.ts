@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import type { ExportOptions } from "../types";
-import { embeddedImageSource, rasterizeImage } from "./attachments";
+import { embeddedImageSource, imageUrls, rasterizeImage } from "./attachments";
 
 const maxFile = 20 * 1024 * 1024;
 const maxTotal = 64 * 1024 * 1024;
@@ -66,6 +66,78 @@ function loadImagePixels(
   });
 }
 
+async function fetchMedia(
+  url: string,
+  kind: "image" | "player" | "file",
+  total: number,
+  signal: AbortSignal,
+  networkFailures: string[],
+): Promise<string> {
+  const parsed = new URL(url);
+  const localBlob =
+    parsed.protocol === "blob:" && parsed.origin === location.origin;
+  if (!/^https?:$/.test(parsed.protocol) && !localBlob)
+    throw new Error("Offline export: unsupported media URL.");
+  let response: Response;
+  try {
+    response = await fetch(url, { credentials: "include", signal }).catch(
+      (error: unknown) => {
+        if (kind !== "image" || localBlob || signal.aborted) throw error;
+        // Keep same-origin session cookies while omitting them on a CDN redirect.
+        return fetch(url, {
+          credentials:
+            parsed.origin === location.origin ? "same-origin" : "omit",
+          signal,
+        });
+      },
+    );
+  } catch (error) {
+    if (kind === "image" && !localBlob) networkFailures.push(url);
+    throw error;
+  }
+  if (!response.ok || response.type === "opaque")
+    throw new Error(`HTTP ${response.status}`);
+  const mime =
+    response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() ||
+    "application/octet-stream";
+  if (kind === "image" && !raster.test(mime))
+    throw new Error("Response is not a supported raster image");
+  if (kind === "player" && !media.test(mime))
+    throw new Error("Response is not playable audio/video");
+  if (kind === "file" && /^(text\/html|application\/xhtml\+xml)$/.test(mime))
+    throw new Error("File URL returned an HTML page, possibly a login screen");
+  if (Number(response.headers.get("content-length")) > maxFile)
+    throw new Error("Resource exceeds 20 MiB");
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Resource response has no body");
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      const { value, done } = await reader.read();
+      if (done) break;
+      length += value.length;
+      if (length > maxFile || total + length > maxTotal)
+        throw new Error(
+          "Offline media exceeds 20 MiB per file or 64 MiB per chat",
+        );
+      chunks.push(value);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
+  }
+  if (!length) throw new Error("Empty media response");
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return dataUrl(bytes, kind === "file" ? "application/octet-stream" : mime);
+}
+
 /** Only resources referenced by the converted, loaded content are requested. */
 export async function embedMarkdownMedia(
   body: string,
@@ -100,34 +172,27 @@ export async function embedMarkdownMedia(
     const player = node instanceof HTMLMediaElement ? node : undefined;
     if (image && !options.images) continue;
     if (!image && !options.links) continue;
-    const candidates = image
+    const candidates = player
       ? [
-          image.getAttribute("data-src"),
-          image.getAttribute("data-original"),
-          image.currentSrc,
-          image.getAttribute("src"),
-          image.getAttribute("srcset")?.split(",")[0]?.trim().split(/\s+/)[0],
+          player.currentSrc,
+          player.getAttribute("src"),
+          player.querySelector("source")?.getAttribute("src"),
         ]
-      : player
-        ? [
-            player.currentSrc,
-            player.getAttribute("src"),
-            player.querySelector("source")?.getAttribute("src"),
-          ]
-        : [
-            node.getAttribute("data-file-url"),
-            node.getAttribute("data-download-url"),
-            node.getAttribute("href"),
-          ];
-    const urls = candidates
-      .filter((value): value is string => !!value)
-      .map((value) => {
-        try {
-          return new URL(value, document.baseURI).href;
-        } catch {
-          return "";
-        }
-      });
+      : [
+          node.getAttribute("data-file-url"),
+          node.getAttribute("data-download-url"),
+          node.getAttribute("href"),
+        ];
+    const urls = image
+      ? imageUrls(image)
+      : candidates.flatMap((value) => {
+          if (!value) return [];
+          try {
+            return [new URL(value, document.baseURI).href];
+          } catch {
+            return [];
+          }
+        });
     const url = urls.find((value) => body.includes(`](${mdUrl(value)})`));
     if (!url) {
       if (player && !urls.length)
@@ -164,19 +229,7 @@ export async function embedMarkdownMedia(
       if (url.length > (maxFile * 4) / 3)
         throw new Error("Offline export: resource exceeds 20 MiB.");
       result = url;
-    } else if (image && url.startsWith("blob:")) {
-      result = embeddedImageSource(image);
-      if (!result)
-        throw new Error(
-          `Offline export: cannot capture ${image.alt || "temporary image"}.`,
-        );
     } else {
-      const parsed = new URL(url);
-      if (
-        !/^https?:$/.test(parsed.protocol) &&
-        !(parsed.protocol === "blob:" && parsed.origin === location.origin)
-      )
-        throw new Error("Offline export: unsupported media URL.");
       const controller = new AbortController();
       const abort = () => controller.abort(signal?.reason);
       signal?.addEventListener("abort", abort, { once: true });
@@ -187,86 +240,37 @@ export async function embedMarkdownMedia(
           ),
         20_000,
       );
-      let fetchFailed = false;
+      let error: unknown;
       try {
-        let response: Response;
-        try {
-          response = await fetch(url, {
-            credentials: "include",
-            signal: controller.signal,
-          }).catch((error: unknown) => {
-            if (!image || controller.signal.aborted) throw error;
-            // Keep same-origin session cookies while omitting them on a CDN redirect.
-            return fetch(url, {
-              credentials:
-                parsed.origin === location.origin ? "same-origin" : "omit",
-              signal: controller.signal,
-            });
-          });
-        } catch (error) {
-          fetchFailed = true;
-          throw error;
-        }
-        if (!response.ok || response.type === "opaque")
-          throw new Error(`HTTP ${response.status}`);
-        const mime =
-          response.headers
-            .get("content-type")
-            ?.split(";")[0]
-            .trim()
-            .toLowerCase() || "application/octet-stream";
-        if (image && !raster.test(mime))
-          throw new Error("Response is not a supported raster image");
-        if (player && !media.test(mime))
-          throw new Error("Response is not playable audio/video");
-        if (
-          !image &&
-          !player &&
-          /^(text\/html|application\/xhtml\+xml)$/.test(mime)
-        )
-          throw new Error(
-            "File URL returned an HTML page, possibly a login screen",
-          );
-        if (Number(response.headers.get("content-length")) > maxFile)
-          throw new Error("Resource exceeds 20 MiB");
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("Resource response has no body");
-        const chunks: Uint8Array[] = [];
-        let length = 0;
-        try {
-          while (true) {
-            controller.signal.throwIfAborted();
-            const { value, done } = await reader.read();
-            if (done) break;
-            length += value.length;
-            if (length > maxFile || total + length > maxTotal)
-              throw new Error(
-                "Offline media exceeds 20 MiB per file or 64 MiB per chat",
-              );
-            chunks.push(value);
+        const kind = image ? "image" : player ? "player" : "file";
+        const networkFailures: string[] = [];
+        const sources = image
+          ? [url, ...urls.filter((value) => value !== url)]
+          : [url];
+        for (const source of sources) {
+          if (controller.signal.aborted) break;
+          try {
+            result = await fetchMedia(
+              source,
+              kind,
+              total,
+              controller.signal,
+              networkFailures,
+            );
+          } catch (failure) {
+            error ??= failure;
+            // A revoked blob can still have readable pixels in its original element.
+            if (image && source === url && !controller.signal.aborted)
+              result = embeddedImageSource(image, true);
           }
-        } catch (error) {
-          await reader.cancel().catch(() => {});
-          throw error;
+          if (result) break;
         }
-        if (!length) throw new Error("Empty media response");
-        const bytes = new Uint8Array(length);
-        let offset = 0;
-        for (const chunk of chunks) {
-          bytes.set(chunk, offset);
-          offset += chunk.length;
-        }
-        result = dataUrl(
-          bytes,
-          image || player ? mime : "application/octet-stream",
-        );
-      } catch (error) {
-        signal?.throwIfAborted();
-        // Cross-origin previews may still have readable, already decoded pixels.
-        if (image && !controller.signal.aborted) {
-          result = embeddedImageSource(image, true);
-          if (!result && fetchFailed)
-            result = await loadImagePixels(url, image, controller.signal);
+        if (image && !result) {
+          for (const source of networkFailures) {
+            if (controller.signal.aborted) break;
+            result = await loadImagePixels(source, image, controller.signal);
+            if (result) break;
+          }
         }
         signal?.throwIfAborted();
         if (!result) {

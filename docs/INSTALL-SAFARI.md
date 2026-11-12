@@ -13,7 +13,7 @@ The output is a standalone userscript. Automated WebKit tests pass; installation
 
 ## Upgrade
 
-Replace the previous v2 file in the same directory, keep one active installation, and reload existing tabs. Open the manager and check for `v2.4.2` beneath the heading. Preferences remain stored per site. Old Markdown booleans and floating-button coordinates are migrated when available.
+Replace the previous v2 file in the same directory, keep one active installation, and reload existing tabs. Open the manager and check for `v2.4.3` beneath the heading. Preferences remain stored per site. Old Markdown booleans and floating-button coordinates are migrated when available.
 
 ## If the icon is absent
 

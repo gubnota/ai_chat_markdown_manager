@@ -1,4 +1,4 @@
-# Verification — v2.4.2
+# Verification — v2.4.3
 
 Date: 2026-11-12. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are locked in `package-lock.json`.
 
@@ -9,11 +9,11 @@ Date: 2026-11-12. Environment: macOS, Node 26.8.2, npm 11.19.1. Dependencies are
 | `npm run lint` | Pass; source, tests and Vite/Playwright config |
 | `npm run typecheck` | Pass; strict TypeScript, typed legacy JS boundary |
 | `npm test` | 122 pass in 9 files, including binary asset packaging and image fetch retry credentials |
-| `npm run build` | Pass; self-contained userscript, v2.4.2 ZIP and versioned checksums |
-| `npm run test:integration` | 171 pass, with 57 cases each in Chromium, desktop WebKit and mobile WebKit |
+| `npm run build` | Pass; self-contained userscript, v2.4.3 ZIP and versioned checksums |
+| `npm run test:integration` | 174 pass, with 58 cases each in Chromium, desktop WebKit and mobile WebKit |
 | Metadata / release integrity | Original 48 @match entries plus 3 targeted YouTube entries; no global wildcard, remote runtime imports or source maps; ZIP script equals dist |
 
-The production bundle is 427,950 bytes before compression. After a local build, verify artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.4.2`. The generated dist userscript, versioned release ZIPs and checksum files are ignored local outputs and have been removed from Git history. The unversioned `SHA256SUMS` is outside this cleanup.
+The production bundle is 428,192 bytes before compression. After a local build, verify artifacts from the repository root with `shasum -a 256 -c SHA256SUMS-v2.4.3`. The generated dist userscript, versioned release ZIPs and checksum files are ignored local outputs and have been removed from Git history. The unversioned `SHA256SUMS` is outside this cleanup.
 
 ## Unit coverage
 
@@ -52,10 +52,11 @@ Desktop/mobile screenshots in `docs/screenshots/` show local fixtures. Mobile We
 
 - Five-provider HTML/Markdown separate-file ZIPs cover blob images, rasterized SVG and reference CSV bytes, renamed current downloads, custom-selector keyboard behavior, visible progress and exact binary content. ChatGPT/Gemini additionally cover batch and renamed preview ZIPs. Unpacked HTML renders all images via file:// without network. Reference paths resolve to exact local bytes; Chromium also exercises a local-file download (WebKit opens such links instead).
 - ChatGPT separate-file bulk ZIP fixtures block fetch with CSP and allow the same URL through the browser image loader. In both formats the PNG lands in the chat's asset folder. When another CDN response denies CORS, the ZIP retains that chat and its readable image, and the document and manifest flag it as incomplete. The cleanup review excludes that chat and export retry remains available.
+- ChatGPT Export All saves a live blob byte-for-byte and a revoked blob as PNG from decoded pixels. Both images have stale HTTP hints. The HTML points to both local assets, the manifest reports both chats complete, and the original route is restored.
 
 ## Live evidence and remaining boundaries
 
-- The v2.4.2 image fix was verified with browser fixtures. The reported ChatGPT conversation was not retested live.
+- On the reported chat in Safari, ChatGPT's native Download saved one 2.2 MB image. Safari could display a chat image whose blob URL failed to open in a new tab. The v2.4.3 bulk export of that chat remains unverified in the installed Safari extension.
 
 - Earlier read-only inspection on 2026-11-07: ChatGPT was signed out; Safari Gemini showed the conversation action-menu label. Archive/delete confirmations and outcomes were not tested on authenticated real chats. Conditional production support is based on runtime checks, not a claim of live compatibility.
 - Read-only authenticated Safari inspection of the supplied Gemini chats found three generated blob images and one HTTPS uploaded image in nested carousel previews. Native image menus offered Copy image/Download image, without a reusable image URL. Gemini CSP blocked blob fetch; canvas copies of all three decoded generated images succeeded. No private content or signed URLs were stored in fixtures/docs. Current exporter installation/download evidence follows; uploaded-document controls remain fixture-tested; files without an exposed URL retain an explicit note in default Markdown or fail exports with embedding enabled.

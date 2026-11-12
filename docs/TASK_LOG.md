@@ -131,3 +131,10 @@
 - Retry image fetches with same-origin credentials for authenticated redirect URLs. Use the bounded browser image loader if fetch fails and the displayed pixels cannot be read.
 - Separate-file bulk ZIPs keep a document and its readable assets when an image is unavailable. The document and report flag the missing image, and retry remains available. Cleanup review and required backups still require a complete capture.
 - Passed 122 unit tests, 171 browser cases across Chromium and desktop and mobile WebKit, lint, type checking, the production build and release checksums. The reported ChatGPT conversation was not retested live.
+
+## 2026-11-12 — v2.4.3 ChatGPT blob image recovery
+
+- Offline exports prefer same-origin image blobs over stale HTTP hints, preserve available original bytes, and fall back to decoded pixels or alternate sources from the same image element.
+- An Export All regression checks live and revoked blobs, both asset files, relative HTML links and successful manifest entries in Chromium and desktop and mobile WebKit.
+- Passed 122 unit tests, 174 browser cases, lint, strict type checking, production build, checksums and ZIP-to-bundle comparison.
+- Safari saved one image through ChatGPT's Download control. Opening a displayed image's blob URL in a new tab failed. The v2.4.3 bulk export remains unverified on the reported chat.
