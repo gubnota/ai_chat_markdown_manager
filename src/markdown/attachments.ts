@@ -29,7 +29,15 @@ export function embeddedImageSource(
       source.startsWith("blob:") ||
       /^data:image\/svg\+xml(?:[;,])/i.test(source) ||
       (allowHttp && /^https?:/.test(source))
-    ) ||
+    )
+  )
+    return "";
+  return rasterizeImage(image);
+}
+
+/** Capture decoded pixels within the same bounds for attached and detached images. */
+export function rasterizeImage(image: HTMLImageElement): string {
+  if (
     !image.complete ||
     !image.naturalWidth ||
     !image.naturalHeight ||

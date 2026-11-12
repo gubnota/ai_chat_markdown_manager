@@ -124,6 +124,7 @@ export class DOMAdapter implements PlatformAdapter {
     id: ConversationIdentifier,
     options: ExportOptions,
     signal?: AbortSignal,
+    missingImages?: Map<string, string>,
   ): Promise<string> {
     const c = await this.getConversation(id, signal);
     signal?.throwIfAborted();
@@ -169,11 +170,13 @@ export class DOMAdapter implements PlatformAdapter {
       nodes.length ? nodes : [document.querySelector("main") || document.body],
       options,
       signal,
+      missingImages,
     );
     if (this.currentId() !== c.id)
       throw new Error(
         "Conversation changed during media capture. Retry the export.",
       );
+    if (missingImages?.size) return body;
     this.snapshots.delete(c.id);
     this.snapshots.set(c.id, { signature, body });
     // Bound memory to 20 conversations and approximately 8 MiB of UTF-16 text.

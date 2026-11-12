@@ -51,6 +51,7 @@ export interface PlatformAdapter {
     id: ConversationIdentifier,
     options: ExportOptions,
     signal?: AbortSignal,
+    missingImages?: Map<string, string>,
   ): Promise<string>;
   archiveConversation(
     id: ConversationIdentifier,

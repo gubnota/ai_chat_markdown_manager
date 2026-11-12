@@ -460,13 +460,25 @@ export function App({
       c: Conversation,
       exportOptions: ExportOptions,
       signal: AbortSignal,
+      missingImages?: Map<string, string>,
     ) => {
-      const body = await adapter.exportConversation(c, exportOptions, signal);
+      const body = await adapter.exportConversation(
+        c,
+        exportOptions,
+        signal,
+        missingImages,
+      );
       const name = uniqueFilename(
         filename(c, exportOptions.filename, exportOptions.format),
         used,
       );
-      const prepared = prepareDocument(body, c, exportOptions, name);
+      const prepared = prepareDocument(
+        body,
+        c,
+        exportOptions,
+        name,
+        missingImages,
+      );
       for (const [path, data] of prepared.files) files.set(path, data);
     };
     const restore = adapter.beginExportSession?.();
@@ -521,8 +533,18 @@ export function App({
         },
         async (c, signal) => {
           controller.signal.throwIfAborted();
-          if (kind === "export") await addDocument(c, options, signal);
-          else if (kind === "archive")
+          if (kind === "export") {
+            const missingImages = options.mediaFiles
+              ? new Map<string, string>()
+              : undefined;
+            await addDocument(c, options, signal, missingImages);
+            if (missingImages?.size) {
+              const first = missingImages.values().next().value;
+              throw new Error(
+                `Saved an incomplete copy in the ZIP. ${first} Keep the original chat.`,
+              );
+            }
+          } else if (kind === "archive")
             await adapter.archiveConversation(c, signal);
           else await adapter.deleteConversation(c, signal);
         },

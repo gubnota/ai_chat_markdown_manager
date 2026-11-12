@@ -125,3 +125,9 @@
 - Use the package version for the manager heading, userscript metadata, export manifest and release ZIP. The Safari upgrade guide shows how to confirm the loaded version.
 - Browser fixtures check mobile viewport visibility, both format choices, switching between separate and embedded files, retry defaults and per-chat offline asset bytes. Live Safari verification stopped at a Computer Use restriction on the active page.
 - Verification passed for 121 unit tests and 165 browser cases across Chromium and desktop and mobile WebKit, plus lint, type checking, build and release checksums.
+
+## 2026-11-12 — v2.4.2 ChatGPT images in bulk ZIPs
+
+- Retry image fetches with same-origin credentials for authenticated redirect URLs. Use the bounded browser image loader if fetch fails and the displayed pixels cannot be read.
+- Separate-file bulk ZIPs keep a document and its readable assets when an image is unavailable. The document and report flag the missing image, and retry remains available. Cleanup review and required backups still require a complete capture.
+- Passed 122 unit tests, 171 browser cases across Chromium and desktop and mobile WebKit, lint, type checking, the production build and release checksums. The reported ChatGPT conversation was not retested live.

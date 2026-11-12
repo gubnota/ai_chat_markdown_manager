@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import type { ExportOptions } from "../types";
-import { embeddedImageSource } from "./attachments";
+import { embeddedImageSource, rasterizeImage } from "./attachments";
 
 const maxFile = 20 * 1024 * 1024;
 const maxTotal = 64 * 1024 * 1024;
@@ -41,21 +41,48 @@ function dataUrl(bytes: Uint8Array, mime: string): string {
   return `data:${mime};base64,${btoa(binary)}`;
 }
 
+/** The page can allow this URL in img-src even when connect-src blocks fetch. */
+function loadImagePixels(
+  url: string,
+  original: HTMLImageElement,
+  signal: AbortSignal,
+): Promise<string> {
+  if (signal.aborted) return Promise.resolve("");
+  return new Promise((resolve) => {
+    const image = new Image();
+    const finish = (result: string) => {
+      image.onload = image.onerror = null;
+      signal.removeEventListener("abort", abort);
+      image.removeAttribute("src");
+      resolve(result);
+    };
+    const abort = () => finish("");
+    image.crossOrigin = "anonymous";
+    image.referrerPolicy = original.referrerPolicy;
+    image.onload = () => finish(rasterizeImage(image));
+    image.onerror = abort;
+    signal.addEventListener("abort", abort, { once: true });
+    image.src = url;
+  });
+}
+
 /** Only resources referenced by the converted, loaded content are requested. */
 export async function embedMarkdownMedia(
   body: string,
   roots: Element[],
   options: ExportOptions,
   signal?: AbortSignal,
+  missingImages?: Map<string, string>,
 ): Promise<string> {
   if (!needsEmbeddedMedia(options)) return body;
   signal?.throwIfAborted();
-  const missing = body.match(
-    /(?:Image|Attachment): [^\n]*— direct link unavailable\./,
-  );
-  if (missing)
+  const missing = body.match(/Attachment: [^\n]*— direct link unavailable\./);
+  const missingImage = body.match(/Image: [^\n]*— direct link unavailable\./);
+  if (missingImage && missingImages) missingImages.set("", missingImage[0]);
+  const required = missing ?? (!missingImages ? missingImage : null);
+  if (required)
     throw new Error(
-      `Offline export incomplete: ${missing[0]} Keep this chat until its original file is available.`,
+      `Offline export incomplete: ${required[0]} Keep this chat until its original file is available.`,
     );
   const nodes = roots
     .flatMap((root) => [
@@ -122,8 +149,9 @@ export async function embedMarkdownMedia(
       )
     )
       continue;
-    if (captured.has(url)) continue;
-    if (captured.size >= maxCount)
+    const href = mdUrl(url);
+    if (captured.has(url) || (image && missingImages?.has(href))) continue;
+    if (captured.size + (missingImages?.size ?? 0) >= maxCount)
       throw new Error("Offline export exceeds 100 resources per chat.");
     let result = "";
     if (url.startsWith("data:")) {
@@ -159,26 +187,25 @@ export async function embedMarkdownMedia(
           ),
         20_000,
       );
+      let fetchFailed = false;
       try {
         let response: Response;
         try {
           response = await fetch(url, {
             credentials: "include",
             signal: controller.signal,
+          }).catch((error: unknown) => {
+            if (!image || controller.signal.aborted) throw error;
+            // Keep same-origin session cookies while omitting them on a CDN redirect.
+            return fetch(url, {
+              credentials:
+                parsed.origin === location.origin ? "same-origin" : "omit",
+              signal: controller.signal,
+            });
           });
         } catch (error) {
-          // Public image CDNs commonly allow anonymous CORS but reject credentials.
-          // Keep authenticated attachment requests and cancellation unchanged.
-          if (
-            !image ||
-            parsed.origin === location.origin ||
-            controller.signal.aborted
-          )
-            throw error;
-          response = await fetch(url, {
-            credentials: "omit",
-            signal: controller.signal,
-          });
+          fetchFailed = true;
+          throw error;
         }
         if (!response.ok || response.type === "opaque")
           throw new Error(`HTTP ${response.status}`);
@@ -236,12 +263,27 @@ export async function embedMarkdownMedia(
       } catch (error) {
         signal?.throwIfAborted();
         // Cross-origin previews may still have readable, already decoded pixels.
-        if (image && !controller.signal.aborted)
+        if (image && !controller.signal.aborted) {
           result = embeddedImageSource(image, true);
-        if (!result)
-          throw new Error(
-            `Offline export: ${image?.alt || node.textContent?.trim().slice(0, 80) || node.tagName} could not be embedded (${error instanceof Error ? error.message : String(error)}). No cleanup is safe for this chat.`,
-          );
+          if (!result && fetchFailed)
+            result = await loadImagePixels(url, image, controller.signal);
+        }
+        signal?.throwIfAborted();
+        if (!result) {
+          const name = image
+            ? image.alt || image.getAttribute("aria-label") || "Image"
+            : node.textContent?.trim().slice(0, 80) || node.tagName;
+          const reason = controller.signal.aborted
+            ? controller.signal.reason
+            : error;
+          const message = `${name} could not be embedded (${reason instanceof Error ? reason.message : String(reason)}).`;
+          if (!image || !missingImages)
+            throw new Error(
+              `Offline export: ${message} No cleanup is safe for this chat.`,
+            );
+          missingImages.set(href, message);
+          continue;
+        }
       } finally {
         clearTimeout(timeout);
         signal?.removeEventListener("abort", abort);

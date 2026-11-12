@@ -56,6 +56,23 @@ describe("offline resources", () => {
     );
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it("keeps same-origin image credentials when retrying a CDN redirect", async () => {
+    const { root, text } = fixture('<img src="/signed-image">');
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockResolvedValueOnce(
+        new Response("pixels", { headers: { "content-type": "image/png" } }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    expect(await embedMarkdownMedia(text, [root], options)).toContain(
+      `data:image/png;base64,${btoa("pixels")}`,
+    );
+    expect(fetcher.mock.calls.map((call) => call[1].credentials)).toEqual([
+      "include",
+      "same-origin",
+    ]);
+  });
   it("embeds exact image, audio/video and input-file bytes, deduplicating requests and leaving ordinary links alone", async () => {
     const { root, text } = fixture(
       '<img alt="map" src="https://files.test/map.png"><img alt="again" src="https://files.test/map.png"><audio src="https://files.test/voice.wav"></audio><video><source src="https://files.test/clip.mp4"></video><file-preview data-file-name="input.csv"><a href="https://files.test/signed">input.csv</a></file-preview><a href="https://example.com/help">Help</a>',

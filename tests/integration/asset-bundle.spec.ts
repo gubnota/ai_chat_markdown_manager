@@ -283,3 +283,128 @@ test("public image CDN with anonymous-only CORS exports exact pixels", async ({
   expect(source).not.toContain("public-images.test");
   expect(imageRequests).toBe(3); // display, rejected credentialed fetch, anonymous fetch
 });
+
+for (const format of ["html", "markdown"] as const) {
+  test(`ChatGPT ${format} bulk ZIP recovers display-only images and flags incomplete chats`, async ({
+    page,
+  }) => {
+    const cdn = "https://chat-image-cdn.test";
+    const imageBytes = Buffer.from(png, "base64");
+    await page.route(`${cdn}/**`, (route) =>
+      route.fulfill({
+        contentType: "image/png",
+        // Playwright inserts a permissive CORS header if the response omits it.
+        headers: {
+          "access-control-allow-origin": route
+            .request()
+            .url()
+            .endsWith("/recoverable.png")
+            ? "*"
+            : "https://other-origin.test",
+        },
+        body: imageBytes,
+      }),
+    );
+    await page.route("https://chatgpt.com/c/**", (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        headers: {
+          "content-security-policy": `connect-src 'self'; img-src ${cdn}`,
+        },
+        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Image export fixture</title>
+          <aside><a href="/c/one">Chat one</a><a href="/c/two">Chat two</a></aside><main></main>
+          <script>
+          localStorage.setItem('__ai_chat_md_v2__:settings', JSON.stringify({autoMinimize:false,delayMs:0,export:{mediaFiles:true,format:'${format}'}}));
+          function render(id) {
+            document.querySelector('main').innerHTML = '<article data-message-author-role="assistant"><p>Text for chat '+id+'</p>' +
+              (id === 'two' ? '<img alt="Blocked image" src="${cdn}/blocked.png">' : '') +
+              '<img alt="Recoverable image" src="${cdn}/recoverable.png"></article>';
+          }
+          render('one');
+          document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState(null,'',a.href);render(a.pathname.split('/').pop());});
+          </script>`,
+      }),
+    );
+    await page.goto("https://chatgpt.com/c/one");
+    await expect
+      .poll(() =>
+        page
+          .locator("main img")
+          .evaluate((img) => (img as HTMLImageElement).naturalWidth),
+      )
+      .toBe(1);
+    expect(
+      await page.evaluate(
+        async (url) =>
+          fetch(url).then(
+            () => true,
+            () => false,
+          ),
+        `${cdn}/recoverable.png`,
+      ),
+    ).toBe(false);
+    await page.addScriptTag({
+      path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+    });
+    await page
+      .getByRole("button", { name: "Open Markdown Manager", exact: true })
+      .click();
+    await page.getByRole("button", { name: /^Export All/ }).click();
+    const choice = page.getByRole("dialog", { name: "Export All" });
+    await expect(
+      choice.getByRole("switch", {
+        name: "Save ZIP with separate media and input files",
+      }),
+    ).toBeChecked();
+    const downloaded = page.waitForEvent("download");
+    await choice
+      .getByRole("button", { name: "Download ZIP", exact: true })
+      .click();
+    const zip = unzipSync(readFileSync((await (await downloaded).path())!));
+    const manifest = JSON.parse(strFromU8(zip["manifest.json"]));
+    expect(manifest).toMatchObject({
+      completed: 1,
+      failed: 1,
+      results: expect.arrayContaining([
+        { key: "chatgpt:one", status: "success" },
+        {
+          key: "chatgpt:two",
+          status: "failed",
+          error: expect.stringContaining(
+            "Saved an incomplete copy in the ZIP. Blocked image",
+          ),
+        },
+      ]),
+    });
+    const extension = format === "html" ? ".html" : ".md";
+    const docs = Object.keys(zip).filter((name) => name.endsWith(extension));
+    expect(docs).toHaveLength(2);
+    for (const name of docs) {
+      const source = strFromU8(zip[name]);
+      const folder = `assets/${name.slice(0, -extension.length)}/`;
+      const images = Object.keys(zip).filter((path) => path.startsWith(folder));
+      expect(images).toHaveLength(1);
+      expect(Buffer.from(zip[images[0]].slice(0, 8))).toEqual(
+        imageBytes.subarray(0, 8),
+      );
+      expect(source).toContain(
+        folder.split("/").map(encodeURIComponent).join("/"),
+      );
+      expect(source).not.toContain(cdn);
+      if (source.includes("Text for chat two")) {
+        expect(source).toContain("Incomplete offline export");
+        expect(source).toContain("Image unavailable offline");
+      } else {
+        expect(source).toContain("Text for chat one");
+        expect(source).not.toContain("Incomplete offline export");
+      }
+    }
+    await page.getByText("Review backed-up chats (1)", { exact: true }).click();
+    const review = page.locator("details.backup-review");
+    await expect(review.getByText("Chat one", { exact: true })).toBeVisible();
+    await expect(review.getByText("Chat two", { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Retry failed exports" }),
+    ).toBeEnabled();
+  });
+}

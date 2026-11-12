@@ -31,6 +31,7 @@ export function prepareDocument(
   conversation: Conversation,
   options: ExportOptions,
   name: string,
+  missingImages?: ReadonlyMap<string, string>,
 ): PreparedDocument {
   const files: ExportFiles = new Map();
   const assets = new Map<string, string>();
@@ -85,11 +86,21 @@ export function prepareDocument(
         "href" in token
       ) {
         const href = token.href as string;
-        const replacement = resource(
-          href,
-          "text" in token ? String(token.text) : "attachment",
-        );
-        if (replacement !== href) raw = raw.replace(href, replacement);
+        if (token.type === "image" && missingImages?.has(href)) {
+          raw = "*Image unavailable offline.*";
+        } else {
+          const replacement = resource(
+            href,
+            "text" in token ? String(token.text) : "attachment",
+          );
+          if (replacement !== href) raw = raw.replace(href, replacement);
+          else if (
+            token.type === "link" &&
+            "tokens" in token &&
+            Array.isArray(token.tokens)
+          )
+            raw = rewrite(raw, token.tokens);
+        }
       } else if (
         token.type !== "code" &&
         token.type !== "codespan" &&
@@ -112,7 +123,15 @@ export function prepareDocument(
     return output + source.slice(cursor);
   }
   const rewritten = options.mediaFiles ? rewrite(body, Lexer.lex(body)) : body;
-  const text = exportDocument(rewritten, conversation, options, assets);
+  const warning = missingImages?.size
+    ? "> Incomplete offline export: one or more images could not be saved. Keep the original chat.\n\n"
+    : "";
+  const text = exportDocument(
+    warning + rewritten,
+    conversation,
+    options,
+    assets,
+  );
   files.set(name, text);
   return { text, name, files };
 }

@@ -3,13 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.4.1, 2026-11-12.
+- Release: 2.4.2, 2026-11-12.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
+- v2.4.2 uses the browser image loader when fetch blocks a readable ChatGPT image. Bulk ZIPs with separate files keep the document and readable assets when an image is unavailable, report the chat as incomplete, and exclude it from cleanup.
 - v2.4.0 adds separate-file offline ZIPs, loaded SVG-to-PNG capture, custom format selector, editable names and progress.
 - v2.3.3 fixes current ChatGPT extraction (search keys and role-heading containers), including image-only replies; shared visible boundaries cover Grok/Claude/DeepSeek too.
 - Save Current Chat, Export selected, Export All and Retry failed exports show format and four media switches before download. Bulk exports default to offline embedding or honor the saved separate-file preference. Retries start with the last confirmed choices.
@@ -102,7 +103,7 @@
 - Open Shadow DOM and same-origin storage are not security boundaries.
 - Host scripts/extensions can access same-origin data.
 - Embedding controls resource requests for both formats; default Markdown keeps links, and selecting HTML defaults embedding on with an editable switch.
-- Embedded HTML uses data-only media; ZIP HTML permits only its generated local assets. Offline capture fails on missing included resources; linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
+- Embedded HTML uses data-only media; ZIP HTML permits only its generated local assets. Offline capture reports missing included resources as a failure. Bulk ZIPs with separate files can retain an incomplete document when images are missing. Linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
 - Media limits: 20 MiB/file, 64 MiB/chat, 100 resources; 20-second requests. Canvas previews remain bounded.
 - See `docs/PRIVACY.md` for reset behavior and storage details.
 

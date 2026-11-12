@@ -1,4 +1,4 @@
-# AI Chat Markdown Manager v2.4.1
+# AI Chat Markdown Manager v2.4.2
 
 [Русский](README.ru.md) · [Build and install](#17-build)
 
@@ -74,7 +74,7 @@ In **Manage conversations → ⋯ beside a chat → Preview / export**, choose *
 
 Embedded Markdown stores binary resources as base64 data URLs. Use a Markdown viewer that supports data images and download links. Loaded blob image previews are copied through canvas without native attachment clicks; this can preserve only the exposed preview resolution.
 
-Capture while online. Requests use the browser session and only URLs exposed by the loaded conversation; no private account API is used. CORS/CSP, expired links, missing file URLs, streaming-only media and unsupported image formats can block capture. An unavailable included resource **fails that chat’s offline export**; it is excluded from successful-backup cleanup. Required backups must succeed for every target before native actions start. Limits: **20 MiB/file, 64 MiB/chat, 100 unique resources**; canvas previews retain their 16-megapixel / 12-MiB URL bounds. Loaded history may still be partial—review the files before deleting.
+Capture while online. Requests use the browser session and only URLs exposed by the loaded conversation; no private account API is used. CORS/CSP, expired links, missing file URLs, streaming-only media and unsupported image formats can block capture. An unavailable included resource fails that chat’s offline export and excludes it from successful-backup cleanup. In a bulk ZIP with separate files, a chat with an unavailable image still gets a document and its readable assets. The document and export report flag the incomplete copy so you can retry it. Required backups must succeed for every target before native actions start. Limits: **20 MiB/file, 64 MiB/chat, 100 unique resources**; canvas previews retain their 16-megapixel / 12-MiB URL bounds. Loaded history may still be partial—review the files before deleting.
 
 ## 9. Selecting conversations
 
@@ -98,7 +98,7 @@ Cancel stops queued work and preserves completed results. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.4.1, allow YouTube in your userscript extension and reload the video page.
+1. Install v2.4.2, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -108,7 +108,7 @@ TXT contains plain caption text; VTT retains timestamps. Captions must be availa
 
 ## 11. Batch archive in ChatGPT
 
-Reload after installing v2.4.1. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
+Reload after installing v2.4.2. Open **Manage conversations**, select chats and choose **Archive**, or **Archive all** for all discovered chats. Review the exact titles/IDs and confirm. ChatGPT's native menu archives each chat sequentially; a ZIP alone does not change its platform state. Restore archives through ChatGPT **Settings → Data controls → Archived chats → Manage**. [Official instructions](https://help.openai.com/en/articles/8809935-deleting-and-archiving-chats-in-chatgpt).
 
 ## 12. Batch delete and successful backups
 
@@ -158,7 +158,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.4.1`. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.4.2`. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
