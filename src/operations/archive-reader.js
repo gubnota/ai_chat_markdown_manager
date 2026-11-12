@@ -9,6 +9,7 @@
   const resultList = document.querySelector("#archive-result-list");
   const status = document.querySelector(".archive-search-status");
   const more = document.querySelector(".archive-more");
+  const mobileTools = document.querySelector(".archive-mobile-tools");
   const previewCount = 8;
   let index, timer;
   let snippets = [];
@@ -164,7 +165,8 @@
       }
     }
     render();
-    window.scrollTo(0, 0);
+    if (mobileTools.open) mobileTools.scrollTop = 0;
+    else window.scrollTo(0, 0);
   }
 
   input.addEventListener("input", () => {
@@ -172,7 +174,7 @@
     timer = setTimeout(find, 100);
   });
   input.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && input.value) clear.click();
+    if (event.key === "Escape" && input.value && !mobileTools.open) clear.click();
     if (event.key === "Enter") {
       clearTimeout(timer);
       find();
@@ -229,14 +231,40 @@
     });
   }
 
-  const sidebar = document.querySelector(".archive-toc");
-  if (sidebar && typeof ResizeObserver === "function") {
-    new ResizeObserver(() => {
-      document.documentElement.style.setProperty(
-        "--archive-mobile-nav",
-        sidebar.offsetHeight + "px",
-      );
-    }).observe(sidebar);
+  if (typeof mobileTools.showModal === "function") {
+    const menu = document.querySelector(".archive-menu");
+    const toolbar = document.querySelector(".archive-toolbar");
+    const brand = toolbar.querySelector(".archive-brand");
+    const sidebar = document.querySelector(".archive-toc");
+    const layout = sidebar.parentElement;
+    const narrow = window.matchMedia("(max-width: 820px)");
+    const placeControls = () => {
+      if (narrow.matches) {
+        mobileTools.append(toolbar, results, sidebar);
+      } else if (toolbar.parentElement === mobileTools) {
+        mobileTools.close();
+        menu.before(toolbar, results);
+        layout.prepend(sidebar);
+      }
+      brand.textContent = narrow.matches ? "Back to top" : "Chat archive";
+      menu.hidden = !narrow.matches;
+    };
+    menu.addEventListener("click", () => {
+      menu.focus({ preventScroll: true });
+      mobileTools.showModal();
+      mobileTools.scrollTop = 0;
+      menu.setAttribute("aria-expanded", "true");
+    });
+    mobileTools.addEventListener("close", () => {
+      menu.setAttribute("aria-expanded", String(mobileTools.open));
+    });
+    mobileTools.querySelector("button").addEventListener("click", () => mobileTools.close());
+    mobileTools.addEventListener("click", (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.target.closest('a[href^="#"]')) mobileTools.close();
+    });
+    narrow.addEventListener("change", placeControls);
+    placeControls();
   }
 
   const dialog = document.querySelector(".archive-image-viewer");

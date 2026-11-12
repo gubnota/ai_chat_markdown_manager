@@ -294,9 +294,23 @@ for (const platform of [
           readFileSync(resolve(directory, decodeURIComponent(href!)), "utf8"),
         ).toBe("reference,input\nexact,bytes\n");
         if (navigation) {
+          const mobile = await offline.evaluate(() => matchMedia("(max-width: 820px)").matches);
+          const menu = offline.getByRole("button", { name: "Open archive menu" });
+          const tools = offline.getByRole("dialog", { name: "Chat archive" });
           const toc = offline.getByRole("navigation", {
             name: "Table of contents",
           });
+          const openMenu = async () => {
+            if (!mobile) return;
+            await menu.click();
+            await expect(tools).toBeVisible();
+          };
+          if (mobile) {
+            await expect(offline.locator(".archive-toolbar")).toBeHidden();
+            await expect(toc).toBeHidden();
+            await expect(menu).toBeInViewport();
+          } else await expect(menu).toBeHidden();
+          await openMenu();
           await expect(
             toc.getByRole("link", { name: "1. User" }),
           ).toBeVisible();
@@ -305,7 +319,15 @@ for (const platform of [
           await link.click();
           expect(new URL(offline.url()).hash).toBe(hash);
           await expect(offline.locator(hash!)).toBeInViewport();
-          expect((await toc.boundingBox())!.y).toBeLessThan(100);
+          if (mobile) {
+            await expect(tools).toBeHidden();
+            const scrollY = await offline.evaluate(() => window.scrollY);
+            await openMenu();
+            await tools.getByRole("button", { name: "Close archive menu" }).click();
+            await expect(menu).toBeFocused();
+            expect(await offline.evaluate(() => window.scrollY)).toBe(scrollY);
+            await openMenu();
+          } else expect((await toc.boundingBox())!.y).toBeLessThan(100);
           await toc.locator(".archive-headings-list summary").click();
           await expect(link).toBeHidden();
           const illustrations = toc.locator(".archive-media-list").filter({ hasText: "Illustrations" });
@@ -315,6 +337,7 @@ for (const platform of [
           const diagram = illustrations.getByRole("link", { name: /Diagram/ });
           await diagram.click();
           await expect(offline.locator(":target .archive-image-caption")).toHaveText(/Diagram/);
+          await openMenu();
           await attachments.getByRole("link", { name: /reference.csv/ }).click();
           await expect(offline.locator(":target")).toHaveAttribute("download", /reference.csv$/);
           await expect(offline.locator(".archive-code-block .hljs-keyword")).toHaveText("const");
@@ -333,6 +356,7 @@ for (const platform of [
           await expect.poll(progress).toBeGreaterThan(0.95);
           await offline.evaluate(() => window.scrollTo(0, 0));
           await expect.poll(progress).toBeLessThan(0.05);
+          await openMenu();
           const query = offline.getByRole("searchbox", { name: "Search this thread" });
           await query.fill("conversation fixture");
           const results = offline.getByRole("region", { name: "Search results" });
@@ -345,6 +369,8 @@ for (const platform of [
           await expect(matches).toHaveCount(56);
           await matches.last().getByRole("link").click();
           await expect(offline.locator(":target")).toHaveText("Long conversation fixture");
+          if (mobile) await expect(tools).toBeHidden();
+          await openMenu();
           await query.fill("reference.csv");
           await expect(results.locator("mark").first()).toHaveText("reference.csv");
           await offline.getByRole("button", { name: "Clear", exact: true }).click();
@@ -352,6 +378,7 @@ for (const platform of [
           await query.fill("[literal]+");
           await expect(results.getByRole("status")).toHaveText("No matches found.");
           await query.press("Escape");
+          if (mobile) await expect(tools).toBeHidden();
           await expect(results).toBeHidden();
 
           const imageTrigger = offline.getByRole("button", { name: /^Expand image: .*Diagram/ });

@@ -194,3 +194,9 @@
 - Current and bulk exports save readable map widgets as PNG snapshots. They retain an original map link when available and enabled. Separate-file ZIPs retain available content and report unreadable snapshots as incomplete.
 - Passed 122 unit tests and 93 export browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release integrity checks.
 - Updated the existing styled HTML in Downloads and verified the navigation and image dialog offline. Installed the v2.4.11 userscript in Safari. Map capture was verified on browser fixtures.
+
+## 2026-11-13 — v2.4.12 mobile archive menu
+
+- On narrow screens, open the toolbar, search and contents from a floating menu. The close button and Escape preserve the reading position, while contents and search links close the menu and navigate to the selected text. Keep reading progress at the top.
+- Passed 122 unit tests and three focused export browser cases across Chromium and desktop and mobile WebKit, plus lint, type checking, the production build and release integrity checks. Verified viewport resizing and the script-free contents fallback on a local archive.
+- Inspected the Sony ZV-E10 archive. It contains 42 PNG files representing six byte-unique images. Six appear in the conversation and 36 in Additional exported files. The ZIP writer reuses source URLs and can save the same bytes from different sources more than once.

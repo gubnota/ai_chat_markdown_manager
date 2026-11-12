@@ -106,8 +106,8 @@ export function archiveNavigation(
   return layout;
 }
 
-export const readerToolbar = `<header class="archive-toolbar">
-  <div class="archive-progress" aria-hidden="true"><span></span></div>
+export const readerToolbar = `<div class="archive-progress" aria-hidden="true"><span></span></div>
+<header class="archive-toolbar">
   <div class="archive-toolbar-inner">
     <a class="archive-brand" href="#archive-top">Chat archive</a>
     <div class="archive-search" role="search" hidden>
@@ -124,6 +124,10 @@ export const readerToolbar = `<header class="archive-toolbar">
   </div>
   <ol id="archive-result-list"></ol>
 </section>
+<button type="button" class="archive-menu" aria-label="Open archive menu" aria-haspopup="dialog" aria-controls="archive-mobile-tools" aria-expanded="false" hidden>☰</button>
+<dialog class="archive-mobile-tools" id="archive-mobile-tools" aria-labelledby="archive-menu-title">
+  <div class="archive-menu-bar"><h2 id="archive-menu-title">Chat archive</h2><button type="button" autofocus aria-label="Close archive menu">✕</button></div>
+</dialog>
 <dialog class="archive-image-viewer" aria-label="Expanded image">
   <div class="archive-viewer-bar"><p></p><button type="button" autofocus aria-label="Close image">✕</button></div>
   <div class="archive-image-stage"></div>
