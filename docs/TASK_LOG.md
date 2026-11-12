@@ -166,3 +166,10 @@
 - Leave ordinary `.html` pages as links. Use the URL path for implicit file detection and still recognize files marked as downloads or attachments.
 - Ordinary separate-file ZIPs retain available media and preserve links to unavailable files with a warning. Bulk entries stay retryable and excluded from cleanup; required backups still reject incomplete captures.
 - Passed 122 unit tests and 195 browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release integrity checks. Fixtures verify current and bulk ZIPs retain exact image bytes when a linked attachment fails.
+- The reported Safari chat got past the link failure and captured at least 456 messages, 139 files and 286.7 MiB. A blocked scroll step stopped the scan without a ZIP.
+
+## 2026-11-12 — v2.4.8 recovery from blocked ChatGPT scroll steps
+
+- Retry blocked scroll steps with smaller movements. If the scan still cannot continue, an ordinary ZIP keeps the captured turns and files, reports the gap and remains ineligible for cleanup. Required backups still reject partial capture.
+- Browser fixtures cover one interrupted step in the large 113-image export and a persistent interruption that produces a marked partial ZIP with the exact saved image bytes.
+- Passed 122 unit tests and 12 focused browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release checksums.

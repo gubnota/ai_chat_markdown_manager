@@ -1,4 +1,4 @@
-# AI Chat Markdown Manager v2.4.7
+# AI Chat Markdown Manager v2.4.8
 
 [Русский](README.ru.md) · [Build and install](#17-build)
 

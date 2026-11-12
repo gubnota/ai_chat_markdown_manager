@@ -518,6 +518,14 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
         let first = 10;
         let loading = false;
         let loaded = false;
+        const scrollTo = scroller.scrollTo.bind(scroller);
+        scroller.scrollTo = (target) => {
+          if (loaded && target.top > scroller.scrollTop && !scroller.dataset.rejectedScroll) {
+            scroller.dataset.rejectedScroll = 'true';
+            return;
+          }
+          scrollTo(target);
+        };
         function render() {
           turns.style.height = (${count} - first) * row + 'px';
           const start = Math.max(first, first + Math.floor(scroller.scrollTop / row) - 2);
@@ -616,6 +624,10 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
     );
     await expect(activity.getByText("Scanning ChatGPT history…")).toBeVisible();
     const file = await download;
+    await expect(page.locator("main")).toHaveAttribute(
+      "data-rejected-scroll",
+      "true",
+    );
     expect(file.suggestedFilename()).not.toContain("-part-");
     const zip = readFileSync((await file.path())!);
     expect(zip.length).toBeGreaterThan(64 * 1024 * 1024);
@@ -826,6 +838,74 @@ for (const scope of ["current", "bulk"] as const) {
       .toBe(0);
   });
 }
+
+test("ChatGPT bulk ZIP keeps captured media when the conversation stops scrolling", async ({
+  page,
+}) => {
+  const url = "https://chatgpt.com/c/frozen";
+  const image = Buffer.from(png, "base64");
+  await page.route("https://chatgpt.com/saved.png", (route) =>
+    route.fulfill({ contentType: "image/png", body: image }),
+  );
+  await page.route(url, (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Frozen chat</title><aside><a href="/c/frozen">Frozen chat</a></aside>
+        <main style="height:50vh;overflow-y:auto">
+          <article data-message-author-role="user" data-message-id="one" style="height:100vh">
+            <p>Captured turn</p><img alt="Saved image" src="/saved.png">
+          </article>
+          <article data-message-author-role="assistant" data-message-id="two"><p>Unreached turn</p></article>
+        </main>
+        <script>
+          localStorage.setItem('__ai_chat_md_v2__:settings', JSON.stringify({
+            autoMinimize:false,delayMs:0,export:{mediaFiles:true,format:'html'}
+          }));
+          const scroller = document.querySelector('main');
+          const scrollTo = scroller.scrollTo.bind(scroller);
+          scroller.scrollTo = (target) => {
+            if (target.top > scroller.scrollTop) return;
+            scrollTo(target);
+          };
+        </script>`,
+    }),
+  );
+  await page.goto(url);
+  await page.addScriptTag({
+    path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+  });
+  await page
+    .getByRole("button", { name: "Open Markdown Manager", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^Export All/ }).click();
+  const download = page.waitForEvent("download");
+  await page
+    .getByRole("dialog", { name: "Export All" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
+  const zip = unzipSync(readFileSync((await (await download).path())!));
+  const html = strFromU8(
+    Object.entries(zip).find(([name]) => name.endsWith(".html"))![1],
+  );
+  expect(html).toContain("the conversation stopped scrolling");
+  expect(html).toContain("Captured turn");
+  expect(html).not.toContain("Unreached turn");
+  expect(html).toContain("1-Saved%20image.png");
+  expect(
+    Object.entries(zip).find(([name]) =>
+      name.endsWith("/1-Saved image.png"),
+    )?.[1],
+  ).toEqual(Uint8Array.from(image));
+  expect(JSON.parse(strFromU8(zip["manifest.json"]))).toMatchObject({
+    completed: 0,
+    failed: 1,
+    results: [{ key: "chatgpt:frozen", status: "failed" }],
+  });
+  await expect(
+    page.getByRole("button", { name: "Retry failed exports" }),
+  ).toBeEnabled();
+});
 
 test("ZIP fallback asks to save each part and preserves paths across parts", async ({
   page,

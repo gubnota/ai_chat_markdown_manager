@@ -151,7 +151,8 @@ export async function captureChatGPTHistory(
         "The conversation viewport changed during export. Retry the export.",
       );
   };
-  const isScrollable = () => container.scrollHeight > container.clientHeight + 2;
+  const isScrollable = () =>
+    container.scrollHeight > container.clientHeight + 2;
   const activeNodes = () => {
     const scrollable = isScrollable();
     return messageNodes("chatgpt").filter(
@@ -278,6 +279,41 @@ export async function captureChatGPTHistory(
     }
   };
 
+  const distanceToEdge = (direction: -1 | 1) =>
+    Math.abs(
+      container.scrollTop -
+        (direction < 0 ? 0 : container.scrollHeight - container.clientHeight),
+    );
+
+  const advance = async (direction: -1 | 1) => {
+    // A live layout can undo a scroll while mounting turns or loading images.
+    // Retry from the current position with smaller steps to preserve overlap.
+    for (const fraction of [0.65, 0.45, 0.3]) {
+      const before = container.scrollTop;
+      container.scrollTo({
+        top:
+          before +
+          direction *
+            Math.max(1, Math.floor(container.clientHeight * fraction)),
+        behavior: "instant",
+      });
+      await pause(240, signal);
+      check();
+      if (
+        Math.abs(container.scrollTop - before) > 1 ||
+        distanceToEdge(direction) <= 2
+      )
+        return true;
+    }
+    return false;
+  };
+
+  const stopScanning = (reason: string) => {
+    if (!history?.incomplete) throw new Error(`${reason} Retry the export.`);
+    history.incomplete(reason);
+    history.progress(turns.size);
+  };
+
   try {
     check();
     history?.progress(0);
@@ -287,47 +323,29 @@ export async function captureChatGPTHistory(
         let steps = 0;
         while (true) {
           check();
-          const edge =
-            direction < 0 ? 0 : container.scrollHeight - container.clientHeight;
-          if (Math.abs(container.scrollTop - edge) <= 2) {
+          if (distanceToEdge(direction) <= 2) {
             if (direction < 0) {
               if (await waitAtTop()) break;
             } else {
               await pause(150, signal);
               check();
               await captureWindow(direction);
-              if (
-                container.scrollHeight -
-                  container.clientHeight -
-                  container.scrollTop <=
-                2
-              )
-                break;
+              if (distanceToEdge(direction) <= 2) break;
             }
             continue;
           }
-          if (++steps > 12_000)
-            throw new Error(
-              "ChatGPT history scrolling did not reach the end. Keep the original chat.",
-            );
-          const before = container.scrollTop;
-          container.scrollTo({
-            top:
-              before +
-              direction *
-                Math.max(1, Math.floor(container.clientHeight * 0.65)),
-            behavior: "instant",
-          });
-          await pause(240, signal);
-          check();
-          if (
-            Math.abs(container.scrollTop - before) <= 1 &&
-            Math.abs(container.scrollTop - edge) > 2
-          )
-            throw new Error(
-              "ChatGPT history could not be scrolled. Retry the export.",
-            );
+          if (++steps > 12_000) {
+            stopScanning("ChatGPT history scrolling did not reach the end.");
+            break;
+          }
+          const moved = await advance(direction);
           await captureWindow(direction);
+          if (!moved) {
+            stopScanning(
+              "Some ChatGPT messages may be missing because the conversation stopped scrolling.",
+            );
+            break;
+          }
         }
       }
     }
