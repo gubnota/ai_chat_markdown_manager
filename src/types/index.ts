@@ -50,6 +50,8 @@ export type CaptureMedia = (
   missingImages?: Map<string, string>,
 ) => Promise<string>;
 
+export type HistoryProgress = (messages: number, waitSeconds?: number) => void;
+
 export interface PlatformAdapter {
   id: string;
   name: string;
@@ -65,6 +67,7 @@ export interface PlatformAdapter {
     signal?: AbortSignal,
     missingImages?: Map<string, string>,
     captureMedia?: CaptureMedia,
+    onHistoryProgress?: HistoryProgress,
   ): Promise<string>;
   archiveConversation(
     id: ConversationIdentifier,

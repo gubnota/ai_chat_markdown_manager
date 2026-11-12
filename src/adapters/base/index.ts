@@ -8,6 +8,7 @@ import {
   type Conversation,
   type ConversationIdentifier,
   type ExportOptions,
+  type HistoryProgress,
   type PlatformAdapter,
   type PlatformCapabilities,
 } from "../../types";
@@ -128,6 +129,7 @@ export class DOMAdapter implements PlatformAdapter {
     signal?: AbortSignal,
     missingImages?: Map<string, string>,
     captureMedia?: CaptureMedia,
+    onHistoryProgress?: HistoryProgress,
   ): Promise<string> {
     const c = await this.getConversation(id, signal);
     signal?.throwIfAborted();
@@ -165,7 +167,12 @@ export class DOMAdapter implements PlatformAdapter {
     };
     if (captureMedia && this.id === "chatgpt") {
       const history = await captureChatGPTHistory(
-        options, captureMedia, checkConversation, signal, missingImages,
+        options,
+        captureMedia,
+        checkConversation,
+        signal,
+        missingImages,
+        onHistoryProgress,
       );
       if (history !== undefined) return history;
     }

@@ -550,16 +550,16 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
             loading = true;
             const status = document.createElement('div');
             status.role = 'status';
-            status.textContent = 'Loading older messages…';
+            status.textContent = 'Loading older messages...';
             turns.prepend(status);
-            setTimeout(() => {
+            document.addEventListener('fixture:older-messages-ready', () => {
               first = 0;
               loaded = true;
               status.remove();
               turns.style.height = ${count} * row + 'px';
               scroller.scrollTop = 10 * row;
               render();
-            }, 600);
+            }, { once: true });
           }
         }
         scroller.scrollTop = 0;
@@ -583,6 +583,24 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
       .getByRole("dialog", { name: "Export All" })
       .getByRole("button", { name: "Download ZIP", exact: true })
       .click();
+    const activity = page.getByRole("region", {
+      name: "Markdown Manager panel",
+    });
+    await expect(
+      activity.getByText(/Waiting for older ChatGPT messages \([1-9]\d* s\)/),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      activity.getByText(
+        /Messages captured: [1-9]\d* · Files added: [1-9]\d* · [\d.]+ MiB/,
+      ),
+    ).toBeVisible();
+    await expect(
+      activity.getByRole("progressbar", { name: "Chats processed" }),
+    ).toHaveAttribute("value", "0");
+    await page.evaluate(() =>
+      document.dispatchEvent(new Event("fixture:older-messages-ready")),
+    );
+    await expect(activity.getByText("Scanning ChatGPT history…")).toBeVisible();
     const file = await download;
     expect(file.suggestedFilename()).not.toContain("-part-");
     const zip = readFileSync((await file.path())!);

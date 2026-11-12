@@ -134,17 +134,20 @@ export function Dropdown<Value extends string | number>({
     </div>
   );
 }
-export function ExportProgress({ label }: { label: string }) {
+export function ExportProgress({
+  label,
+  details,
+}: {
+  label: string;
+  details?: string;
+}) {
   return (
-    <div className="export-progress" role="status" aria-live="polite">
-      <span>{label}</span>
-      <div
-        role="progressbar"
-        aria-label={label}
-        className="export-progress-track"
-      >
-        <i />
+    <div className="export-progress">
+      <div role="status">
+        <div>{label}</div>
+        {details && <div>{details}</div>}
       </div>
+      <progress aria-label={label} className="export-progress-track" />
     </div>
   );
 }

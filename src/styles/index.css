@@ -928,31 +928,7 @@ kbd {
   font-size: 13px;
 }
 .export-progress-track {
-  height: 5px;
-  border-radius: 9px;
-  background: var(--soft);
-  overflow: hidden;
-  margin-top: 9px;
-}
-.export-progress-track i {
   display: block;
-  height: 100%;
-  width: 35%;
-  background: var(--accent);
-  border-radius: inherit;
-  animation: export-travel 1.3s ease-in-out infinite alternate;
-}
-@keyframes export-travel {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(185%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .export-progress-track i {
-    animation: none;
-    width: 100%;
-  }
+  width: 100%;
+  margin-top: 9px;
 }

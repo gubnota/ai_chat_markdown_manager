@@ -146,3 +146,10 @@
 - Chromium and desktop and mobile WebKit fixtures verify a single ZIP with 113 exact image files, over 70 MiB of image data, chronological HTML and restored scroll position. The fallback fixtures verify relative paths across individually saved ZIP parts.
 - Passed 122 unit tests and 180 browser cases, lint, strict type checking, the production build and release checksums.
 - The reported authenticated Safari chat was not retested with this release.
+
+## 2026-11-12 — v2.4.5 export progress
+
+- Live Safari v2.4.4 started capture but displayed a fixed progress indication until the older-history wait timed out. Safari received no ZIP.
+- Show captured ChatGPT messages, files and bytes written for the current chat, elapsed seconds while waiting for older history, and ZIP finalization in the export dialogs and bulk Activity.
+- Passed 122 unit tests, 180 browser cases across Chromium and desktop and mobile WebKit, lint, strict type checking, build and release integrity checks. The 113-image fixture verifies live counts, the wait timer and successful resumption after older messages load.
+- The authenticated Safari chat still needs a v2.4.5 retry. The 30-second older-history timeout remains in effect.

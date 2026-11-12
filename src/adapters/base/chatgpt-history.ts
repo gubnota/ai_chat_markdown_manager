@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-import type { CaptureMedia, ExportOptions } from "../../types";
+import type { CaptureMedia, ExportOptions, HistoryProgress } from "../../types";
 import { visibleMessageElement } from "../../markdown/messages";
 import {
   messageMarkdown,
@@ -105,6 +105,7 @@ export async function captureChatGPTHistory(
   checkConversation: () => void,
   signal?: AbortSignal,
   missingImages?: Map<string, string>,
+  onProgress?: HistoryProgress,
 ): Promise<string | undefined> {
   const initial = messageNodes("chatgpt");
   if (!initial.length) return;
@@ -205,13 +206,16 @@ export async function captureChatGPTHistory(
         signal,
         missing,
       );
-      if (!previous || missing.size <= previous.missing.size)
+      if (!previous || missing.size <= previous.missing.size) {
         turns.set(key, { text, missing, direction, fingerprint });
+        if (!previous) onProgress?.(turns.size);
+      }
     }
   };
 
   try {
     check();
+    onProgress?.(0);
     await captureWindow(-1);
     if (
       container.scrollHeight > container.clientHeight + 2 ||
@@ -226,14 +230,23 @@ export async function captureChatGPTHistory(
           if (Math.abs(container.scrollTop - edge) <= 2) {
             const start = Date.now();
             const before = container.scrollHeight;
-            do {
+            let lastReportedSecond: number | undefined;
+            while (true) {
               await pause(150, signal);
               check();
-              if (Date.now() - start >= 30_000)
+              const elapsed = Date.now() - start;
+              if (elapsed >= 30_000)
                 throw new Error(
                   "Older ChatGPT messages did not finish loading. Retry the export.",
                 );
-            } while (direction < 0 && loadingHistory(container));
+              if (direction > 0 || !loadingHistory(container)) break;
+              const seconds = Math.floor(elapsed / 1000);
+              if (seconds !== lastReportedSecond) {
+                lastReportedSecond = seconds;
+                onProgress?.(turns.size, seconds);
+              }
+            }
+            if (lastReportedSecond !== undefined) onProgress?.(turns.size);
             // Give ChatGPT time to prepend older turns or adjust its scroll anchor.
             if (direction < 0) await pause(950, signal);
             check();

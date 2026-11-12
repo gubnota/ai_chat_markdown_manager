@@ -87,18 +87,37 @@ type ExportChoice = {
   | { kind: "current"; selection: boolean }
   | { kind: "batch"; targets: Conversation[]; scope: ExportScope }
 );
+type CaptureProgress = {
+  messages?: number;
+  waitSeconds?: number;
+  files: number;
+  bytes: number;
+};
+type ExportStage = CaptureProgress | "capture" | "zip" | "download" | "copy";
+
 async function captureDocument(
   adapter: PlatformAdapter,
   conversation: Conversation,
   options: ExportOptions,
   name: string,
   signal: AbortSignal,
+  reportProgress: (stage: ExportStage) => void,
   archive?: SeparateArchive,
   missingImages?: Map<string, string>,
   selection = false,
 ) {
+  let progress: CaptureProgress = { files: 0, bytes: 0 };
+  reportProgress(archive ? progress : "capture");
   const media =
-    archive && separateMedia(name, (path, bytes) => archive.add(path, bytes));
+    archive && separateMedia(name, async (path, bytes) => {
+      await archive.add(path, bytes);
+      progress = {
+        ...progress,
+        files: progress.files + 1,
+        bytes: progress.bytes + bytes.byteLength,
+      };
+      reportProgress(progress);
+    });
   const body = selection
     ? await (media?.capture ?? embedMarkdownMedia)(
         extractMarkdown({
@@ -117,6 +136,10 @@ async function captureDocument(
         signal,
         missingImages,
         media?.capture,
+        (messages, waitSeconds) => {
+          progress = { ...progress, messages, waitSeconds };
+          reportProgress(progress);
+        },
       );
   signal.throwIfAborted();
   return prepareDocument(
@@ -136,6 +159,7 @@ async function downloadSeparate(
   name: string,
   signal: AbortSignal,
   savePart: SaveZipPart,
+  reportProgress: (stage: ExportStage) => void,
   selection = false,
 ): Promise<boolean> {
   const archive = await SeparateArchive.open(
@@ -150,10 +174,12 @@ async function downloadSeparate(
       options,
       name,
       signal,
+      reportProgress,
       archive,
       undefined,
       selection,
     );
+    reportProgress("zip");
     await archive.add(name, prepared.text);
     return await archive.finish(
       options.manifest
@@ -209,7 +235,7 @@ export function App({
   const [backedUp, setBackedUp] = useState<Conversation[]>([]);
   const [backupChecked, setBackupChecked] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [exportStage, setExportStage] = useState("");
+  const [exportStage, setExportStage] = useState<ExportStage>();
   const [toast, setToast] = useState("");
   const [preview, setPreview] = useState<{
     conversation: Conversation;
@@ -243,6 +269,38 @@ export function App({
   const lastExportOptions = useRef<ExportOptions | undefined>(undefined);
   const ru = settings.language === "ru";
   const t = (en: string, r: string) => (ru ? r : en);
+  const exportLabels = {
+    capture: t(
+      "Capturing messages, images and input files…",
+      "Сохраняем сообщения, изображения и файлы…",
+    ),
+    zip: t("Finalizing the ZIP…", "Завершаем создание ZIP…"),
+    download: t("Preparing download…", "Подготавливаем загрузку…"),
+    copy: t("Copying to clipboard…", "Копируем в буфер обмена…"),
+  };
+  let exportLabel: string | undefined;
+  let exportDetails: string | undefined;
+  if (busy && exportStage) {
+    if (typeof exportStage === "string") exportLabel = exportLabels[exportStage];
+    else {
+      const { messages, waitSeconds, files, bytes } = exportStage;
+      exportLabel = waitSeconds !== undefined
+        ? t(
+            `Waiting for older ChatGPT messages (${waitSeconds} s)…`,
+            `Ждём загрузки предыдущих сообщений ChatGPT (${waitSeconds} с)…`,
+          )
+        : messages !== undefined
+          ? t("Scanning ChatGPT history…", "Читаем историю ChatGPT…")
+          : exportLabels.capture;
+      const size = bytes >= 1024 * 1024
+        ? `${(bytes / (1024 * 1024)).toFixed(1)} MiB`
+        : `${(bytes / 1024).toFixed(1)} KiB`;
+      const assets = t(`Files added: ${files}`, `Файлов добавлено: ${files}`);
+      exportDetails = messages === undefined
+        ? `${assets} · ${size}`
+        : `${t(`Messages captured: ${messages}`, `Сообщений собрано: ${messages}`)} · ${assets} · ${size}`;
+    }
+  }
   const dismissPanel = useCallback(() => {
     setPanelMode("closed");
     fab.current?.focus();
@@ -412,12 +470,7 @@ export function App({
       const controller = new AbortController();
       operationAbort.current = controller;
       setBusy(true);
-      setExportStage(
-        t(
-          "Capturing messages, images and input files…",
-          "Сохраняем сообщения, изображения и файлы…",
-        ),
-      );
+      setExportStage("capture");
       const { format } = options;
       try {
         const current = (await adapter.discoverConversations()).find(
@@ -435,6 +488,7 @@ export function App({
             name,
             signal,
             saveZipPart,
+            setExportStage,
             selection,
           );
           notify(
@@ -458,11 +512,12 @@ export function App({
               : options,
             name,
             signal,
+            setExportStage,
             undefined,
             undefined,
             selection,
           );
-          setExportStage(t("Preparing download…", "Подготавливаем загрузку…"));
+          setExportStage(mode === "copy" ? "copy" : "download");
           if (mode === "copy") {
             await copyMarkdown(prepared.text);
             notify(
@@ -538,6 +593,7 @@ export function App({
     const controller = new AbortController();
     operationAbort.current = controller;
     setBusy(true);
+    setExportStage(kind === "export" ? "capture" : undefined);
     setPanelMode((mode) => (mode === "closed" ? "compact" : mode));
     setScreen("activity");
     const files = new Map<string, string | Uint8Array>();
@@ -554,18 +610,23 @@ export function App({
         filename(c, exportOptions.filename, exportOptions.format),
         used,
       );
-      const prepared = await captureDocument(
-        adapter,
-        c,
-        exportOptions,
-        name,
-        signal,
-        archive,
-        missingImages,
-      );
-      if (archive) await archive.add(name, prepared.text);
-      else files.set(name, prepared.text);
-      documents++;
+      try {
+        const prepared = await captureDocument(
+          adapter,
+          c,
+          exportOptions,
+          name,
+          signal,
+          setExportStage,
+          archive,
+          missingImages,
+        );
+        if (archive) await archive.add(name, prepared.text);
+        else files.set(name, prepared.text);
+        documents++;
+      } finally {
+        setExportStage(undefined);
+      }
     };
     const restore = adapter.beginExportSession?.();
     let needsRestore = kind === "export";
@@ -576,6 +637,7 @@ export function App({
         (kind === "archive" ? settings.backupArchive : settings.backupDelete)
       ) {
         needsRestore = true;
+        setExportStage("capture");
         const backupName = `chat-backup-${Date.now()}.zip`;
         if (settings.export.mediaFiles)
           archive = await SeparateArchive.open(backupName, controller.signal);
@@ -602,6 +664,7 @@ export function App({
           mediaFiles: settings.export.mediaFiles,
           results: backup.results,
         };
+        setExportStage("zip");
         if (archive) {
           await archive.finish(manifest);
           await archive.dispose();
@@ -615,6 +678,7 @@ export function App({
         // Restore before mutation; a deleted or archived starting chat cannot be restored later.
         await restore?.();
         needsRestore = false;
+        setExportStage(undefined);
       }
       const exportName = `chat-${options.format}-${Date.now()}.zip`;
       if (kind === "export" && options.mediaFiles)
@@ -652,6 +716,7 @@ export function App({
         setProgress,
       );
       if (kind === "export" && documents) {
+        setExportStage("zip");
         const manifest = options.manifest
           ? {
               version,
@@ -762,12 +827,7 @@ export function App({
     operationAbort.current = controller;
     setBusy(true);
     setToast("");
-    setExportStage(
-      t(
-        "Capturing messages, images and input files…",
-        "Сохраняем сообщения, изображения и файлы…",
-      ),
-    );
+    setExportStage("capture");
     const pending = {
       conversation: c,
       options,
@@ -789,6 +849,7 @@ export function App({
           : options,
         pending.name,
         controller.signal,
+        setExportStage,
       );
       if (!controller.signal.aborted)
         setPreview({ ...pending, text: bundle.text });
@@ -820,12 +881,7 @@ export function App({
     const controller = new AbortController();
     operationAbort.current = controller;
     setBusy(true);
-    setExportStage(
-      t(
-        "Capturing messages, images and input files…",
-        "Сохраняем сообщения, изображения и файлы…",
-      ),
-    );
+    setExportStage("capture");
     const restore = adapter.beginExportSession?.();
     try {
       const single = await downloadSeparate(
@@ -835,6 +891,7 @@ export function App({
         pending.name,
         controller.signal,
         saveZipPart,
+        setExportStage,
       );
       notify(
         single
@@ -1304,7 +1361,14 @@ export function App({
                   {progress.current || t("Operation summary", "Итоги операции")}
                 </p>
               )}
-              <progress max="100" value={pct} />
+              {exportLabel && (
+                <ExportProgress label={exportLabel} details={exportDetails} />
+              )}
+              <progress
+                aria-label={t("Chats processed", "Обработано бесед")}
+                max="100"
+                value={pct}
+              />
               <div className="counts">
                 {pct}% · {progress.completed} {t("completed", "выполнено")} ·{" "}
                 {progress.failed} {t("failed", "ошибок")} · {progress.skipped}{" "}
@@ -1610,7 +1674,6 @@ export function App({
                     "Медиа и входные файлы останутся внешними ссылками: может потребоваться интернет и доступ к оригиналам; ссылки могут истечь.",
                   )}
           </p>
-          {busy && <ExportProgress label={exportStage} />}
           {exportChoice.kind === "current" && (
             <label>
               {t("Filename", "Имя файла")}
@@ -1638,7 +1701,10 @@ export function App({
               </small>
             </label>
           )}
-          {exportChoice.error && <p role="alert">{exportChoice.error}</p>}
+          {!busy && exportChoice.error && <p role="alert">{exportChoice.error}</p>}
+          {exportLabel && (
+            <ExportProgress label={exportLabel} details={exportDetails} />
+          )}
           <button
             className="primary"
             disabled={busy}
@@ -1755,7 +1821,9 @@ export function App({
                   "Включите встраивание для офлайн-медиа и файлов; иначе ссылкам нужен интернет, и они могут истечь. Для Markdown нужен просмотрщик с поддержкой data URL. Настройки обновляют предпросмотр.",
                 )}
           </p>
-          {busy && <ExportProgress label={exportStage} />}
+          {exportLabel && (
+            <ExportProgress label={exportLabel} details={exportDetails} />
+          )}
           <label>
             {t("Filename", "Имя файла")}
             <input
