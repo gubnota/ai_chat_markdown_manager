@@ -24,8 +24,10 @@
 | `src/markdown/attachments.ts` | Nested message attachments, safe file URLs, bounded decoded-image embedding and unavailable labels |
 | `src/markdown/media.ts` | Bounded asynchronous capture of referenced media/input bytes; strict offline failure |
 | `src/operations/package.ts` | Token-aware asset localization, relative paths and final document rendering |
+| `src/operations/resources.ts` | Markdown resource token rewriting, asset names and visible filename captions |
 | `src/operations/archive.ts` | File-backed streaming ZIPs and bounded fallback parts |
 | `src/operations/document.ts` | Markdown wrapper and allowlisted HTML, inline/linked image CSP and MIME |
+| `src/operations/archive-navigation.ts` | Generated HTML table of contents, heading anchors and CSS reading progress |
 | `src/markdown/legacy-converter.js` | Minimally changed inherited MIT converter |
 | `src/markdown/legacy-converter.d.ts` | Explicit typed boundary for inherited JS |
 | `src/markdown/legacy.ts` | Typed conversion wrapper and metadata |

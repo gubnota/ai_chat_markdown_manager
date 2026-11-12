@@ -1,4 +1,4 @@
-# AI Chat Markdown Manager v2.4.8
+# AI Chat Markdown Manager v2.4.9
 
 [Русский](README.ru.md) · [Build and install](#17-build)
 
@@ -69,6 +69,8 @@ Use **Export selected content** after highlighting webpage text, or Shift-click 
 Gemini uploaded images and generated image previews inside message buttons are included when **Image references** is enabled. File cards use exposed HTTP(S) download links when **Keep links** is enabled. In linked Markdown, attachments without reusable URLs keep their names with a “direct link unavailable” note. These options cover current-chat and batch exports, including image-only replies.
 
 Choose **Save Current Chat** to set the format, filename and media options before capture. **Embed media and input files** puts enabled images, audio/video and input files inside the document. HTML enables embedding by default and includes its own styles. **Save ZIP with separate media and input files** stores the document and its assets together in an archive. Extract the whole ZIP before opening the document. With both switches off, resource links may require internet and can expire. Keep **Include images** and **Include links and input files** enabled to capture all supported resources.
+
+Search either format for a filename such as `147-User attachment.png` to find it next to the image or attachment. In HTML, use the sticky **Table of contents** to jump to a message or heading. Browsers with CSS scroll timeline support show reading progress across the top.
 
 In **Manage conversations → ⋯ beside a chat → Preview / export**, choose **File format** (Markdown or HTML), **Embed media and input files**, **Include images**, and **Include links and input files**. Each change refreshes the preview; use **Download Markdown** or **Download HTML** when ready. Failed refreshes disable download until corrected or retried. Preview choices apply to that preview only.
 

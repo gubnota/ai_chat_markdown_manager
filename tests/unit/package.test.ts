@@ -58,12 +58,12 @@ it.each(["markdown", "html"] as const)(
     const options = { ...defaults.export, format, mediaFiles: true };
     const name = format === "html" ? "trip.html" : "trip.md";
     const result = await pack(
-      `![Map](${image})\n\n[reference notes.csv](${input})\n\n![Again](${image})`,
+      `![Map](${image})\n\n[reference notes.csv](${input})\n\n![Again](${image})\n\n[script_v2.py](data:application/octet-stream;base64,Y29kZQ==)\n\n[archive.zip](data:application/octet-stream;base64,emlw)`,
       options,
       name,
     );
     const zipped = unzipSync(makeZip(result.files, undefined));
-    expect(Object.keys(zipped)).toHaveLength(3);
+    expect(Object.keys(zipped)).toHaveLength(5);
     expect([...zipped["assets/trip/1-Map.png"]]).toEqual([0, 1, 2, 255]);
     expect(strFromU8(zipped["assets/trip/2-reference notes.csv"])).toBe(
       "input",
@@ -77,6 +77,26 @@ it.each(["markdown", "html"] as const)(
       expect(parsed.querySelector("a[download]")?.getAttribute("href")).toBe(
         "assets/trip/2-reference%20notes.csv",
       );
+      expect(
+        parsed.querySelector("a[download]")?.getAttribute("download"),
+      ).toBe("2-reference notes.csv");
+      expect(
+        [...parsed.querySelectorAll("main p code")].map((c) => c.textContent),
+      ).toEqual([
+        "1-Map.png",
+        "2-reference notes.csv",
+        "1-Map.png",
+        "3-script_v2.py",
+        "4-archive.zip",
+      ]);
+    } else {
+      for (const name of [
+        "1-Map.png",
+        "2-reference notes.csv",
+        "3-script_v2.py",
+        "4-archive.zip",
+      ])
+        expect(result.text).toContain(`\` ${name} \``);
     }
   },
 );
@@ -93,9 +113,10 @@ it("rewrites resource tokens in lists, quotes and tables but leaves code example
   expect(result.text).toContain("![List](assets/one/1-List.png)");
   expect(result.text).toContain("![Quote](assets/one/1-List.png)");
   expect(result.text).toContain("![Table](assets/one/1-List.png)");
+  expect(result.text.match(/` 1-List\.png `/g)).toHaveLength(3);
   expect(result.files.size).toBe(2);
 });
-it("keeps linked and inline exports unchanged when packaging is off", () => {
+it("keeps inline images intact and adds a searchable filename when packaging is off", () => {
   const result = prepareDocument(
     `![Map](${image})`,
     chat,
@@ -103,6 +124,7 @@ it("keeps linked and inline exports unchanged when packaging is off", () => {
     "one.md",
   );
   expect(result.text).toContain(image);
+  expect(result.text).toContain("` 1-Map.png `");
 });
 it("rejects arbitrary local paths and packs over 100 inline resources", async () => {
   expect(() => offlineHtml("![Unsafe](../private.png)", "unsafe")).toThrow();

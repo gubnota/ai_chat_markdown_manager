@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-import { Lexer, type Token } from "marked";
 import type {
   CaptureMedia,
   Conversation,
@@ -9,30 +8,10 @@ import type {
 import { exportDocument } from "./document";
 import { decodeMedia, embedMarkdownMedia } from "../markdown/media";
 import { safeFilename } from "./export";
-
-const extensions: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/gif": "gif",
-  "image/webp": "webp",
-  "image/avif": "avif",
-  "image/bmp": "bmp",
-  "audio/wav": "wav",
-  "audio/mpeg": "mp3",
-  "audio/ogg": "ogg",
-  "audio/mp4": "m4a",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-};
+import { assetFilename, rewriteResources } from "./resources";
 
 function assetPath(name: string, label: string, mime: string, index: number) {
-  let base = safeFilename(label || "attachment");
-  if (mime !== "application/octet-stream") {
-    const extension =
-      extensions[mime] || mime.split("/")[1].replace(/[^a-z0-9]/g, "");
-    base = base.replace(/\.[a-z0-9]{1,8}$/i, "") + "." + extension;
-  }
-  const path = `assets/${safeFilename(name.replace(/\.(md|html)$/i, ""))}/${index}-${base}`;
+  const path = `assets/${safeFilename(name.replace(/\.(md|html)$/i, ""))}/${index}-${assetFilename(label, mime)}`;
   // URL-encode names while keeping ZIP paths readable and platform portable.
   const url = path
     .split("/")
@@ -41,68 +20,6 @@ function assetPath(name: string, label: string, mime: string, index: number) {
     )
     .join("/");
   return { path, url };
-}
-
-function rewriteResources(
-  body: string,
-  resource: (href: string, label: string) => string,
-  missingMedia?: MissingMedia,
-): string {
-  function rewrite(source: string, tokens: Token[]): string {
-    let cursor = 0,
-      output = "";
-    for (const token of tokens) {
-      const start = source.indexOf(token.raw, cursor);
-      if (start < cursor) continue;
-      output += source.slice(cursor, start);
-      let raw = token.raw;
-      if (
-        (token.type === "image" || token.type === "link") &&
-        "href" in token
-      ) {
-        const href = token.href as string;
-        if (token.type === "image" && missingMedia?.get(href)?.kind === "image") {
-          raw = "*Image unavailable offline.*";
-        } else {
-          const replacement = resource(
-            href,
-            "text" in token ? String(token.text) : "attachment",
-          );
-          if (
-            token.type === "link" &&
-            "tokens" in token &&
-            Array.isArray(token.tokens)
-          )
-            raw = rewrite(raw, token.tokens);
-          const destination = raw.lastIndexOf(href);
-          if (replacement !== href && destination >= 0)
-            raw =
-              raw.slice(0, destination) +
-              replacement +
-              raw.slice(destination + href.length);
-        }
-      } else if (
-        token.type !== "code" &&
-        token.type !== "codespan" &&
-        token.type !== "html"
-      ) {
-        if ("tokens" in token && Array.isArray(token.tokens))
-          raw = rewrite(raw, token.tokens);
-        else if (token.type === "list") raw = rewrite(raw, token.items);
-        else if (token.type === "table")
-          raw = rewrite(
-            raw,
-            [...token.header, ...token.rows.flat()].flatMap(
-              (cell) => cell.tokens,
-            ),
-          );
-      }
-      output += raw;
-      cursor = start + token.raw.length;
-    }
-    return output + source.slice(cursor);
-  }
-  return rewrite(body, Lexer.lex(body));
 }
 
 /** Localize each live window before it leaves the DOM. Keep only paths and MIME types. */

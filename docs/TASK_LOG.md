@@ -174,3 +174,9 @@
 - Browser fixtures cover one interrupted step in the large 113-image export and a persistent interruption that produces a marked partial ZIP with the exact saved image bytes.
 - Passed 122 unit tests and 12 focused browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release checksums.
 - The reported chat produced a 506.3 MiB ZIP in Safari with no history warning. The archive passed integrity checks and all local references resolved, including 241 distinct image files. The HTML still flagged 54 unavailable image placements and the export warned about unavailable linked attachments. A separate local recovery package includes 71 additional images from an earlier download; their positions in the chat are unverified.
+
+## 2026-11-12 — v2.4.9 searchable attachments and archive navigation
+
+- Current and bulk HTML and Markdown exports show the saved filename beside each image and attachment. Separate media ZIP captions and HTML download names match the archive entries.
+- HTML archives provide a collapsible sticky contents panel with links to chat turns and headings, and show reading progress where browsers support scroll-driven CSS. Navigation runs offline under the existing script-free policy.
+- Passed 122 unit tests and 90 focused browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release checksums.

@@ -75,4 +75,6 @@ While separate-file export runs, Save Current Chat, preview and bulk Activity sh
 
 `prepareDocument(body, conversation, options, name, missingMedia?, assets?, historyWarning?)` returns `{text, name}`. HTML accepts only the generated asset paths under its restrictive CSP. Incomplete history and missing media get warnings. Preview preserves an edited name and captures separate assets on Download.
 
+Rendered Markdown and HTML show the decoded basename of each saved ZIP asset beside its reference. Repeated references reuse the same filename. HTML download attributes match ZIP filenames; links to an unsaved file retain any known name. Inline photos without a source filename receive a generated name. Code samples stay literal. HTML adds a sticky, collapsible contents panel for headings and numbered message turns, plus CSS reading progress where scroll timelines are supported. Both work without scripts or network requests.
+
 `SeparateArchive` writes stored ZIP entries to a temporary origin-private file, up to classic ZIP bounds and browser storage quota. Where writable storage is unavailable, ordinary exports prompt to save numbered parts once the in-memory ZIP approaches 32 MiB. Extract all parts into the same directory. The manifest, when enabled, goes in the last part. Required backups need one ZIP. Multi-part exports skip cleanup review.

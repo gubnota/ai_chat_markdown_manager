@@ -37,7 +37,9 @@ for (const platform of [
         encodeURIComponent(
           '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="red"/></svg>',
         );
-      const content = `<p>Portable fixture</p><img id="blob-image" alt="Generated"><img alt="Diagram" src="${svg}"><div class="attachment-card" data-file-name="reference.csv"><a href="/reference.csv">reference.csv</a></div>`;
+      const navigation = platform === "chatgpt" && format === "html";
+      const padding = "<p>Long conversation fixture</p>".repeat(28);
+      const content = `<p>Portable fixture</p><img id="blob-image" alt="Generated"><img alt="Diagram" src="${svg}"><div class="attachment-card" data-file-name="reference.csv"><a href="/reference.csv">reference.csv</a></div>${navigation ? `${padding}<h2>Archive destination</h2>${padding}` : ""}`;
       const messages =
         platform === "gemini"
           ? `<user-query>Prompt</user-query><model-response>${content}</model-response>`
@@ -115,6 +117,10 @@ for (const platform of [
         name.startsWith("assets/"),
       );
       expect(assets).toHaveLength(3);
+      const fileNames = assets.map(([path]) => path.split("/").at(-1)!);
+      if (format === "markdown")
+        for (const filename of fileNames)
+          expect(source).toContain(`\` ${filename} \``);
       expect(
         strFromU8(assets.find(([name]) => name.endsWith("reference.csv"))![1]),
       ).toBe("reference,input\nexact,bytes\n");
@@ -202,13 +208,63 @@ for (const platform of [
               ),
           )
           .toEqual([1, 64]);
-        const reference = offline.locator('a[download="reference.csv"]');
+        for (const filename of fileNames)
+          await expect(
+            offline.locator("main code").getByText(filename, { exact: true }),
+          ).toBeVisible();
+        const reference = offline.locator('a[download$="-reference.csv"]');
         // WebKit opens local file links instead of emitting a download event.
         const href = await reference.getAttribute("href");
         expect(href).toMatch(/^assets\//);
         expect(
           readFileSync(resolve(directory, decodeURIComponent(href!)), "utf8"),
         ).toBe("reference,input\nexact,bytes\n");
+        if (navigation) {
+          const toc = offline.getByRole("navigation", {
+            name: "Table of contents",
+          });
+          await expect(
+            toc.getByRole("link", { name: "1. User" }),
+          ).toBeVisible();
+          const link = toc.getByRole("link", { name: "Archive destination" });
+          const hash = await link.getAttribute("href");
+          await link.click();
+          expect(new URL(offline.url()).hash).toBe(hash);
+          await expect(offline.locator(hash!)).toBeInViewport();
+          expect((await toc.boundingBox())!.y).toBeLessThan(30);
+          await toc.locator("summary").click();
+          await expect(link).toBeHidden();
+          if (
+            await offline.evaluate(() =>
+              CSS.supports("animation-timeline:scroll(root block)"),
+            )
+          ) {
+            await offline.evaluate(() =>
+              window.scrollTo(0, document.documentElement.scrollHeight),
+            );
+            await expect
+              .poll(() =>
+                offline
+                  .locator(".archive-progress span")
+                  .evaluate(
+                    (bar) =>
+                      new DOMMatrixReadOnly(getComputedStyle(bar).transform).a,
+                  ),
+              )
+              .toBeGreaterThan(0.95);
+            await offline.evaluate(() => window.scrollTo(0, 0));
+            await expect
+              .poll(() =>
+                offline
+                  .locator(".archive-progress span")
+                  .evaluate(
+                    (bar) =>
+                      new DOMMatrixReadOnly(getComputedStyle(bar).transform).a,
+                  ),
+              )
+              .toBeLessThan(0.05);
+          }
+        }
         if (testInfo.project.name === "chromium") {
           const referenceDownload = offline.waitForEvent("download");
           await reference.click();

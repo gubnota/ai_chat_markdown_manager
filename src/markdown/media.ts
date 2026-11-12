@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import type { ExportOptions, MediaSink, MissingMedia } from "../types";
 import { embeddedImageSource, imageUrls, rasterizeImage } from "./attachments";
+import { linkedFilename } from "./filenames";
 
 const maxFile = 20 * 1024 * 1024;
 const maxTotal = 64 * 1024 * 1024;
@@ -233,9 +234,7 @@ export async function embedMarkdownMedia(
         'file-preview, user-query-file, user-query-file-preview, .file-preview, .file-preview-container, .attachment-card, [data-file-name], [data-filename], [data-testid="file-attachment"], [data-testid="attachment"]',
       ) &&
       !node.matches("[download], [data-file-url], [data-download-url]") &&
-      !/\.(pdf|txt|csv|tsv|md|json|xml|docx?|xlsx?|pptx?|zip|svg|heic|png|jpe?g|webp|gif|mp[34]|wav|py|js|ts|css|rtf|odt)$/i.test(
-        new URL(url).pathname,
-      )
+      !linkedFilename(url)
     )
       continue;
     const href = mdUrl(url);
@@ -323,15 +322,17 @@ export async function embedMarkdownMedia(
       const asset = typeof result === "string" ? decodeMedia(result) : result;
       if (!asset)
         throw new Error("Offline export: unsafe embedded media type.");
-      await sink.write(
-        href,
-        image?.alt ||
-          image?.getAttribute("aria-label") ||
-          (!image && node.textContent?.trim()) ||
-          (player ? player.tagName : "attachment"),
-        asset.mime,
-        asset.bytes,
-      );
+      const text = node.textContent?.trim() || "";
+      const label = image
+        ? image.alt || image.getAttribute("aria-label") || "attachment"
+        : player
+          ? player.tagName
+          : node.getAttribute("download")?.trim() ||
+            (/\.[\w-]{1,12}$/.test(text)
+              ? text
+              : linkedFilename(url) || text) ||
+            "attachment";
+      await sink.write(href, label, asset.mime, asset.bytes);
       continue;
     }
     if (typeof result !== "string") result = dataUrl(result.bytes, result.mime);

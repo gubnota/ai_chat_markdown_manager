@@ -3,13 +3,14 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.4.8, 2026-11-12.
+- Release: 2.4.9, 2026-11-12.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
 - No backend, database, hosted application or account credentials.
 
 ## Current milestone
+- v2.4.9 makes media filenames searchable in Markdown and HTML, and adds a sticky contents panel and reading progress bar to offline HTML.
 - v2.4.4 scrolls through ChatGPT's loaded history for separate-file ZIP exports and streams binary assets to browser storage. Without writable storage, ordinary exports can save numbered ZIP parts.
 - v2.4.5 shows captured messages, saved assets, older-history wait time and ZIP finalization during separate-file exports.
 - v2.4.6 resumes scanning as ChatGPT prepends older messages and saves a marked incomplete ZIP if loading stalls.

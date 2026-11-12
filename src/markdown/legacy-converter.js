@@ -113,6 +113,7 @@
 
 // Inherited converter kept as JavaScript to minimize changes; typed boundary in legacy.ts.
 import { attachmentMarkdown, embeddedImageSource, imageUrls, inMessage } from "./attachments";
+import { linkedFilename } from "./filenames";
 import { messageNodes, messageRole, visibleMessageElement } from "./messages";
 
 export function createConverter(options = {}) {
@@ -290,8 +291,12 @@ export function createConverter(options = {}) {
     if (tag === 'A') {
       const content = markdownInline(childrenToMarkdown(el, state));
       const href = absoluteUrl(el.getAttribute('href'));
-      if (!config.links || !href || !content) return content;
+      if (!config.links || !href) return content;
       if (/^!\[.*\]\(.+\)$/.test(content)) return `[${content}](${mdUrl(href)})`;
+      const filename = el.getAttribute('download')?.trim() ||
+        (config.embedMedia && !config.mediaFiles && !/\.[\w-]{1,12}$/.test(content) ? linkedFilename(href) : '');
+      if (filename) return `[${escapeText(markdownInline(filename))}](${mdUrl(href)})`;
+      if (!content) return '';
       return `[${content.replace(/\]/g, '\\]')}](${mdUrl(href)})`;
     }
     if (tag === 'STRONG' || tag === 'B') {

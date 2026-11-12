@@ -214,8 +214,10 @@ describe("standalone HTML", () => {
       "data:audio/wav;base64,Yg==",
     );
     expect(doc.querySelector("a[download]")?.getAttribute("download")).toBe(
-      "Audio",
+      "Audio.wav",
     );
+    expect(doc.body.textContent).toContain("1-map.png");
+    expect(doc.body.textContent).toContain("Audio.wav");
     expect(
       doc.querySelector('a[download="input.csv"]')?.getAttribute("href"),
     ).toBe("data:application/octet-stream;base64,Yw==");
@@ -244,7 +246,7 @@ describe("standalone HTML", () => {
   });
   it("linked HTML retains safe external media/file links and labels its network dependence", () => {
     const source =
-      '![map](https://files.test/map.png)\n\n[input.csv](https://files.test/input.csv)\n\n<img src="javascript:alert(1)">';
+      '![map](https://files.test/route%20map.png)\n\n[Get the script](https://files.test/script.py?session=test)\n\n[input.csv](https://files.test/input.csv)\n\n<img src="javascript:alert(1)">';
     expect(() => offlineHtml(source, "title", false)).toThrow(
       /unavailable image/,
     );
@@ -255,8 +257,11 @@ describe("standalone HTML", () => {
     });
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect(doc.querySelector("img")?.getAttribute("src")).toBe(
-      "https://files.test/map.png",
+      "https://files.test/route%20map.png",
     );
+    expect(
+      [...doc.querySelectorAll("main p code")].map((code) => code.textContent),
+    ).toEqual(["route map.png", "script.py"]);
     expect(
       doc.querySelector('a[href="https://files.test/input.csv"]'),
     ).not.toBeNull();
