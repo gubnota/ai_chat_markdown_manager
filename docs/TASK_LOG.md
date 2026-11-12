@@ -159,4 +159,10 @@
 - Resume scanning when ChatGPT prepends older messages and preserves the scroll anchor, even while the loading banner stays visible.
 - If older history stalls, ordinary separate-file exports continue through newer turns and download the available messages and media. The document and export report flag incomplete history. Failed bulk entries stay retryable and out of cleanup review. Required backups reject stalled history.
 - Passed 122 unit tests and 189 browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release integrity checks. Fixtures verify a single ZIP with all 113 images after an older page arrives without clearing the banner, and current/bulk recovery with exact image bytes when loading stalls.
-- The reported authenticated Safari conversation was not retested with this build.
+- In the reported Safari conversation, v2.4.6 got past the older-history wait and captured at least 56 messages and 15 files. A Depositphotos page was mistaken for a downloadable file and stopped the ZIP.
+
+## 2026-11-12 — v2.4.7 unavailable linked files in ZIP exports
+
+- Leave ordinary `.html` pages as links. Use the URL path for implicit file detection and still recognize files marked as downloads or attachments.
+- Ordinary separate-file ZIPs retain available media and preserve links to unavailable files with a warning. Bulk entries stay retryable and excluded from cleanup; required backups still reject incomplete captures.
+- Passed 122 unit tests and 195 browser cases across Chromium and desktop and mobile WebKit, plus lint, strict type checking, the production build and release integrity checks. Fixtures verify current and bulk ZIPs retain exact image bytes when a linked attachment fails.

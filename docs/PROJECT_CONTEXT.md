@@ -3,7 +3,7 @@
 ## Identity
 - Project: AI Chat Markdown Manager.
 - Repository: `gubnota/ai_chat_markdown_manager`.
-- Release: 2.4.6, 2026-11-12.
+- Release: 2.4.7, 2026-11-12.
 - Purpose: manage discovered AI conversations, load selected chats for local export, and download YouTube captions.
 - Audience: Safari Userscripts and Tampermonkey users.
 - Product: a floating userscript interface injected into matched chat websites.
@@ -13,6 +13,7 @@
 - v2.4.4 scrolls through ChatGPT's loaded history for separate-file ZIP exports and streams binary assets to browser storage. Without writable storage, ordinary exports can save numbered ZIP parts.
 - v2.4.5 shows captured messages, saved assets, older-history wait time and ZIP finalization during separate-file exports.
 - v2.4.6 resumes scanning as ChatGPT prepends older messages and saves a marked incomplete ZIP if loading stalls.
+- v2.4.7 keeps ordinary HTML source links and saves available media when a linked file cannot be fetched in a separate-file ZIP.
 - v2.4.2 uses the browser image loader when fetch blocks a readable ChatGPT image. Bulk ZIPs with separate files keep the document and readable assets when an image is unavailable, report the chat as incomplete, and exclude it from cleanup.
 - v2.4.3 prioritizes same-origin image blobs in offline exports, uses decoded pixels if the blob is unavailable, and can recover from alternate sources exposed by the image element.
 - v2.4.0 adds separate-file offline ZIPs, loaded SVG-to-PNG capture, custom format selector, editable names and progress.
@@ -107,7 +108,7 @@
 - Open Shadow DOM and same-origin storage are not security boundaries.
 - Host scripts/extensions can access same-origin data.
 - Embedding controls resource requests for both formats; default Markdown keeps links, and selecting HTML defaults embedding on with an editable switch.
-- Embedded HTML uses data-only media; ZIP HTML permits only its generated local assets. Offline capture reports missing included resources as a failure. Bulk ZIPs with separate files can retain an incomplete document when images are missing. Linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
+- Embedded HTML uses data-only media; ZIP HTML permits only its generated local assets. Ordinary separate-file ZIPs retain the available document and media when enabled assets or older history are missing. Linked HTML permits safe HTTP(S) images. Both use inline styles and restrictive CSP.
 - Media requests have a 20-second timeout and a 20 MiB/file limit. Inline embedding is capped at 64 MiB/chat and 100 resources. Separate-file ZIPs use browser storage and classic ZIP limits or 32 MiB fallback parts. Canvas previews remain bounded.
 - See `docs/PRIVACY.md` for reset behavior and storage details.
 

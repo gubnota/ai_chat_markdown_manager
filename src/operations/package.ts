@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import { Lexer, type Token } from "marked";
-import type { CaptureMedia, Conversation, ExportOptions } from "../types";
+import type {
+  CaptureMedia,
+  Conversation,
+  ExportOptions,
+  MissingMedia,
+} from "../types";
 import { exportDocument } from "./document";
 import { decodeMedia, embedMarkdownMedia } from "../markdown/media";
 import { safeFilename } from "./export";
@@ -41,7 +46,7 @@ function assetPath(name: string, label: string, mime: string, index: number) {
 function rewriteResources(
   body: string,
   resource: (href: string, label: string) => string,
-  missingImages?: ReadonlyMap<string, string>,
+  missingMedia?: MissingMedia,
 ): string {
   function rewrite(source: string, tokens: Token[]): string {
     let cursor = 0,
@@ -56,7 +61,7 @@ function rewriteResources(
         "href" in token
       ) {
         const href = token.href as string;
-        if (token.type === "image" && missingImages?.has(href)) {
+        if (token.type === "image" && missingMedia?.get(href)?.kind === "image") {
           raw = "*Image unavailable offline.*";
         } else {
           const replacement = resource(
@@ -118,9 +123,9 @@ export function separateMedia(
     roots,
     options,
     signal,
-    missingImages,
+    missingMedia,
   ) => {
-    await embedMarkdownMedia(body, roots, options, signal, missingImages, {
+    await embedMarkdownMedia(body, roots, options, signal, missingMedia, {
       has: (href) => paths.has(href),
       async write(href, label, mime, bytes) {
         paths.set(href, await writeAsset(label, mime, bytes));
@@ -146,7 +151,7 @@ export function separateMedia(
     return rewriteResources(
       body,
       (href) => paths.get(href) ?? inline.get(href) ?? href,
-      missingImages,
+      missingMedia,
     );
   };
   return { capture, assets };
@@ -157,13 +162,21 @@ export function prepareDocument(
   conversation: Conversation,
   options: ExportOptions,
   name: string,
-  missingImages?: ReadonlyMap<string, string>,
+  missingMedia?: MissingMedia,
   assets?: ReadonlyMap<string, string>,
   historyWarning?: string,
 ): { text: string; name: string } {
+  const unavailable = new Set(
+    missingMedia ? [...missingMedia.values()].map(({ kind }) => kind) : [],
+  );
   const issues = [
     historyWarning,
-    missingImages?.size ? "One or more images could not be saved." : undefined,
+    unavailable.has("image")
+      ? "One or more images could not be saved."
+      : undefined,
+    unavailable.has("file")
+      ? "One or more linked files or media could not be saved."
+      : undefined,
   ].filter(Boolean);
   const warning = issues.length
     ? `> Incomplete offline export: ${issues.join(" ")} Keep the original chat.\n\n`

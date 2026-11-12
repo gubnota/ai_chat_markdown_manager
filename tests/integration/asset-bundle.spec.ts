@@ -657,6 +657,92 @@ test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 im
 });
 
 for (const scope of ["current", "bulk"] as const) {
+  test(`ChatGPT ${scope} ZIP keeps HTML source links and saves media despite a blocked attachment`, async ({
+    page,
+  }) => {
+    const url = "https://chatgpt.com/c/linked";
+    const source = "https://example.test/catalog/photo.html?example=handout.pdf";
+    let sourceRequests = 0;
+    await page.route(source, async (route) => {
+      sourceRequests += 1;
+      await route.abort();
+    });
+    await page.route("https://chatgpt.com/image.png", (route) =>
+      route.fulfill({
+        contentType: "image/png",
+        body: Buffer.from(png, "base64"),
+      }),
+    );
+    await page.route("https://chatgpt.com/blocked.pdf", (route) =>
+      route.fulfill({ status: 403 }),
+    );
+    await page.route(url, (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>Linked chat</title><aside><a href="/c/linked">Linked chat</a></aside>
+          <main><article data-message-author-role="user" data-message-id="one">
+            <a href="${source}">Catalog source</a>
+            <img alt="Saved image" src="/image.png">
+            <a href="/blocked.pdf" download>Input PDF</a>
+          </article></main>
+          <script>localStorage.setItem('__ai_chat_md_v2__:settings', JSON.stringify({
+            autoMinimize:false,delayMs:0,export:{mediaFiles:true,format:'html'}
+          }));</script>`,
+      }),
+    );
+    await page.goto(url);
+    await page.addScriptTag({
+      path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+    });
+    await page
+      .getByRole("button", { name: "Open Markdown Manager", exact: true })
+      .click();
+    await page
+      .getByRole("button", {
+        name: scope === "bulk" ? /^Export All/ : "Save Current Chat",
+      })
+      .click();
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download ZIP", exact: true }).click();
+    const entries = unzipSync(readFileSync((await (await download).path())!));
+    expect(sourceRequests).toBe(0);
+    const html = strFromU8(
+      Object.entries(entries).find(([path]) => path.endsWith(".html"))![1],
+    );
+    expect(html).toContain(`href="${source}"`);
+    expect(html).toContain('href="https://chatgpt.com/blocked.pdf"');
+    expect(html).toContain("One or more linked files or media could not be saved.");
+    expect(
+      Object.entries(entries).filter(([path]) => path.startsWith("assets/")),
+    ).toEqual([
+      [
+        expect.stringMatching(/1-Saved image\.png$/),
+        Uint8Array.from(Buffer.from(png, "base64")),
+      ],
+    ]);
+    const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
+    if (scope === "bulk") {
+      expect(manifest).toMatchObject({
+        completed: 0,
+        failed: 1,
+        results: [
+          {
+            key: "chatgpt:linked",
+            status: "failed",
+            error: expect.stringContaining("Input PDF"),
+          },
+        ],
+      });
+      await expect(
+        page.getByRole("button", { name: "Retry failed exports" }),
+      ).toBeEnabled();
+    } else {
+      expect(manifest.warning).toContain("Input PDF");
+      await expect(page.getByText(/Saved an incomplete copy in the ZIP/)).toBeVisible();
+    }
+  });
+
   test(`ChatGPT ${scope} ZIP preserves available history and media when older loading stalls`, async ({
     page,
   }) => {

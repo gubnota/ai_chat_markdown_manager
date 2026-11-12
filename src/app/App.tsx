@@ -31,6 +31,7 @@ import { version } from "../../package.json";
 import type {
   Conversation,
   ExportOptions,
+  MissingMedia,
   OperationKind,
   OperationProgress,
   PlatformAdapter,
@@ -128,7 +129,9 @@ async function captureDocument(
   allowIncomplete = false,
   selection = false,
 ) {
-  const missingImages = allowIncomplete ? new Map<string, string>() : undefined;
+  const missingMedia: MissingMedia | undefined = allowIncomplete
+    ? new Map()
+    : undefined;
   let historyWarning: string | undefined;
   let progress: CaptureProgress = { files: 0, bytes: 0 };
   reportProgress(archive ? progress : "capture");
@@ -153,13 +156,13 @@ async function captureDocument(
         [document.querySelector("main") || document.body],
         options,
         signal,
-        missingImages,
+        missingMedia,
       )
     : await adapter.exportConversation(
         conversation,
         options,
         signal,
-        missingImages,
+        missingMedia,
         media?.capture,
         {
           progress: (messages, waitSeconds) => {
@@ -180,11 +183,11 @@ async function captureDocument(
       conversation,
       options,
       name,
-      missingImages,
+      missingMedia,
       media?.assets,
       historyWarning,
     ),
-    warning: historyWarning ?? missingImages?.values().next().value,
+    warning: historyWarning ?? missingMedia?.values().next().value?.reason,
   };
 }
 

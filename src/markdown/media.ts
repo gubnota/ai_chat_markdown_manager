@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-import type { ExportOptions, MediaSink } from "../types";
+import type { ExportOptions, MediaSink, MissingMedia } from "../types";
 import { embeddedImageSource, imageUrls, rasterizeImage } from "./attachments";
 
 const maxFile = 20 * 1024 * 1024;
@@ -161,19 +161,22 @@ export async function embedMarkdownMedia(
   roots: Element[],
   options: ExportOptions,
   signal?: AbortSignal,
-  missingImages?: Map<string, string>,
+  missingMedia?: MissingMedia,
   sink?: MediaSink,
 ): Promise<string> {
   if (!needsEmbeddedMedia(options)) return body;
   signal?.throwIfAborted();
   const missing = body.match(/Attachment: [^\n]*— direct link unavailable\./);
   const missingImage = body.match(/Image: [^\n]*— direct link unavailable\./);
-  if (missingImage && missingImages) missingImages.set("", missingImage[0]);
-  const required = missing ?? (!missingImages ? missingImage : null);
-  if (required)
+  const required = missing ?? missingImage;
+  if (required && !missingMedia)
     throw new Error(
       `Offline export incomplete: ${required[0]} Keep this chat until its original file is available.`,
     );
+  if (missing)
+    missingMedia?.set("attachment:", { kind: "file", reason: missing[0] });
+  if (missingImage)
+    missingMedia?.set("", { kind: "image", reason: missingImage[0] });
   const nodes = roots
     .flatMap((root) => [
       root,
@@ -213,13 +216,16 @@ export async function embedMarkdownMedia(
         });
     const url = urls.find((value) => body.includes(`](${mdUrl(value)})`));
     if (!url) {
-      if (player && !urls.length)
-        throw new Error(
-          "Offline export incomplete: audio/video has no accessible source.",
-        );
+      if (player && !urls.length) {
+        const reason = "Audio/video has no accessible source.";
+        if (!missingMedia)
+          throw new Error(`Offline export incomplete: ${reason}`);
+        missingMedia.set("player:", { kind: "file", reason });
+      }
       continue;
     }
-    // Ordinary conversation/source links remain links; capture only media and input/download files.
+    // Ordinary source links (including .html pages) stay as links.
+    // Explicit file cards/downloads can be considered regardless of URL suffix.
     if (
       !image &&
       !player &&
@@ -227,19 +233,20 @@ export async function embedMarkdownMedia(
         'file-preview, user-query-file, user-query-file-preview, .file-preview, .file-preview-container, .attachment-card, [data-file-name], [data-filename], [data-testid="file-attachment"], [data-testid="attachment"]',
       ) &&
       !node.matches("[download], [data-file-url], [data-download-url]") &&
-      !/\.(pdf|txt|csv|tsv|md|json|xml|docx?|xlsx?|pptx?|zip|html|svg|heic|png|jpe?g|webp|gif|mp[34]|wav|py|js|ts|css|rtf|odt)(?:[?#]|$)/i.test(
-        url,
+      !/\.(pdf|txt|csv|tsv|md|json|xml|docx?|xlsx?|pptx?|zip|svg|heic|png|jpe?g|webp|gif|mp[34]|wav|py|js|ts|css|rtf|odt)$/i.test(
+        new URL(url).pathname,
       )
     )
       continue;
     const href = mdUrl(url);
+    const kind = image ? "image" : "file";
     if (
       captured.has(url) ||
       sink?.has(href) ||
-      (image && missingImages?.has(href))
+      missingMedia?.get(href)?.kind === kind
     )
       continue;
-    if (!sink && captured.size + (missingImages?.size ?? 0) >= maxCount)
+    if (!sink && captured.size + (missingMedia?.size ?? 0) >= maxCount)
       throw new Error("Offline export exceeds 100 resources per chat.");
     let result: string | BinaryMedia = "";
     if (url.startsWith("data:")) {
@@ -261,7 +268,7 @@ export async function embedMarkdownMedia(
       );
       let error: unknown;
       try {
-        const kind = image ? "image" : player ? "player" : "file";
+        const fetchKind = image ? "image" : player ? "player" : "file";
         const networkFailures: string[] = [];
         const sources = image
           ? [url, ...urls.filter((value) => value !== url)]
@@ -271,7 +278,7 @@ export async function embedMarkdownMedia(
           try {
             result = await fetchMedia(
               source,
-              kind,
+              fetchKind,
               sink ? Infinity : maxTotal - total,
               controller.signal,
               networkFailures,
@@ -300,11 +307,11 @@ export async function embedMarkdownMedia(
             ? controller.signal.reason
             : error;
           const message = `${name} could not be embedded (${reason instanceof Error ? reason.message : String(reason)}).`;
-          if (!image || !missingImages)
+          if (!missingMedia)
             throw new Error(
               `Offline export: ${message} No cleanup is safe for this chat.`,
             );
-          missingImages.set(href, message);
+          missingMedia.set(href, { kind, reason: message });
           continue;
         }
       } finally {

@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-import type { CaptureMedia, ExportOptions, HistoryCapture } from "../../types";
+import type {
+  CaptureMedia,
+  ExportOptions,
+  HistoryCapture,
+  MissingMedia,
+} from "../../types";
 import { visibleMessageElement } from "../../markdown/messages";
 import {
   messageMarkdown,
@@ -104,7 +109,7 @@ export async function captureChatGPTHistory(
   capture: CaptureMedia,
   checkConversation: () => void,
   signal?: AbortSignal,
-  missingImages?: Map<string, string>,
+  missingMedia?: MissingMedia,
   history?: HistoryCapture,
 ): Promise<string | undefined> {
   const initial = messageNodes("chatgpt");
@@ -132,7 +137,7 @@ export async function captureChatGPTHistory(
     string | number,
     {
       text: string;
-      missing: Map<string, string>;
+      missing: MissingMedia;
       direction: -1 | 1;
       fingerprint: string;
     }
@@ -200,7 +205,7 @@ export async function captureChatGPTHistory(
         (!previous.missing.size || previous.direction === direction)
       )
         continue;
-      const missing = new Map<string, string>();
+      const missing: MissingMedia = new Map();
       const text = await capture(
         messageMarkdown(node, options),
         [node],
@@ -328,12 +333,12 @@ export async function captureChatGPTHistory(
     }
     check();
     for (const turn of turns.values()) {
-      for (const [href, reason] of turn.missing) {
-        if (!missingImages)
+      for (const [href, issue] of turn.missing) {
+        if (!missingMedia)
           throw new Error(
-            `Offline export: ${reason} No cleanup is safe for this chat.`,
+            `Offline export: ${issue.reason} No cleanup is safe for this chat.`,
           );
-        missingImages.set(href, reason);
+        missingMedia.set(href, issue);
       }
     }
     return withOutline(

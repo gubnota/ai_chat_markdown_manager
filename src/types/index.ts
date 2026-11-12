@@ -42,12 +42,16 @@ export interface MediaSink {
   has(href: string): boolean;
   write(href: string, label: string, mime: string, bytes: Uint8Array): Promise<void>;
 }
+export type MissingMedia = Map<
+  string,
+  { kind: "image" | "file"; reason: string }
+>;
 export type CaptureMedia = (
   body: string,
   roots: Element[],
   options: ExportOptions,
   signal?: AbortSignal,
-  missingImages?: Map<string, string>,
+  missingMedia?: MissingMedia,
 ) => Promise<string>;
 
 export interface HistoryCapture {
@@ -68,7 +72,7 @@ export interface PlatformAdapter {
     id: ConversationIdentifier,
     options: ExportOptions,
     signal?: AbortSignal,
-    missingImages?: Map<string, string>,
+    missingMedia?: MissingMedia,
     captureMedia?: CaptureMedia,
     history?: HistoryCapture,
   ): Promise<string>;

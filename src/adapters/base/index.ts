@@ -9,6 +9,7 @@ import {
   type ConversationIdentifier,
   type ExportOptions,
   type HistoryCapture,
+  type MissingMedia,
   type PlatformAdapter,
   type PlatformCapabilities,
 } from "../../types";
@@ -127,7 +128,7 @@ export class DOMAdapter implements PlatformAdapter {
     id: ConversationIdentifier,
     options: ExportOptions,
     signal?: AbortSignal,
-    missingImages?: Map<string, string>,
+    missingMedia?: MissingMedia,
     captureMedia?: CaptureMedia,
     historyCapture?: HistoryCapture,
   ): Promise<string> {
@@ -171,7 +172,7 @@ export class DOMAdapter implements PlatformAdapter {
         captureMedia,
         checkConversation,
         signal,
-        missingImages,
+        missingMedia,
         historyCapture,
       );
       if (history !== undefined) return history;
@@ -190,10 +191,10 @@ export class DOMAdapter implements PlatformAdapter {
       nodes.length ? nodes : [document.querySelector("main") || document.body],
       options,
       signal,
-      missingImages,
+      missingMedia,
     );
     checkConversation();
-    if (captureMedia || missingImages?.size) return body;
+    if (captureMedia || missingMedia?.size) return body;
     this.snapshots.delete(c.id);
     this.snapshots.set(c.id, { signature, body });
     // Bound memory to 20 conversations and approximately 8 MiB of UTF-16 text.

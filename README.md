@@ -1,4 +1,4 @@
-# AI Chat Markdown Manager v2.4.3
+# AI Chat Markdown Manager v2.4.7
 
 [Русский](README.ru.md) · [Build and install](#17-build)
 
@@ -100,7 +100,7 @@ Cancel stops queued work and preserves completed results. **Retry failed exports
 
 ## YouTube captions
 
-1. Install v2.4.3, allow YouTube in your userscript extension and reload the video page.
+1. Install the current release, allow YouTube in your userscript extension and reload the video page.
 2. Open the floating menu → **YouTube timedtext**. Available caption languages are detected automatically from the current video; switching videos refreshes them.
 3. Choose an original track or an offered translation, then **Download TXT** or **Download VTT**. The script fetches and converts captions directly. No timedtext file needs to be downloaded or imported first.
 
@@ -160,7 +160,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and `SHA256SUMS-v2.4.3`. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and versioned `SHA256SUMS` file. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
 
 ## 18. Tests
 
