@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 import { unzipSync, strFromU8 } from "fflate";
@@ -480,3 +480,223 @@ for (const format of ["html", "markdown"] as const) {
     ).toBeEnabled();
   });
 }
+
+test("ChatGPT scrolls virtual history and writes one ZIP above 64 MiB and 100 images", async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(75_000);
+  // WebKit ephemeral contexts deny OPFS, even on secure origins.
+  const profile = testInfo.outputPath("browser-profile");
+  const { viewport, isMobile, hasTouch, deviceScaleFactor } =
+    testInfo.project.use;
+  const context = await browser.browserType().launchPersistentContext(profile, {
+    viewport,
+    isMobile,
+    hasTouch,
+    deviceScaleFactor,
+  });
+  try {
+    const page = context.pages()[0];
+    const count = 113;
+    const tailSize = 640 * 1024;
+    const imageBytes = Buffer.from(png, "base64");
+    await page.route("https://chatgpt.com/c/large", (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Large virtual chat</title>
+      <aside><a href="/c/large">Large virtual chat</a></aside>
+      <main style="height:68vh;overflow-y:auto;overflow-anchor:none">
+        <div id="turns" style="position:relative"></div>
+      </main>
+      <script>
+        localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{mediaFiles:true,format:'html'}}));
+        const scroller = document.querySelector('main');
+        const turns = document.querySelector('#turns');
+        const png = Uint8Array.from(atob('${png}'), c => c.charCodeAt(0));
+        const row = 96;
+        let first = 10;
+        let loading = false;
+        let loaded = false;
+        function render() {
+          turns.style.height = (${count} - first) * row + 'px';
+          const start = Math.max(first, first + Math.floor(scroller.scrollTop / row) - 2);
+          const end = Math.min(${count}, first + Math.ceil((scroller.scrollTop + scroller.clientHeight) / row) + 2);
+          for (const node of turns.querySelectorAll('article')) {
+            if (Number(node.dataset.messageId) >= start && Number(node.dataset.messageId) < end) continue;
+            const url = node.querySelector('img').src;
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+            node.remove();
+          }
+          for (let i = start; i < end; i++) {
+            let node = turns.querySelector('[data-message-id="' + i + '"]');
+            if (!node) {
+              node = document.createElement('article');
+              node.dataset.messageAuthorRole = 'assistant';
+              node.dataset.messageId = i;
+              node.style.cssText = 'position:absolute;height:' + row + 'px;left:0;right:0';
+              node.innerHTML = '<p>Turn ' + i + '</p><img width="25" height="25" alt="Image ' + i + '">';
+              setTimeout(() => {
+                if (!node.isConnected) return;
+                const tail = new Uint8Array(${tailSize});
+                tail[0] = tail[tail.length - 1] = i;
+                node.querySelector('img').src = URL.createObjectURL(new Blob([png, tail], {type:'image/png'}));
+              }, 110);
+            }
+            node.style.top = (i - first) * row + 'px';
+            turns.append(node);
+          }
+          if (scroller.scrollTop <= 1 && !loaded && !loading) {
+            loading = true;
+            const status = document.createElement('div');
+            status.role = 'status';
+            status.textContent = 'Loading older messages…';
+            turns.prepend(status);
+            setTimeout(() => {
+              first = 0;
+              loaded = true;
+              status.remove();
+              turns.style.height = ${count} * row + 'px';
+              scroller.scrollTop = 10 * row;
+              render();
+            }, 600);
+          }
+        }
+        scroller.scrollTop = 0;
+        turns.style.height = (${count} - first) * row + 'px';
+        scroller.scrollTop = 44 * row;
+        scroller.onscroll = render;
+        render();
+      </script>`,
+      }),
+    );
+    await page.goto("https://chatgpt.com/c/large");
+    await page.addScriptTag({
+      path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+    });
+    await page
+      .getByRole("button", { name: "Open Markdown Manager", exact: true })
+      .click();
+    await page.getByRole("button", { name: /^Export All/ }).click();
+    const download = page.waitForEvent("download", { timeout: 65_000 });
+    await page
+      .getByRole("dialog", { name: "Export All" })
+      .getByRole("button", { name: "Download ZIP", exact: true })
+      .click();
+    const file = await download;
+    expect(file.suggestedFilename()).not.toContain("-part-");
+    const zip = readFileSync((await file.path())!);
+    expect(zip.length).toBeGreaterThan(64 * 1024 * 1024);
+    const entries = unzipSync(zip);
+    expect(JSON.parse(strFromU8(entries["manifest.json"]))).toMatchObject({
+      completed: 1,
+      failed: 0,
+    });
+    const html = strFromU8(
+      Object.entries(entries).find(([name]) => name.endsWith(".html"))![1],
+    );
+    const turns = [...html.matchAll(/<p>Turn (\d+)<\/p>/g)].map(([, index]) =>
+      Number(index),
+    );
+    expect(turns).toEqual(Array.from({ length: count }, (_, index) => index));
+    const assets = Object.entries(entries).filter(([name]) =>
+      name.startsWith("assets/"),
+    );
+    expect(assets).toHaveLength(count);
+    for (const [name, bytes] of assets) {
+      const index = Number(/Image (\d+)\.png$/.exec(name)![1]);
+      expect(bytes.length).toBe(tailSize + imageBytes.length);
+      expect(Buffer.from(bytes.subarray(0, imageBytes.length))).toEqual(
+        imageBytes,
+      );
+      expect(bytes[imageBytes.length]).toBe(index);
+      expect(bytes.at(-1)).toBe(index);
+      expect(html).toContain(`Image%20${index}.png`);
+    }
+    await expect
+      .poll(() =>
+        page.locator("main").evaluate((node) => Math.round(node.scrollTop)),
+      )
+      .toBe(54 * 96);
+  } finally {
+    await context.close();
+    rmSync(profile, { recursive: true, force: true });
+  }
+});
+
+test("ZIP fallback asks to save each part and preserves paths across parts", async ({
+  page,
+}) => {
+  const size = 12 * 1024 * 1024;
+  await page.route("https://chatgpt.com/attachment-*.bin", (route) => {
+    const index = Number(
+      route
+        .request()
+        .url()
+        .match(/-(\d)\.bin$/)![1],
+    );
+    return route.fulfill({
+      contentType: "application/octet-stream",
+      body: Buffer.alloc(size, index),
+    });
+  });
+  await page.route("https://chatgpt.com/c/parts", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>ZIP parts</title><aside><a href="/c/parts">ZIP parts</a></aside>
+      <main><article data-message-author-role="assistant">
+      ${[1, 2, 3].map((index) => `<a download href="/attachment-${index}.bin">file-${index}.bin</a>`).join(" ")}
+      </article></main>
+      <script>
+        navigator.storage.getDirectory = () => Promise.reject(new Error("Private file storage disabled"));
+        localStorage.setItem('__ai_chat_md_v2__:settings',JSON.stringify({autoMinimize:false,delayMs:0,export:{mediaFiles:true}}));
+      </script>`,
+    }),
+  );
+  await page.goto("https://chatgpt.com/c/parts");
+  await page.addScriptTag({
+    path: resolve("dist/AI-Chat-Markdown-Manager.user.js"),
+  });
+  await page
+    .getByRole("button", { name: "Open Markdown Manager", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^Export All/ }).click();
+  await page
+    .getByRole("dialog", { name: "Export All" })
+    .getByRole("button", { name: "Download ZIP", exact: true })
+    .click();
+  const entries: Record<string, Uint8Array> = {};
+  const dialog = page.getByRole("dialog", { name: "Save ZIP part" });
+  for (const number of ["001", "002"]) {
+    const pending = page.waitForEvent("download");
+    await dialog
+      .getByRole("button", { name: new RegExp(`-part-${number}\\.zip$`) })
+      .click();
+    const file = await pending;
+    const zip = unzipSync(readFileSync((await file.path())!));
+    expect(strFromU8(zip[`README-zip-part-${number}.txt`])).toContain(
+      "same folder",
+    );
+    Object.assign(entries, zip);
+  }
+  await expect(dialog).toBeHidden();
+  const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
+  expect(manifest).toMatchObject({ completed: 1, failed: 0 });
+  const source = strFromU8(
+    Object.entries(entries).find(([name]) => name.endsWith(".md"))![1],
+  );
+  for (const [name, bytes] of Object.entries(entries).filter(([name]) =>
+    name.startsWith("assets/"),
+  )) {
+    const index = Number(/file-(\d)\.bin$/.exec(name)![1]);
+    expect(bytes.length).toBe(size);
+    expect(bytes.at(0)).toBe(index);
+    expect(bytes.at(-1)).toBe(index);
+    expect(source).toContain(name.split("/").map(encodeURIComponent).join("/"));
+  }
+  expect(
+    Object.keys(entries).filter((name) => name.startsWith("assets/")),
+  ).toHaveLength(3);
+  await expect(page.getByText(/Review backed-up chats/)).toHaveCount(0);
+});

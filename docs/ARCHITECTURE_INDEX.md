@@ -16,13 +16,15 @@
 | `src/adapters/index.ts` | Platform factory and host/path routing |
 | `src/adapters/base/index.ts` | DOM discovery, snapshots, automatic loading and export sessions |
 | `src/adapters/base/navigation.ts` | Native SPA navigation, settled-message checks, role extraction |
+| `src/adapters/base/chatgpt-history.ts` | Overlapping scroll capture of ChatGPT turns and lazy media, with viewport restoration |
 | `src/adapters/base/native-actions.ts` | Shared scoped native menu/confirmation/outcome checks |
 | `src/adapters/chatgpt/index.ts` | Runtime-gated ChatGPT archive/delete |
 | `src/adapters/gemini/index.ts` | Runtime-gated Gemini delete; no archive |
 | `src/markdown/messages.ts` | Shared visible provider message boundaries and roles for conversion/media/navigation |
 | `src/markdown/attachments.ts` | Nested message attachments, safe file URLs, bounded decoded-image embedding and unavailable labels |
 | `src/markdown/media.ts` | Bounded asynchronous capture of referenced media/input bytes; strict offline failure |
-| `src/operations/package.ts` | Token-aware local asset extraction, binary ZIP files, renamed documents |
+| `src/operations/package.ts` | Token-aware asset localization, relative paths and final document rendering |
+| `src/operations/archive.ts` | File-backed streaming ZIPs and bounded fallback parts |
 | `src/operations/document.ts` | Markdown wrapper and allowlisted HTML, inline/linked image CSP and MIME |
 | `src/markdown/legacy-converter.js` | Minimally changed inherited MIT converter |
 | `src/markdown/legacy-converter.d.ts` | Explicit typed boundary for inherited JS |
@@ -56,4 +58,4 @@ Attachment regressions: `tests/unit/attachments.test.ts` and `tests/integration/
 
 Offline regressions: `tests/unit/offline-export.test.ts`, `tests/integration/offline-export.spec.ts`; provider backup/cleanup gates in `tests/integration/native-actions.spec.ts`.
 
-Separate-file ZIP regressions: `tests/unit/package.test.ts`, `tests/integration/asset-bundle.spec.ts` (five providers, two formats, offline file://).
+Separate-file ZIP regressions: `tests/unit/package.test.ts` and `tests/integration/asset-bundle.spec.ts` cover five providers, both formats, offline file://, virtual ChatGPT history above 64 MiB and numbered fallback parts.

@@ -45,6 +45,7 @@ import {
 } from "../utils/position";
 import { extractMarkdown } from "../markdown/legacy";
 import { embedMarkdownMedia } from "../markdown/media";
+import { SeparateArchive, type SaveZipPart } from "../operations/archive";
 import { exportMime } from "../operations/document";
 import {
   copyMarkdown,
@@ -62,12 +63,7 @@ import {
   Toggle,
 } from "../components/primitives";
 import { FormatSelect, ExportProgress } from "../components/FormatSelect";
-import {
-  prepareDocument,
-  renamedDocument,
-  type PreparedDocument,
-  type ExportFiles,
-} from "../operations/package";
+import { prepareDocument, separateMedia } from "../operations/package";
 import { Settings } from "../components/Settings";
 import { Conversations } from "../components/Conversations";
 import { YouTubeCaptions } from "../components/YouTubeCaptions";
@@ -91,6 +87,84 @@ type ExportChoice = {
   | { kind: "current"; selection: boolean }
   | { kind: "batch"; targets: Conversation[]; scope: ExportScope }
 );
+async function captureDocument(
+  adapter: PlatformAdapter,
+  conversation: Conversation,
+  options: ExportOptions,
+  name: string,
+  signal: AbortSignal,
+  archive?: SeparateArchive,
+  missingImages?: Map<string, string>,
+  selection = false,
+) {
+  const media =
+    archive && separateMedia(name, (path, bytes) => archive.add(path, bytes));
+  const body = selection
+    ? await (media?.capture ?? embedMarkdownMedia)(
+        extractMarkdown({
+          ...options,
+          metadata: false,
+          source: false,
+          selection: true,
+        }),
+        [document.querySelector("main") || document.body],
+        options,
+        signal,
+      )
+    : await adapter.exportConversation(
+        conversation,
+        options,
+        signal,
+        missingImages,
+        media?.capture,
+      );
+  signal.throwIfAborted();
+  return prepareDocument(
+    body,
+    conversation,
+    options,
+    name,
+    missingImages,
+    media?.assets,
+  );
+}
+
+async function downloadSeparate(
+  adapter: PlatformAdapter,
+  conversation: Conversation,
+  options: ExportOptions,
+  name: string,
+  signal: AbortSignal,
+  savePart: SaveZipPart,
+  selection = false,
+): Promise<boolean> {
+  const archive = await SeparateArchive.open(
+    name.replace(/\.(md|html)$/i, ".zip"),
+    signal,
+    savePart,
+  );
+  try {
+    const prepared = await captureDocument(
+      adapter,
+      conversation,
+      options,
+      name,
+      signal,
+      archive,
+      undefined,
+      selection,
+    );
+    await archive.add(name, prepared.text);
+    return await archive.finish(
+      options.manifest
+        ? { format: options.format, mediaFiles: true }
+        : undefined,
+    );
+  } finally {
+    await archive.dispose();
+  }
+}
+
 function initialPosition(): Point {
   let old: Point | undefined;
   try {
@@ -142,9 +216,9 @@ export function App({
     options: ExportOptions;
     text: string;
     name: string;
-    bundle?: PreparedDocument;
     error?: string;
   }>();
+  const [zipPart, setZipPart] = useState<{ name: string; save: () => void }>();
   const [exportChoice, setExportChoice] = useState<ExportChoice>();
   const [confirm, setConfirm] = useState<Confirmation>();
   const [phrase, setPhrase] = useState("");
@@ -302,39 +376,33 @@ export function App({
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
   }, [host, settings.autoMinimize, confirm, preview, exportChoice, runner]);
-  const currentDocument = useCallback(
-    async (
-      selection = false,
-      signal?: AbortSignal,
-      options = settings.export,
-    ) => {
-      const list = await adapter.discoverConversations();
-      const current = list.find((c) => c.current);
-      if (!current) throw new Error("Current page is unavailable.");
-      const body = selection
-        ? await embedMarkdownMedia(
-            extractMarkdown({
-              ...options,
-              metadata: false,
-              source: false,
-              selection: true,
-            }),
-            [document.querySelector("main") || document.body],
-            options,
-            signal,
-          )
-        : await adapter.exportConversation(current, options, signal);
-      return {
-        ...prepareDocument(
-          body,
-          current,
-          options,
-          filename(current, options.filename, options.format),
-        ),
-        current,
-      };
-    },
-    [adapter, settings.export],
+  const saveZipPart = useCallback<SaveZipPart>(
+    (bytes, name, signal) =>
+      new Promise((resolve, reject) => {
+        signal.throwIfAborted();
+        const clear = () => {
+          signal.removeEventListener("abort", abort);
+          setZipPart(undefined);
+        };
+        const abort = () => {
+          clear();
+          reject(signal.reason);
+        };
+        signal.addEventListener("abort", abort, { once: true });
+        setZipPart({
+          name,
+          save: () => {
+            clear();
+            try {
+              download(bytes, name, "application/zip");
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+        });
+      }),
+    [],
   );
   const quick = useCallback(
     async (mode: "save" | "copy" | "selection", options = settings.export) => {
@@ -352,47 +420,65 @@ export function App({
       );
       const { format } = options;
       try {
-        const prepared = await currentDocument(
-          mode === "selection" || options.selection,
-          controller.signal,
-          mode === "copy"
-            ? {
-                ...options,
-                mediaFiles: false,
-                embedMedia: options.mediaFiles || options.embedMedia,
-              }
-            : options,
+        const current = (await adapter.discoverConversations()).find(
+          (c) => c.current,
         );
-        controller.signal.throwIfAborted();
-        setExportStage(t("Preparing download…", "Подготавливаем загрузку…"));
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        controller.signal.throwIfAborted();
-        if (mode === "copy") {
-          await copyMarkdown(prepared.text);
+        if (!current) throw new Error("Current page is unavailable.");
+        const selection = mode === "selection" || options.selection;
+        const name = filename(current, options.filename, format);
+        const signal = controller.signal;
+        if (mode !== "copy" && options.mediaFiles) {
+          const single = await downloadSeparate(
+            adapter,
+            current,
+            options,
+            name,
+            signal,
+            saveZipPart,
+            selection,
+          );
           notify(
-            format === "html"
-              ? t("HTML copied.", "HTML скопирован.")
-              : t("Markdown copied.", "Markdown скопирован."),
+            single
+              ? t("ZIP download started.", "Началась загрузка ZIP.")
+              : t(
+                  "Save every ZIP part and extract them into the same folder.",
+                  "Сохраните все части ZIP и распакуйте их в одну папку.",
+                ),
           );
         } else {
-          download(
-            options.mediaFiles
-              ? makeZip(
-                  prepared.files,
-                  options.manifest ? { format, mediaFiles: true } : undefined,
-                )
-              : prepared.text,
-            options.mediaFiles
-              ? prepared.name.replace(/\.(md|html)$/i, ".zip")
-              : prepared.name,
-            options.mediaFiles ? "application/zip" : exportMime(format),
+          const prepared = await captureDocument(
+            adapter,
+            current,
+            mode === "copy"
+              ? {
+                  ...options,
+                  mediaFiles: false,
+                  embedMedia: options.mediaFiles || options.embedMedia,
+                }
+              : options,
+            name,
+            signal,
+            undefined,
+            undefined,
+            selection,
           );
-          notify(
-            t(
-              `${format === "html" ? "HTML" : "Markdown"} downloaded. Loaded content may be partial.`,
-              `${format === "html" ? "HTML" : "Markdown"} сохранён. Доступное содержимое может быть частичным.`,
-            ),
-          );
+          setExportStage(t("Preparing download…", "Подготавливаем загрузку…"));
+          if (mode === "copy") {
+            await copyMarkdown(prepared.text);
+            notify(
+              format === "html"
+                ? t("HTML copied.", "HTML скопировано.")
+                : t("Markdown copied.", "Markdown скопирован."),
+            );
+          } else {
+            download(prepared.text, prepared.name, exportMime(format));
+            notify(
+              t(
+                `${format === "html" ? "HTML" : "Markdown"} downloaded. Loaded content may be partial.`,
+                `${format === "html" ? "HTML" : "Markdown"} сохранён. Доступное содержимое может быть частичным.`,
+              ),
+            );
+          }
         }
         await scan();
         return { ok: true };
@@ -406,7 +492,7 @@ export function App({
         setBusy(false);
       }
     },
-    [currentDocument, runner, settings.export, notify, ru, scan, busy],
+    [adapter, runner, settings.export, notify, ru, scan, busy, saveZipPart],
   );
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -454,32 +540,32 @@ export function App({
     setBusy(true);
     setPanelMode((mode) => (mode === "closed" ? "compact" : mode));
     setScreen("activity");
-    const files: ExportFiles = new Map();
+    const files = new Map<string, string | Uint8Array>();
     const used = new Set<string>();
+    let archive: SeparateArchive | undefined;
+    let documents = 0;
     const addDocument = async (
       c: Conversation,
       exportOptions: ExportOptions,
       signal: AbortSignal,
       missingImages?: Map<string, string>,
     ) => {
-      const body = await adapter.exportConversation(
-        c,
-        exportOptions,
-        signal,
-        missingImages,
-      );
       const name = uniqueFilename(
         filename(c, exportOptions.filename, exportOptions.format),
         used,
       );
-      const prepared = prepareDocument(
-        body,
+      const prepared = await captureDocument(
+        adapter,
         c,
         exportOptions,
         name,
+        signal,
+        archive,
         missingImages,
       );
-      for (const [path, data] of prepared.files) files.set(path, data);
+      if (archive) await archive.add(name, prepared.text);
+      else files.set(name, prepared.text);
+      documents++;
     };
     const restore = adapter.beginExportSession?.();
     let needsRestore = kind === "export";
@@ -490,6 +576,10 @@ export function App({
         (kind === "archive" ? settings.backupArchive : settings.backupDelete)
       ) {
         needsRestore = true;
+        const backupName = `chat-backup-${Date.now()}.zip`;
+        if (settings.export.mediaFiles)
+          archive = await SeparateArchive.open(backupName, controller.signal);
+        controller.signal.throwIfAborted();
         const backup = await runner.run(
           {
             kind: "export",
@@ -505,23 +595,34 @@ export function App({
           throw new Error(
             "Backup did not finish. No native action was started.",
           );
-        download(
-          makeZip(files, {
-            operation: "backup",
-            format: settings.export.format,
-            embeddedMedia: settings.export.embedMedia,
-            mediaFiles: settings.export.mediaFiles,
-            results: backup.results,
-          }),
-          `chat-backup-${Date.now()}.zip`,
-          "application/zip",
-        );
+        const manifest = {
+          operation: "backup",
+          format: settings.export.format,
+          embeddedMedia: settings.export.embedMedia,
+          mediaFiles: settings.export.mediaFiles,
+          results: backup.results,
+        };
+        if (archive) {
+          await archive.finish(manifest);
+          await archive.dispose();
+          archive = undefined;
+        } else {
+          controller.signal.throwIfAborted();
+          download(makeZip(files, manifest), backupName, "application/zip");
+        }
         files.clear();
         used.clear();
         // Restore before mutation; a deleted or archived starting chat cannot be restored later.
         await restore?.();
         needsRestore = false;
       }
+      const exportName = `chat-${options.format}-${Date.now()}.zip`;
+      if (kind === "export" && options.mediaFiles)
+        archive = await SeparateArchive.open(
+          exportName,
+          controller.signal,
+          saveZipPart,
+        );
       controller.signal.throwIfAborted();
       const result = await runner.run(
         {
@@ -550,36 +651,42 @@ export function App({
         },
         setProgress,
       );
-      if (kind === "export" && files.size) {
-        download(
-          makeZip(
-            files,
-            options.manifest
-              ? {
-                  version,
-                  format: options.format,
-                  embeddedMedia: !options.mediaFiles && options.embedMedia,
-                  mediaFiles: options.mediaFiles,
-                  scope: "discovered DOM only; partial",
-                  createdAt: new Date().toISOString(),
-                  state: result.state,
-                  total: result.total,
-                  completed: result.completed,
-                  failed: result.failed,
-                  skipped: result.skipped,
-                  results: result.results,
-                }
-              : undefined,
-          ),
-          `chat-${options.format}-${Date.now()}.zip`,
-          "application/zip",
-        );
+      if (kind === "export" && documents) {
+        const manifest = options.manifest
+          ? {
+              version,
+              format: options.format,
+              embeddedMedia: !options.mediaFiles && options.embedMedia,
+              mediaFiles: options.mediaFiles,
+              scope: "discovered DOM only; partial",
+              createdAt: new Date().toISOString(),
+              state: result.state,
+              total: result.total,
+              completed: result.completed,
+              failed: result.failed,
+              skipped: result.skipped,
+              results: result.results,
+            }
+          : undefined;
+        const single = archive ? await archive.finish(manifest) : true;
+        if (!archive)
+          download(makeZip(files, manifest), exportName, "application/zip");
+        if (!single)
+          notify(
+            t(
+              "Save every ZIP part and extract them into the same folder.",
+              "Сохраните все части ZIP и распакуйте их в одну папку.",
+            ),
+          );
         const successful = new Set(
           result.results
             .filter((r) => r.status === "success")
             .map((r) => r.key),
         );
-        setBackedUp(targets.filter((c) => successful.has(conversationKey(c))));
+        if (single)
+          setBackedUp(
+            targets.filter((c) => successful.has(conversationKey(c))),
+          );
       }
       if (kind !== "export") {
         const successful = new Set(
@@ -605,6 +712,7 @@ export function App({
       }));
       notify(e instanceof Error ? e.message : String(e));
     } finally {
+      await archive?.dispose();
       try {
         if (needsRestore) await restore?.();
       } catch (e) {
@@ -673,15 +781,17 @@ export function App({
     setPreview(pending);
     const restore = adapter.beginExportSession?.();
     try {
-      const body = await adapter.exportConversation(
+      const bundle = await captureDocument(
+        adapter,
         c,
-        options,
+        options.mediaFiles
+          ? { ...options, mediaFiles: false, embedMedia: false }
+          : options,
+        pending.name,
         controller.signal,
       );
-      setExportStage(t("Preparing preview…", "Подготавливаем предпросмотр…"));
-      const bundle = prepareDocument(body, c, options, pending.name);
       if (!controller.signal.aborted)
-        setPreview({ ...pending, text: bundle.text, bundle });
+        setPreview({ ...pending, text: bundle.text });
     } catch (e) {
       if (!controller.signal.aborted) {
         const error = e instanceof Error ? e.message : String(e);
@@ -693,6 +803,58 @@ export function App({
         await restore?.();
       } catch (e) {
         notify(String(e));
+      }
+      operationAbort.current = undefined;
+      operationLock.current = false;
+      setBusy(false);
+      await scan();
+    }
+  };
+  const downloadPreview = async (pending: NonNullable<typeof preview>) => {
+    if (operationLock.current) return;
+    if (!pending.options.mediaFiles) {
+      download(pending.text, pending.name, exportMime(pending.options.format));
+      return;
+    }
+    operationLock.current = true;
+    const controller = new AbortController();
+    operationAbort.current = controller;
+    setBusy(true);
+    setExportStage(
+      t(
+        "Capturing messages, images and input files…",
+        "Сохраняем сообщения, изображения и файлы…",
+      ),
+    );
+    const restore = adapter.beginExportSession?.();
+    try {
+      const single = await downloadSeparate(
+        adapter,
+        pending.conversation,
+        pending.options,
+        pending.name,
+        controller.signal,
+        saveZipPart,
+      );
+      notify(
+        single
+          ? t("ZIP download started.", "Началась загрузка ZIP.")
+          : t(
+              "Save every ZIP part and extract them into the same folder.",
+              "Сохраните все части ZIP и распакуйте их в одну папку.",
+            ),
+      );
+    } catch (error) {
+      if (!controller.signal.aborted)
+        setPreview({
+          ...pending,
+          error: error instanceof Error ? error.message : String(error),
+        });
+    } finally {
+      try {
+        await restore?.();
+      } catch (error) {
+        notify(String(error));
       }
       operationAbort.current = undefined;
       operationLock.current = false;
@@ -1152,8 +1314,13 @@ export function App({
                 <button
                   className="wide"
                   onClick={() => {
-                    operationAbort.current?.abort();
-                    runner.cancel();
+                    if (runner.running && progress.kind === "export") {
+                      // Allow the archive to finish with the documents already captured.
+                      runner.cancel();
+                    } else {
+                      operationAbort.current?.abort();
+                      runner.cancel();
+                    }
                   }}
                 >
                   {t("Cancel remaining work", "Отменить оставшиеся")}
@@ -1631,29 +1798,31 @@ export function App({
           <button
             className="primary"
             disabled={busy || !preview.text || !!preview.error}
-            onClick={() => {
-              download(
-                preview.options.mediaFiles && preview.bundle
-                  ? makeZip(
-                      renamedDocument(preview.bundle, preview.name),
-                      preview.options.manifest
-                        ? { format: preview.options.format, mediaFiles: true }
-                        : undefined,
-                    )
-                  : preview.text,
-                preview.options.mediaFiles
-                  ? preview.name.replace(/\.(md|html)$/i, ".zip")
-                  : preview.name,
-                preview.options.mediaFiles
-                  ? "application/zip"
-                  : exportMime(preview.options.format),
-              );
-            }}
+            onClick={() => void downloadPreview(preview)}
           >
             {t(
               `Download ${preview.options.mediaFiles ? "ZIP" : preview.options.format === "html" ? "HTML" : "Markdown"}`,
               `Скачать ${preview.options.mediaFiles ? "ZIP" : preview.options.format === "html" ? "HTML" : "Markdown"}`,
             )}
+          </button>
+        </Dialog>
+      )}
+      {zipPart && (
+        <Dialog
+          title={t("Save ZIP part", "Сохранить часть ZIP")}
+          onClose={() => {
+            operationAbort.current?.abort();
+            runner.cancel();
+          }}
+        >
+          <p>
+            {t(
+              "Save each part as it appears. Extract all parts into the same folder.",
+              "Сохраните каждую часть и распакуйте все части в одну папку.",
+            )}
+          </p>
+          <button className="primary" onClick={zipPart.save}>
+            {zipPart.name}
           </button>
         </Dialog>
       )}

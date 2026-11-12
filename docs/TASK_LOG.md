@@ -138,3 +138,11 @@
 - An Export All regression checks live and revoked blobs, both asset files, relative HTML links and successful manifest entries in Chromium and desktop and mobile WebKit.
 - Passed 122 unit tests, 174 browser cases, lint, strict type checking, production build, checksums and ZIP-to-bundle comparison.
 - Installed v2.4.3 in Safari Userscripts and retried the reported chat with HTML, separate media, images and input files enabled. Both ZIPs contained two identical PNG assets with relative HTML links. The earlier attempt contained no image assets. Both v2.4.3 ZIPs still had two unavailable image markers and reported the chat as failed with Safari's `Load failed` error. Opening all five previews in ChatGPT's viewer before the second retry did not change the result. The original chat was retained.
+
+## 2026-11-12 — v2.4.4 large ChatGPT ZIP exports
+
+- Separate-file downloads write binary assets directly to a file-backed ZIP. ChatGPT capture traverses older and newer message windows and restores the starting viewport. Inline exports retain their 64 MiB/chat and 100-resource caps.
+- Without writable browser storage, ordinary exports can save numbered ZIP parts. Required backups still require one ZIP before native actions.
+- Chromium and desktop and mobile WebKit fixtures verify a single ZIP with 113 exact image files, over 70 MiB of image data, chronological HTML and restored scroll position. The fallback fixtures verify relative paths across individually saved ZIP parts.
+- Passed 122 unit tests and 180 browser cases, lint, strict type checking, the production build and release checksums.
+- The reported authenticated Safari chat was not retested with this release.

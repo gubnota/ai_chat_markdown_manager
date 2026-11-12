@@ -1,8 +1,10 @@
+import { captureChatGPTHistory } from "./chatgpt-history";
 import { conversationTitle } from "./native-actions";
 import { messageBody, messageNodes, navigateConversation } from "./navigation";
 import { embedMarkdownMedia, needsEmbeddedMedia } from "../../markdown/media";
 import { extractMarkdown } from "../../markdown/legacy";
 import {
+  type CaptureMedia,
   type Conversation,
   type ConversationIdentifier,
   type ExportOptions,
@@ -125,6 +127,7 @@ export class DOMAdapter implements PlatformAdapter {
     options: ExportOptions,
     signal?: AbortSignal,
     missingImages?: Map<string, string>,
+    captureMedia?: CaptureMedia,
   ): Promise<string> {
     const c = await this.getConversation(id, signal);
     signal?.throwIfAborted();
@@ -136,7 +139,7 @@ export class DOMAdapter implements PlatformAdapter {
     ]);
     if (!c.current) {
       const snapshot = this.snapshots.get(c.id);
-      if (snapshot?.signature === signature) return snapshot.body;
+      if (!captureMedia && snapshot?.signature === signature) return snapshot.body;
       if (!this.config.autoLoad)
         throw new Error(
           snapshot
@@ -156,6 +159,16 @@ export class DOMAdapter implements PlatformAdapter {
       throw new Error(
         "Conversation changed before extraction. Retry the export.",
       );
+    const checkConversation = () => {
+      if (this.currentId() !== c.id)
+        throw new Error("Conversation changed during media capture. Retry the export.");
+    };
+    if (captureMedia && this.id === "chatgpt") {
+      const history = await captureChatGPTHistory(
+        options, captureMedia, checkConversation, signal, missingImages,
+      );
+      if (history !== undefined) return history;
+    }
     const rawBody =
       messageBody(this.id, options) ??
       extractMarkdown({
@@ -165,18 +178,15 @@ export class DOMAdapter implements PlatformAdapter {
         selection: false,
       });
     const nodes = messageNodes(this.id);
-    const body = await embedMarkdownMedia(
+    const body = await (captureMedia ?? embedMarkdownMedia)(
       rawBody,
       nodes.length ? nodes : [document.querySelector("main") || document.body],
       options,
       signal,
       missingImages,
     );
-    if (this.currentId() !== c.id)
-      throw new Error(
-        "Conversation changed during media capture. Retry the export.",
-      );
-    if (missingImages?.size) return body;
+    checkConversation();
+    if (captureMedia || missingImages?.size) return body;
     this.snapshots.delete(c.id);
     this.snapshots.set(c.id, { signature, body });
     // Bound memory to 20 conversations and approximately 8 MiB of UTF-16 text.

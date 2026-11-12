@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-import type { ExportOptions } from "../types";
+import type { ExportOptions, MediaSink } from "../types";
 import { embeddedImageSource, imageUrls, rasterizeImage } from "./attachments";
 
 const maxFile = 20 * 1024 * 1024;
@@ -66,13 +66,31 @@ function loadImagePixels(
   });
 }
 
+type BinaryMedia = { bytes: Uint8Array; mime: string };
+const supportedData =
+  /^data:((?:image\/(?:png|jpeg|gif|webp|avif|bmp)|(?:audio|video)\/[a-z0-9.+-]+|application\/octet-stream));base64,([a-z0-9+/=\r\n]+)$/i;
+
+export function decodeMedia(url: string): BinaryMedia | undefined {
+  const match = supportedData.exec(url);
+  if (!match) return;
+  if (match[2].length > Math.ceil(maxFile / 3) * 4)
+    throw new Error("Offline export: resource exceeds 20 MiB.");
+  const binary = atob(match[2]);
+  if (binary.length > maxFile)
+    throw new Error("Offline export: resource exceeds 20 MiB.");
+  return {
+    bytes: Uint8Array.from(binary, (char) => char.charCodeAt(0)),
+    mime: match[1].toLowerCase(),
+  };
+}
+
 async function fetchMedia(
   url: string,
   kind: "image" | "player" | "file",
-  total: number,
+  remaining: number,
   signal: AbortSignal,
   networkFailures: string[],
-): Promise<string> {
+): Promise<BinaryMedia> {
   const parsed = new URL(url);
   const localBlob =
     parsed.protocol === "blob:" && parsed.origin === location.origin;
@@ -118,10 +136,9 @@ async function fetchMedia(
       const { value, done } = await reader.read();
       if (done) break;
       length += value.length;
-      if (length > maxFile || total + length > maxTotal)
-        throw new Error(
-          "Offline media exceeds 20 MiB per file or 64 MiB per chat",
-        );
+      if (length > maxFile) throw new Error("Resource exceeds 20 MiB");
+      if (length > remaining)
+        throw new Error("Offline media exceeds 64 MiB per chat");
       chunks.push(value);
     }
   } catch (error) {
@@ -135,7 +152,7 @@ async function fetchMedia(
     bytes.set(chunk, offset);
     offset += chunk.length;
   }
-  return dataUrl(bytes, kind === "file" ? "application/octet-stream" : mime);
+  return { bytes, mime: kind === "file" ? "application/octet-stream" : mime };
 }
 
 /** Only resources referenced by the converted, loaded content are requested. */
@@ -145,6 +162,7 @@ export async function embedMarkdownMedia(
   options: ExportOptions,
   signal?: AbortSignal,
   missingImages?: Map<string, string>,
+  sink?: MediaSink,
 ): Promise<string> {
   if (!needsEmbeddedMedia(options)) return body;
   signal?.throwIfAborted();
@@ -215,16 +233,17 @@ export async function embedMarkdownMedia(
     )
       continue;
     const href = mdUrl(url);
-    if (captured.has(url) || (image && missingImages?.has(href))) continue;
-    if (captured.size + (missingImages?.size ?? 0) >= maxCount)
+    if (
+      captured.has(url) ||
+      sink?.has(href) ||
+      (image && missingImages?.has(href))
+    )
+      continue;
+    if (!sink && captured.size + (missingImages?.size ?? 0) >= maxCount)
       throw new Error("Offline export exceeds 100 resources per chat.");
-    let result = "";
+    let result: string | BinaryMedia = "";
     if (url.startsWith("data:")) {
-      if (
-        !/^data:(?:image\/(?:png|jpeg|gif|webp|avif|bmp)|audio\/[a-z0-9.+-]+|video\/[a-z0-9.+-]+|application\/octet-stream);base64,[a-z0-9+/=\r\n]+$/i.test(
-          url,
-        )
-      )
+      if (!supportedData.test(url))
         throw new Error("Offline export: unsafe embedded media type.");
       if (url.length > (maxFile * 4) / 3)
         throw new Error("Offline export: resource exceeds 20 MiB.");
@@ -253,7 +272,7 @@ export async function embedMarkdownMedia(
             result = await fetchMedia(
               source,
               kind,
-              total,
+              sink ? Infinity : maxTotal - total,
               controller.signal,
               networkFailures,
             );
@@ -293,11 +312,28 @@ export async function embedMarkdownMedia(
         signal?.removeEventListener("abort", abort);
       }
     }
+    if (sink) {
+      const asset = typeof result === "string" ? decodeMedia(result) : result;
+      if (!asset)
+        throw new Error("Offline export: unsafe embedded media type.");
+      await sink.write(
+        href,
+        image?.alt ||
+          image?.getAttribute("aria-label") ||
+          (!image && node.textContent?.trim()) ||
+          (player ? player.tagName : "attachment"),
+        asset.mime,
+        asset.bytes,
+      );
+      continue;
+    }
+    if (typeof result !== "string") result = dataUrl(result.bytes, result.mime);
     total += (result.length * 3) / 4;
     if (total > maxTotal)
       throw new Error("Offline export exceeds 64 MiB of media per chat.");
     captured.set(url, result);
   }
+  if (sink) return body;
   for (const [url, value] of captured)
     body = body.split(`](${mdUrl(url)})`).join(`](${value})`);
   const embedded = new Set(

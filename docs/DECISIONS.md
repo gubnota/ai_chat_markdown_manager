@@ -198,3 +198,13 @@ Context: Bulk exports need the same media choices as Save Current Chat and shoul
 Decision: Export selected and Export All freeze their targets and open the shared export dialog. Start with embedding on and honor a saved separate-file preference. Keep the two switches on separate rows and retry with the confirmed options.
 Consequences: Each successful document can carry its own media inline or use its own asset directory. Inaccessible enabled resources fail that chat’s offline export and remain visible in its results. Raw SVG, interactive maps and other HTML widgets are deferred.
 Related files: src/app/App.tsx, src/components/Conversations.tsx, src/operations/export.ts, tests/integration/offline-export.spec.ts.
+
+# ADR-0021: File-backed ZIPs and live ChatGPT history capture
+
+Date: 2026-11-12
+Status: Accepted
+
+Context: Separate-file ZIPs inherited the inline media size and resource caps. ChatGPT can unmount older turns and revoke temporary image URLs during scrolling.
+Decision: Capture overlapping ChatGPT scroll windows and write media bytes directly into a temporary origin-private ZIP. Use bounded numbered parts when writable browser storage is unavailable.
+Consequences: Separate-file exports can exceed 64 MiB and 100 resources per chat. The 20 MiB resource limit still applies. Classic ZIP bounds and browser storage quota bound a single archive. Numbered parts require individual downloads and do not qualify for cleanup review.
+Related files: src/adapters/base/chatgpt-history.ts, src/operations/archive.ts, src/operations/package.ts, tests/integration/asset-bundle.spec.ts.

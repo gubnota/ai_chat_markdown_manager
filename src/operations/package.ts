@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import { Lexer, type Token } from "marked";
-import type { Conversation, ExportOptions } from "../types";
+import type { CaptureMedia, Conversation, ExportOptions } from "../types";
 import { exportDocument } from "./document";
+import { decodeMedia, embedMarkdownMedia } from "../markdown/media";
 import { safeFilename } from "./export";
 
-export type ExportFiles = Map<string, string | Uint8Array>;
-export interface PreparedDocument {
-  text: string;
-  name: string;
-  files: ExportFiles;
-}
 const extensions: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -25,54 +20,29 @@ const extensions: Record<string, string> = {
   "video/webm": "webm",
 };
 
-/** Rewrite actual Markdown resource tokens, leaving code/HTML examples untouched. */
-export function prepareDocument(
-  body: string,
-  conversation: Conversation,
-  options: ExportOptions,
-  name: string,
-  missingImages?: ReadonlyMap<string, string>,
-): PreparedDocument {
-  const files: ExportFiles = new Map();
-  const assets = new Map<string, string>();
-  const captured = new Map<string, string>();
-  let total = 0;
-  function resource(href: string, label: string): string {
-    const existing = captured.get(href);
-    if (existing) return existing;
-    const match =
-      /^data:((?:image\/(?:png|jpeg|gif|webp|avif|bmp)|(?:audio|video)\/[a-z0-9.+-]+|application\/octet-stream));base64,([a-z0-9+/=\r\n]+)$/i.exec(
-        href,
-      );
-    if (!match) return href;
-    const mime = match[1].toLowerCase();
-    if (match[2].length > 28 * 1024 * 1024 || captured.size >= 100)
-      throw new Error(
-        "Offline bundle exceeds resource limits. Keep the original chat.",
-      );
-    const binary = atob(match[2]);
-    total += binary.length;
-    if (binary.length > 20 * 1024 * 1024 || total > 64 * 1024 * 1024)
-      throw new Error(
-        "Offline bundle exceeds size limits. Keep the original chat.",
-      );
-    let base = safeFilename(label || "attachment");
-    if (mime !== "application/octet-stream") {
-      const extension =
-        extensions[mime] || mime.split("/")[1].replace(/[^a-z0-9]/g, "");
-      base = base.replace(/\.[a-z0-9]{1,8}$/i, "") + "." + extension;
-    }
-    const path = `assets/${safeFilename(name.replace(/\.(md|html)$/i, ""))}/${captured.size + 1}-${base}`;
-    // URL-encode names while keeping ZIP paths readable and platform portable.
-    const url = path.split("/").map(encodeURIComponent).join("/");
-    files.set(
-      path,
-      Uint8Array.from(binary, (c) => c.charCodeAt(0)),
-    );
-    assets.set(url, mime);
-    captured.set(href, url);
-    return url;
+function assetPath(name: string, label: string, mime: string, index: number) {
+  let base = safeFilename(label || "attachment");
+  if (mime !== "application/octet-stream") {
+    const extension =
+      extensions[mime] || mime.split("/")[1].replace(/[^a-z0-9]/g, "");
+    base = base.replace(/\.[a-z0-9]{1,8}$/i, "") + "." + extension;
   }
+  const path = `assets/${safeFilename(name.replace(/\.(md|html)$/i, ""))}/${index}-${base}`;
+  // URL-encode names while keeping ZIP paths readable and platform portable.
+  const url = path
+    .split("/")
+    .map((segment) =>
+      encodeURIComponent(segment).replaceAll("(", "%28").replaceAll(")", "%29"),
+    )
+    .join("/");
+  return { path, url };
+}
+
+function rewriteResources(
+  body: string,
+  resource: (href: string, label: string) => string,
+  missingImages?: ReadonlyMap<string, string>,
+): string {
   function rewrite(source: string, tokens: Token[]): string {
     let cursor = 0,
       output = "";
@@ -93,13 +63,18 @@ export function prepareDocument(
             href,
             "text" in token ? String(token.text) : "attachment",
           );
-          if (replacement !== href) raw = raw.replace(href, replacement);
-          else if (
+          if (
             token.type === "link" &&
             "tokens" in token &&
             Array.isArray(token.tokens)
           )
             raw = rewrite(raw, token.tokens);
+          const destination = raw.lastIndexOf(href);
+          if (replacement !== href && destination >= 0)
+            raw =
+              raw.slice(0, destination) +
+              replacement +
+              raw.slice(destination + href.length);
         }
       } else if (
         token.type !== "code" &&
@@ -122,26 +97,74 @@ export function prepareDocument(
     }
     return output + source.slice(cursor);
   }
-  const rewritten = options.mediaFiles ? rewrite(body, Lexer.lex(body)) : body;
+  return rewrite(body, Lexer.lex(body));
+}
+
+/** Localize each live window before it leaves the DOM. Keep only paths and MIME types. */
+export function separateMedia(
+  name: string,
+  add: (path: string, bytes: Uint8Array) => Promise<void>,
+): { capture: CaptureMedia; assets: ReadonlyMap<string, string> } {
+  const paths = new Map<string, string>();
+  const assets = new Map<string, string>();
+  const writeAsset = async (label: string, mime: string, bytes: Uint8Array) => {
+    const { path, url } = assetPath(name, label, mime, assets.size + 1);
+    await add(path, bytes);
+    assets.set(url, mime);
+    return url;
+  };
+  const capture: CaptureMedia = async (
+    body,
+    roots,
+    options,
+    signal,
+    missingImages,
+  ) => {
+    await embedMarkdownMedia(body, roots, options, signal, missingImages, {
+      has: (href) => paths.has(href),
+      async write(href, label, mime, bytes) {
+        paths.set(href, await writeAsset(label, mime, bytes));
+      },
+    });
+
+    // Canvas-only previews and inline raster images have no fetchable DOM URL.
+    // Walk real tokens first, then decode one asset at a time.
+    const inline = new Map<string, string>();
+    if (body.includes("data:"))
+      rewriteResources(body, (href, label) => {
+        if (href.startsWith("data:") && !inline.has(href))
+          inline.set(href, label);
+        return href;
+      });
+    for (const [href, label] of inline) {
+      signal?.throwIfAborted();
+      const asset = decodeMedia(href);
+      if (asset)
+        inline.set(href, await writeAsset(label, asset.mime, asset.bytes));
+      else inline.delete(href);
+    }
+    return rewriteResources(
+      body,
+      (href) => paths.get(href) ?? inline.get(href) ?? href,
+      missingImages,
+    );
+  };
+  return { capture, assets };
+}
+
+export function prepareDocument(
+  body: string,
+  conversation: Conversation,
+  options: ExportOptions,
+  name: string,
+  missingImages?: ReadonlyMap<string, string>,
+  assets?: ReadonlyMap<string, string>,
+): { text: string; name: string } {
   const warning = missingImages?.size
     ? "> Incomplete offline export: one or more images could not be saved. Keep the original chat.\n\n"
     : "";
-  const text = exportDocument(
-    warning + rewritten,
-    conversation,
-    options,
-    assets,
-  );
-  files.set(name, text);
-  return { text, name, files };
-}
-
-export function renamedDocument(
-  document: PreparedDocument,
-  name: string,
-): ExportFiles {
-  const files = new Map(document.files);
-  files.delete(document.name);
-  files.set(name, document.text);
-  return files;
+  return {
+    name,
+    text: exportDocument(warning + body, conversation, options, assets),
+  };
 }

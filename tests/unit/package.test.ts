@@ -1,10 +1,10 @@
 import { expect, it } from "vitest";
 import { unzipSync, strFromU8 } from "fflate";
-import { prepareDocument, renamedDocument } from "../../src/operations/package";
+import { prepareDocument, separateMedia } from "../../src/operations/package";
 import { filename, makeZip, uniqueFilename } from "../../src/operations/export";
 import { offlineHtml } from "../../src/operations/document";
 import { defaults } from "../../src/storage";
-import type { Conversation } from "../../src/types";
+import type { Conversation, ExportOptions } from "../../src/types";
 const chat: Conversation = {
   platform: "chatgpt",
   id: "one",
@@ -16,13 +16,30 @@ const chat: Conversation = {
 };
 const image = "data:image/png;base64,AAEC/w==";
 const input = "data:application/octet-stream;base64,aW5wdXQ=";
-it("keeps assets separate for chats with the same long filename", () => {
+async function pack(body: string, options: ExportOptions, name: string) {
+  const files = new Map<string, string | Uint8Array>();
+  const media = separateMedia(name, async (path, bytes) => {
+    files.set(path, bytes);
+  });
+  const localized = await media.capture(body, [], options);
+  const document = prepareDocument(
+    localized,
+    chat,
+    options,
+    name,
+    undefined,
+    media.assets,
+  );
+  files.set(name, document.text);
+  return { ...document, files };
+}
+it("keeps assets separate for chats with the same long filename", async () => {
   const options = { ...defaults.export, mediaFiles: true };
   const used = new Set<string>();
   const files = new Map<string, string | Uint8Array>();
   for (const data of [image, "data:image/png;base64,AA=="]) {
     const name = uniqueFilename(filename(chat, "a".repeat(150)), used);
-    const result = prepareDocument(`![Photo](${data})`, chat, options, name);
+    const result = await pack(`![Photo](${data})`, options, name);
     for (const [path, bytes] of result.files) files.set(path, bytes);
     expect(result.text).toContain(`assets/${name.slice(0, -3)}/1-Photo.png`);
   }
@@ -37,12 +54,11 @@ it("keeps assets separate for chats with the same long filename", () => {
 });
 it.each(["markdown", "html"] as const)(
   "packs exact binary assets and references into %s ZIP with portable links",
-  (format) => {
+  async (format) => {
     const options = { ...defaults.export, format, mediaFiles: true };
     const name = format === "html" ? "trip.html" : "trip.md";
-    const result = prepareDocument(
+    const result = await pack(
       `![Map](${image})\n\n[reference notes.csv](${input})\n\n![Again](${image})`,
-      chat,
       options,
       name,
     );
@@ -62,20 +78,13 @@ it.each(["markdown", "html"] as const)(
         "assets/trip/2-reference%20notes.csv",
       );
     }
-    const renamed = renamedDocument(
-      result,
-      "holiday." + (format === "html" ? "html" : "md"),
-    );
-    expect(renamed.has(name)).toBe(false);
-    expect(renamed.size).toBe(3);
   },
 );
-it("rewrites resource tokens in lists, quotes and tables but leaves code examples untouched", () => {
+it("rewrites resource tokens in lists, quotes and tables but leaves code examples untouched", async () => {
   const example = `![Example](${image})`;
   const body = `\`\`\`md\n${example}\n\`\`\`\n\n\`${example}\`\n\n- ![List](${image})\n\n> ![Quote](${image})\n\n| Map |\n| --- |\n| ![Table](${image}) |`;
-  const result = prepareDocument(
+  const result = await pack(
     body,
-    chat,
     { ...defaults.export, mediaFiles: true },
     "one.md",
   );
@@ -93,22 +102,20 @@ it("keeps linked and inline exports unchanged when packaging is off", () => {
     defaults.export,
     "one.md",
   );
-  expect(result.files.size).toBe(1);
   expect(result.text).toContain(image);
 });
-it("rejects arbitrary local paths and retains the explicit resource cap", () => {
+it("rejects arbitrary local paths and packs over 100 inline resources", async () => {
   expect(() => offlineHtml("![Unsafe](../private.png)", "unsafe")).toThrow();
   const body = Array.from(
     { length: 101 },
     (_, i) =>
       `[${i}.txt](data:application/octet-stream;base64,${btoa(String(i))})`,
   ).join("\n\n");
-  expect(() =>
-    prepareDocument(
-      body,
-      chat,
-      { ...defaults.export, mediaFiles: true },
-      "one.md",
-    ),
-  ).toThrow("limits");
+  const result = await pack(
+    body,
+    { ...defaults.export, mediaFiles: true },
+    "one.md",
+  );
+  expect(result.files.size).toBe(102);
+  expect(result.text).toContain("[100.txt](assets/one/101-100.txt)");
 });

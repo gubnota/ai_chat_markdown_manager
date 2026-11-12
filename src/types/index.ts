@@ -38,6 +38,18 @@ export interface ExportOptions {
   manifest: boolean;
   filename: string;
 }
+export interface MediaSink {
+  has(href: string): boolean;
+  write(href: string, label: string, mime: string, bytes: Uint8Array): Promise<void>;
+}
+export type CaptureMedia = (
+  body: string,
+  roots: Element[],
+  options: ExportOptions,
+  signal?: AbortSignal,
+  missingImages?: Map<string, string>,
+) => Promise<string>;
+
 export interface PlatformAdapter {
   id: string;
   name: string;
@@ -52,6 +64,7 @@ export interface PlatformAdapter {
     options: ExportOptions,
     signal?: AbortSignal,
     missingImages?: Map<string, string>,
+    captureMedia?: CaptureMedia,
   ): Promise<string>;
   archiveConversation(
     id: ConversationIdentifier,

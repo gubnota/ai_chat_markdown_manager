@@ -1,6 +1,6 @@
 {
   "name": "ai-chat-markdown-manager",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "private": true,
   "description": "Local AI conversation manager userscript",
   "license": "MIT OR Apache-2.0",

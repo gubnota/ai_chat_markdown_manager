@@ -47,6 +47,7 @@ export function uniqueFilename(name: string, used: Set<string>): string {
 export function makeZip(
   files: Map<string, string | Uint8Array>,
   manifest: unknown | undefined,
+  level: 0 | 6 = 6,
 ): Uint8Array {
   const entries: Record<string, Uint8Array> = Object.create(null) as Record<
     string,
@@ -56,7 +57,7 @@ export function makeZip(
     entries[name] = typeof body === "string" ? strToU8(body) : body;
   if (manifest !== undefined)
     entries["manifest.json"] = strToU8(JSON.stringify(manifest, null, 2));
-  return zipSync(entries, { level: 6 });
+  return zipSync(entries, { level });
 }
 export function download(
   data: string | Uint8Array,
@@ -67,6 +68,14 @@ export function download(
     [typeof data === "string" ? data : new Uint8Array(data)],
     { type: mime },
   );
+  downloadBlob(blob, name);
+}
+
+export function downloadBlob(
+  blob: Blob,
+  name: string,
+  release?: () => void,
+): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -76,7 +85,10 @@ export function download(
   document.body.append(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    release?.();
+  }, release ? 300_000 : 60_000);
 }
 export async function copyMarkdown(text: string): Promise<void> {
   try {

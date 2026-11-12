@@ -13,12 +13,17 @@ export function messageBody(
 ): string | undefined {
   const nodes = messageNodes(platform);
   if (!nodes.length) return;
-  const body = nodes
-    .map((node) => {
-      const body = elementMarkdown(node, options).trim();
-      return body ? `## ${messageRole(node)}\n\n${body}\n` : "";
-    })
-    .join("\n");
+  return withOutline(
+    nodes.map((node) => messageMarkdown(node, options)).join("\n"),
+    options,
+  );
+}
+export function messageMarkdown(node: Element, options: ExportOptions): string {
+  const body = elementMarkdown(node, options).trim();
+  return body ? `## ${messageRole(node)}\n\n${body}\n` : "";
+}
+
+export function withOutline(body: string, options: ExportOptions): string {
   if (!options.outline) return body;
   const headings = body.split("\n").filter((line) => /^#{1,6}\s/.test(line));
   const outline = headings
@@ -52,7 +57,7 @@ function fingerprint(nodes: Element[]): string {
     )
     .join("\n");
 }
-function pause(ms: number, signal?: AbortSignal): Promise<void> {
+export function pause(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
     const abort = () => {

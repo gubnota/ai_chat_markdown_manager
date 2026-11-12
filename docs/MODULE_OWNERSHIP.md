@@ -28,3 +28,5 @@ Offline capture belongs to `src/markdown/media.ts`: it may request only referenc
 App owns current and batch export drafts, retry options, and preview cancellation. Opening an export draft captures nothing until Download. UI choices flow through the shared adapter, media and document pipeline. Components own the keyboard dropdown used by the export dialog and conversation filters. Native cleanup and backup gates remain owned by their existing operation/adapter modules.
 
 `src/markdown/messages.ts` owns shared visible message boundaries and role detection. Conversion, attachment scoping and adapter navigation import it; they must not maintain competing provider selectors. It depends only on browser APIs and cannot import adapters or UI.
+
+The ChatGPT adapter owns viewport traversal and checks the conversation identity throughout capture. The app passes a capture callback from `src/operations/package.ts` that writes binary assets to `src/operations/archive.ts` and returns relative references. The archive owns temporary browser storage, ZIP size bounds and part boundaries. The app owns part download prompts and cleanup eligibility.
