@@ -200,3 +200,8 @@
 - On narrow screens, open the toolbar, search and contents from a floating menu. The close button and Escape preserve the reading position, while contents and search links close the menu and navigate to the selected text. Keep reading progress at the top.
 - Passed 122 unit tests and three focused export browser cases across Chromium and desktop and mobile WebKit, plus lint, type checking, the production build and release integrity checks. Verified viewport resizing and the script-free contents fallback on a local archive.
 - Inspected the Sony ZV-E10 archive. It contains 42 PNG files representing six byte-unique images. Six appear in the conversation and 36 in Additional exported files. The ZIP writer reuses source URLs and can save the same bytes from different sources more than once.
+
+## 2026-11-14 — v2.4.12 GitHub Release
+
+- Scope is v2.4.12. The English and Russian READMEs and installation guides link to GitHub Release downloads.
+- Rebuilt v2.4.12 and passed lint, 122 unit tests, strict type checking, ZIP integrity, checksum checks and ZIP-to-userscript byte comparison.

@@ -52,7 +52,7 @@
 | `tests/integration/native-actions.spec.ts` | Native archive/delete, frozen targets, backups, review and cancellation |
 | `tests/integration/loading-captions.spec.ts` | Three-platform batch loading, cancellation and automatic multilingual caption downloads |
 | `dist/AI-Chat-Markdown-Manager.user.js` | Locally generated, ignored installable release |
-| `AI-Chat-Markdown-Manager-v*.zip`, `SHA256SUMS-v*` | Locally generated release archives and root-relative integrity hashes; ignored by Git |
+| `AI-Chat-Markdown-Manager-v*.zip`, `SHA256SUMS-v*` | Generated release archives and root-relative integrity hashes. Published release manifests use download filenames so assets verify in one directory. Git ignores both patterns. |
 | `docs/screenshots/` | Verified local-fixture UI screenshots |
 | `Save-Page-as-Markdown-Safari.user.js`, `README.txt` | Unchanged v1.2 provenance baseline |
 

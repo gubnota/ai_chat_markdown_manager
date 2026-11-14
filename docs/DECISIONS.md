@@ -228,3 +228,13 @@ Context: Conversation maps may use canvas, rendered image tiles or third-party f
 Decision: Capture readable map pixels as bounded PNG and keep an exposed original URL. Use the existing image and link switches and resource packaging.
 Consequences: The offline copy shows the saved view and can enlarge it in the image viewer. Live map interaction requires the original URL. An unreadable map gets an explicit note.
 Related files: src/markdown/maps.ts, src/markdown/attachments.ts, tests/integration/asset-bundle.spec.ts.
+
+# ADR-0024: Publish downloadable GitHub Release assets
+
+Date: 2026-11-14
+Status: Accepted
+
+Context: Users need ready-to-install downloads for the current version.
+Decision: Publish the standalone userscript, versioned ZIP and SHA-256 manifest as public assets on the matching GitHub release. Keep generated output ignored in the source tree as specified in ADR-0019.
+Consequences: Downloaded assets can be verified together in one directory. Local build manifests still resolve paths from the repository root.
+Related files: README.md, README.ru.md, docs/INSTALL-SAFARI.md, docs/INSTALL-TAMPERMONKEY.md, scripts/release.mjs.

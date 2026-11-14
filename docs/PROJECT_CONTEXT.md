@@ -64,7 +64,7 @@
 - New code is MIT OR Apache-2.0; inherited/vendor licenses retain their terms.
 - Preserve independent FAB anchoring and Send-button avoidance.
 - Keep `.DS_Store`, dependencies and temporary test output out of Git.
-- Track source and screenshots. Generate the userscript, versioned release ZIPs and checksums locally; ignore them in Git.
+- Track source and screenshots. Generate the userscript, versioned release ZIP and checksums locally. Publish them as tagged GitHub Release assets and ignore generated files in Git.
 
 ## Core workflows
 - Open the FAB or restore it with Alt+Shift+E.
@@ -145,6 +145,6 @@
 - Check: `npm run lint`, `npm run typecheck`, `npm test`.
 - Release: `npm run build`; browser checks: `npm run test:integration`.
 - Install browsers once: `npx playwright install chromium webkit`.
-- Checksums: `shasum -a 256 -c SHA256SUMS-v2.4.6` from repository root after a local build.
+- Checksums for v2.4.12: `shasum -a 256 -c SHA256SUMS-v2.4.12` from the repository root for a local build or from the directory with all three downloaded release assets.
 - Evidence: `docs/VERIFICATION.md` and `docs/screenshots/`.
-- Distribution: `npm run build` generates the ignored `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.
+- Distribution: [GitHub Releases](https://github.com/gubnota/ai_chat_markdown_manager/releases). `npm run build` also generates the ignored `dist/AI-Chat-Markdown-Manager.user.js` and root release ZIP.

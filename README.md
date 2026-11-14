@@ -1,6 +1,6 @@
-# AI Chat Markdown Manager v2.4.10
+# AI Chat Markdown Manager
 
-[Русский](README.ru.md) · [Build and install](#17-build)
+[Русский](README.ru.md) · [Latest release](https://github.com/gubnota/ai_chat_markdown_manager/releases/latest) · [Build from source](#17-build)
 
 ## 1. Overview
 
@@ -42,7 +42,7 @@ Current-chat downloads were verified in authenticated Safari sessions on ChatGPT
 
 ## 5. Safari installation
 
-Install [Userscripts](https://github.com/quoid/userscripts), enable it in Safari extension settings, and allow the intended chat website. Open the scripts directory configured in the Userscripts app and copy `dist/AI-Chat-Markdown-Manager.user.js` there. Enable the script, disable the old version and reload the site. See [complete Safari steps and troubleshooting](docs/INSTALL-SAFARI.md).
+Install [Userscripts](https://github.com/quoid/userscripts), enable it in Safari extension settings, and allow the intended chat website. Open the scripts directory configured in the Userscripts app and copy `AI-Chat-Markdown-Manager.user.js` there. Enable the script, disable the old version and reload the site. [Download the userscript](https://github.com/gubnota/ai_chat_markdown_manager/releases/latest/download/AI-Chat-Markdown-Manager.user.js) · [Complete Safari instructions](docs/INSTALL-SAFARI.md)
 
 ## 6. Tampermonkey installation
 
@@ -54,7 +54,6 @@ Enable **Save media as separate files (ZIP)** for a document plus an `assets/` d
 
 1. Open a conversation and let its messages load.
 2. Click the floating file icon. Drag it to a convenient position.
-3. Build first with `npm ci` and `npm run build`; generated installation files are kept locally.
 
 Choose **Save Current Chat** to download or **Copy Markdown** to copy to the clipboard. Use the expand button to fill the browser viewport. The X or Escape closes the manager.
 4. Open **Manage conversations**. Scroll the website's own history to discover more entries.
@@ -162,7 +161,7 @@ Open the printed localhost URL. The demonstration is explicitly a local fixture 
 npm run build
 ```
 
-Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and versioned `SHA256SUMS` file. The userscript, versioned ZIPs and checksum files are local build artifacts ignored by Git. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [Architecture](docs/ARCHITECTURE.md).
+Strict type checking precedes a production IIFE build. Run `npm run build` to generate `dist/AI-Chat-Markdown-Manager.user.js`, the root release ZIP and versioned `SHA256SUMS` file. Git ignores generated output. The tagged release publishes the userscript, ZIP and checksum manifest together. To verify downloaded assets, save all three in one directory and run `shasum -a 256 -c SHA256SUMS-v*`. Code, styles, React, Lucide, Marked and fflate are bundled locally. There are no runtime imports, remote dependencies or source maps. [GitHub Releases](https://github.com/gubnota/ai_chat_markdown_manager/releases) · [Architecture](docs/ARCHITECTURE.md)
 
 ## 18. Tests
 
